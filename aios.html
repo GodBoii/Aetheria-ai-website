@@ -1,0 +1,830 @@
+<!-- aios.html -->
+<div id="settings-view" class="profile-settings-panel">
+  <!-- Account Section (Primary - Always Shown First) -->
+  <div class="settings-section account-section active" data-section="account">
+    <h3 class="section-heading">Account</h3>
+
+    <!-- Logged Out State -->
+    <div id="account-logged-out" class="auth-state">
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" data-auth-tab="login">Login</button>
+        <button class="auth-tab-btn" data-auth-tab="signup">Sign Up</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form active">
+        <div class="form-group">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password" required>
+        </div>
+        <div id="login-error" class="auth-error"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="google-signin-btn" class="btn btn-google">
+            <i class="fab fa-google"></i>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signup-form" class="auth-form">
+        <div class="form-group">
+          <label for="signupName">Name</label>
+          <input type="text" id="signupName" placeholder="Enter your name" required>
+        </div>
+        <div class="form-group">
+          <label for="signupPhone">Mobile number</label>
+          <input type="tel" id="signupPhone" inputmode="tel" autocomplete="tel" placeholder="+919876543210" required>
+        </div>
+        <div class="form-group">
+          <label for="signupEmail">Email</label>
+          <input type="email" id="signupEmail" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label for="signupPassword">Password</label>
+          <input type="password" id="signupPassword" placeholder="Create a password" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+        </div>
+        <div id="signup-error" class="auth-error"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Sign Up</button>
+        </div>
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="google-signup-btn" class="btn btn-google">
+            <i class="fab fa-google"></i>
+            <span>Sign up with Google</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Logged In State -->
+    <div id="account-logged-in" class="auth-state hidden">
+      <!-- Profile Header Card -->
+      <div class="profile-header-card">
+        <div class="profile-avatar-large" id="profile-avatar-large">
+          <i class="fi fi-tr-circle-user"></i>
+        </div>
+        <div class="profile-info-text">
+          <div class="user-name-display" id="userName-display">User Name</div>
+          <div class="user-email-display" id="userEmail-display">user@example.com</div>
+        </div>
+      </div>
+
+      <section id="account-subscription-card" class="account-subscription-card hidden" aria-live="polite">
+        <div class="account-subscription-header">
+          <div>
+            <p class="account-subscription-eyebrow">Subscription</p>
+            <h4 id="account-subscription-title" class="account-subscription-title">Core</h4>
+          </div>
+          <span id="account-subscription-status" class="subscription-status-pill">Free</span>
+        </div>
+        <p id="account-subscription-limit" class="account-subscription-limit">50,000 tokens/day</p>
+        <p id="account-subscription-meta" class="account-subscription-meta">Current day</p>
+        <div class="subscription-meter">
+          <div class="subscription-meter-track">
+            <div id="account-subscription-meter-fill" class="subscription-meter-fill" style="width: 0%;"></div>
+          </div>
+          <div class="subscription-meter-labels">
+            <span id="account-subscription-used">Used: 0</span>
+            <span id="account-subscription-remaining">Remaining: 0</span>
+          </div>
+        </div>
+        <div class="account-subscription-actions">
+          <button id="account-manage-plans-btn" class="btn btn-primary" type="button">Manage Plans</button>
+        </div>
+      </section>
+
+      <div class="account-actions">
+        <button class="btn btn-secondary" id="logout-btn" aria-label="Logout">
+          <i class="fi fi-tr-sign-out-alt"></i>
+          <span>Log out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other Sections Menu -->
+  <div class="settings-menu-divider"></div>
+
+  <!-- Integrations Section -->
+  <button class="settings-menu-item" data-section="integrations">
+    <i class="fi fi-tr-layer-plus"></i>
+    <span>Integrations</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <button class="settings-menu-item" data-section="deployments">
+    <i class="fas fa-globe"></i>
+    <span>Deployments</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <button class="settings-menu-item" data-section="files">
+    <i class="fas fa-folder-open"></i>
+    <span>Files</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Usage Section -->
+  <button class="settings-menu-item" data-section="usage">
+    <i class="fas fa-chart-line"></i>
+    <span>Usage</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Profile Section -->
+  <button class="settings-menu-item" data-section="profile">
+    <i class="fi fi-tr-circle-user"></i>
+    <span>Profile</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Mindspace Section -->
+  <button class="settings-menu-item" data-section="mindspace">
+    <i class="fi fi-tr-brain"></i>
+    <span>Mindspace</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Theme Section -->
+  <button class="settings-menu-item" data-section="theme">
+    <i class="fi fi-tr-circle-half-stroke"></i>
+    <span>Theme</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- About Section -->
+  <button class="settings-menu-item" data-section="about">
+    <i class="fi fi-tr-information"></i>
+    <span>About</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Know Me Section -->
+  <button class="settings-menu-item" data-section="know-me">
+    <i class="fi fi-tr-sparkles"></i>
+    <span>Know Me</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Memory Section -->
+  <button class="settings-menu-item" data-section="memory">
+    <i class="fi fi-tr-brain"></i>
+    <span>Memory</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Notes Section -->
+  <button class="settings-menu-item" data-section="notes">
+    <i class="fas fa-note-sticky"></i>
+    <span>Notes</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Offline Mode Section -->
+  <button class="settings-menu-item" data-section="offline-mode">
+    <i class="fi fi-tr-bolt"></i>
+    <span>Offline Mode</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Support Section -->
+  <button class="settings-menu-item" data-section="support">
+    <i class="fa-regular fa-circle-question"></i>
+    <span>Support</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+</div>
+
+<!-- Full Screen Panels for Each Section -->
+<div id="integrations-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="integrations">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Integrations</h2>
+  </div>
+  <div class="panel-content">
+    <p class="panel-description">Connect your external accounts to enhance your experience.</p>
+
+    <!-- GitHub Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-github"></i>
+        <span>GitHub</span>
+      </div>
+      <button class="connect-btn" id="connect-github-btn" data-provider="github">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+    <!-- Google Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-google"></i>
+        <span>Google</span>
+      </div>
+      <button class="connect-btn" id="connect-google-btn" data-provider="google">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+    <!-- Google Services Subbar - Compact -->
+    <div class="google-services-subbar-compact">
+      <span class="services-label">Includes:</span>
+      <div class="service-badge" title="Gmail - Read, send, and manage emails">
+        <i class="fas fa-envelope"></i>
+        <span>Gmail</span>
+      </div>
+      <div class="service-badge" title="Google Drive - Search, read, and manage files">
+        <i class="fab fa-google-drive"></i>
+        <span>Drive</span>
+      </div>
+      <div class="service-badge" title="Google Sheets - Read, write, and manage spreadsheets">
+        <i class="fas fa-table-cells"></i>
+        <span>Sheets</span>
+      </div>
+    </div>
+
+    <!-- Google Sheets Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fas fa-table"></i>
+        <span>Google Sheets</span>
+      </div>
+      <button class="connect-btn" id="connect-googlesheets-btn" data-provider="composio-googlesheets">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+    <!-- WhatsApp Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-whatsapp"></i>
+        <span>WhatsApp</span>
+      </div>
+      <button class="connect-btn" id="connect-whatsapp-btn" data-provider="composio-whatsapp">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+    <!-- Vercel Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <svg class="integration-icon-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 1L24 22H0L12 1Z"/>
+        </svg>
+        <span>Vercel</span>
+      </div>
+      <button class="connect-btn" id="connect-vercel-btn" data-provider="vercel">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+    <!-- Supabase Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fas fa-database"></i>
+        <span>Supabase</span>
+      </div>
+      <button class="connect-btn" id="connect-supabase-btn" data-provider="supabase">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="usage-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="usage">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Usage</h2>
+    <button id="usage-refresh-btn" class="usage-refresh-btn" title="Refresh usage">
+      <i class="fas fa-rotate-right"></i>
+    </button>
+  </div>
+  <div class="panel-content">
+    <p class="panel-description">Track your token usage from your account activity.</p>
+
+    <div id="usage-loading" class="usage-state-block hidden">
+      <div class="usage-spinner"></div>
+      <span>Loading usage...</span>
+    </div>
+
+    <div id="usage-empty" class="usage-state-block hidden">
+      <i class="fas fa-user-lock usage-empty-icon"></i>
+      <p class="usage-empty-heading">Login required</p>
+      <p class="usage-empty-sub">Sign in to view your usage data.</p>
+    </div>
+
+    <div id="usage-error" class="usage-state-block hidden">
+      <i class="fas fa-exclamation-circle usage-error-icon"></i>
+      <p class="usage-empty-heading">Failed to load usage</p>
+      <p class="usage-empty-sub">Tap refresh to try again.</p>
+    </div>
+
+    <div id="usage-cards" class="usage-cards hidden">
+      <section id="usage-plan-summary" class="usage-plan-summary">
+        <div class="usage-plan-summary-main">
+          <div>
+            <p class="account-subscription-eyebrow">Current Plan</p>
+            <div id="usage-plan-name" class="usage-plan-name">Core</div>
+          </div>
+          <span id="usage-plan-status" class="subscription-status-pill">Free</span>
+        </div>
+        <p id="usage-plan-limit" class="usage-plan-limit">50,000 tokens/day</p>
+        <p id="usage-plan-period" class="usage-plan-period">Current day</p>
+        <div class="usage-meter">
+          <div class="usage-meter-track">
+            <div id="usage-plan-meter-fill" class="usage-meter-fill" style="width: 0%;"></div>
+          </div>
+          <div class="usage-meter-meta">
+            <span id="usage-plan-used">Used: 0</span>
+            <span id="usage-plan-remaining">Remaining: 0</span>
+          </div>
+        </div>
+        <button id="usage-manage-plans-btn" class="btn btn-primary usage-manage-btn" type="button">Manage Plans</button>
+        <p id="usage-source-note" class="usage-source-note hidden"></p>
+      </section>
+
+      <div class="usage-card usage-card-total">
+        <div class="usage-card-label">Lifetime Usage</div>
+        <div id="usage-total-tokens" class="usage-card-value">0</div>
+        <div class="usage-card-subtitle">Total Tokens</div>
+      </div>
+
+      <div class="usage-card">
+        <div class="usage-card-label">Input</div>
+        <div id="usage-input-tokens" class="usage-card-value">0</div>
+        <div class="usage-card-subtitle">Input Tokens</div>
+      </div>
+
+      <div class="usage-card">
+        <div class="usage-card-label">Output</div>
+        <div id="usage-output-tokens" class="usage-card-value">0</div>
+        <div class="usage-card-subtitle">Output Tokens</div>
+      </div>
+
+      <div id="usage-last-updated" class="usage-updated-text">Last updated: -</div>
+    </div>
+  </div>
+</div>
+
+<div id="profile-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="profile">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Profile Information</h2>
+  </div>
+  <div class="panel-content">
+    <form id="profile-form">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" placeholder="Enter your full name" aria-label="Full Name">
+      </div>
+      <div class="form-group">
+        <label for="nickname">Nickname</label>
+        <input type="text" id="nickname" placeholder="Enter your preferred name" aria-label="Nickname">
+      </div>
+      <div class="form-group">
+        <label for="occupation">Occupation</label>
+        <input type="text" id="occupation" placeholder="Enter your occupation" aria-label="Occupation">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="theme-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="theme">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Theme Settings</h2>
+  </div>
+  <div class="panel-content">
+    <div class="form-group">
+      <label for="theme-options">Appearance</label>
+      <div class="theme-selector" id="theme-options">
+        <button class="theme-option" data-theme="light">
+          <i class="fas fa-sun"></i> Light
+        </button>
+        <button class="theme-option active" data-theme="dark">
+          <i class="fas fa-moon"></i> Dark
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="about-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="about">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>About</h2>
+  </div>
+  <div class="panel-content">
+    <p>A modern mobile application for managing your account and preferences. Built for optimal performance and user
+      experience.</p>
+  </div>
+</div>
+
+<div id="know-me-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="know-me">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Know Me</h2>
+  </div>
+  <div class="panel-content">
+    <p class="panel-description">A quick guide to what Aetheria can do for you.</p>
+    <ul class="know-me-list">
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Native Assistant:</strong> Launch Aetheria with the power button.</div>
+        <details class="know-me-guide">
+          <summary>Setup tip</summary>
+          <p>Settings → Apps → Default apps → Digital assistant → Aetheria. Set Power button action to Assistant.</p>
+        </details>
+      </li>
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Circle to Search:</strong> Find anything on screen fast.</div>
+        <details class="know-me-guide">
+          <summary>How to use</summary>
+          <p>Open Native Assistant → press & hold the Aetheria logo → circle anything to search.</p>
+        </details>
+      </li>
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Mindspace Tile:</strong> Save screen insights instantly.</div>
+        <details class="know-me-guide">
+          <summary>How to add</summary>
+          <p>Open Quick Settings → Edit tiles → add Mindspace → tap the tile to capture.</p>
+        </details>
+      </li>
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Tasks:</strong> Capture and track follow-ups fast.</div>
+        <details class="know-me-guide">
+          <summary>How to create</summary>
+          <p>Type your task → tap the Tasks button → save. Use “Add reminder” to set a time.</p>
+        </details>
+      </li>
+      <li><strong>File Attachments:</strong> Add up to 20 files per message for richer context.</li>
+      <li><strong>Thinking Mode:</strong> Deeper reasoning when you need step-by-step clarity.</li>
+      <li><strong>Tools:</strong> Use built-in tools for search, writing, analysis, and workflows.</li>
+      <li><strong>Sub-Agents:</strong> Specialist helpers for coding, research, design, and planning.</li>
+    </ul>
+  </div>
+</div>
+
+<div id="support-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="support">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Support</h2>
+  </div>
+  <div class="panel-content">
+    <p>Contact support or access documentation here.</p>
+  </div>
+</div>
+
+<div id="offline-mode-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="offline-mode">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Offline Mode</h2>
+  </div>
+  <div class="panel-content">
+    <p class="panel-description">Run Aetheria completely offline using an on-device, lightweight AI model.</p>
+
+    <!-- Notes Section -->
+    <div class="offline-notes-section" style="margin-bottom: 20px;">
+      <h4 style="margin-bottom: 10px; color: var(--text-primary);">Notes</h4>
+      <ul class="offline-notes-list" style="list-style: none; padding: 0; margin: 0;">
+        <li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
+          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
+          <span style="color: var(--text-secondary); font-size: 14px;">Our Widget uses offline mode</span>
+        </li>
+        <li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
+          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
+          <span style="color: var(--text-secondary); font-size: 14px;">Privacy-focused processing on your device</span>
+        </li>
+        <li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
+          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
+          <span style="color: var(--text-secondary); font-size: 14px;">No internet connection required</span>
+        </li>
+        <li style="padding-left: 20px; position: relative;">
+          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
+          <span style="color: var(--text-secondary); font-size: 14px;">Slow response times with local processing</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="offline-model-status-card">
+      <div class="offline-model-header">
+        <i class="fi fi-tr-brain-circuit offline-model-icon"></i>
+        <div class="offline-model-info">
+          <h3>Aetheria ai</h3>
+          <p>Multimodal capability</p>
+        </div>
+        <div class="offline-model-badge" id="offline-status-badge">Not Downloaded</div>
+      </div>
+
+      <div class="offline-model-progress-container hidden" id="offline-progress-container">
+        <div class="offline-progress-bar">
+          <div class="offline-progress-fill" id="offline-progress-fill"></div>
+        </div>
+        <div class="offline-progress-text" id="offline-progress-text">Downloading... 0%</div>
+      </div>
+
+      <div class="offline-model-actions">
+        <button id="download-model-btn" class="btn btn-primary">
+          <i class="fas fa-download"></i> Download Model
+        </button>
+        <button id="delete-model-btn" class="btn btn-danger hidden">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Widget to take user input -->
+    <div id="offline-inference-widget" class="offline-inference-widget hidden">
+      <h3 style="margin-top:20px;margin-bottom:10px;">Test Offline Model</h3>
+      <div class="form-group" style="display: flex; gap: 10px; align-items: stretch;">
+        <input type="text" id="offline-input-text" placeholder="Ask Aetheria ai..." style="flex: 1;" />
+        <button id="offline-send-btn" class="btn btn-primary circular-btn" style="width: 48px; border-radius: 50%;"><i
+            class="fas fa-paper-plane"></i></button>
+      </div>
+      <div id="offline-chat-output"
+        style="margin-top: 10px; min-height: 100px; max-height: 250px; overflow-y: auto; background: var(--bg-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.9em;">
+        <em>Output will appear here...</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="mindspace-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="mindspace">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Mindspace</h2>
+  </div>
+  <div class="panel-content">
+    <p class="panel-description">Your local history of screen captures and analysis.</p>
+    <div id="mindspace-list" class="mindspace-list">
+      <!-- populated by js -->
+    </div>
+  </div>
+</div>
+
+<!-- Memory Panel -->
+<div id="memory-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="memory">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Memory</h2>
+    <button id="memory-add-btn" class="memory-header-add-btn" title="Add memory">
+      <i class="fas fa-plus"></i>
+    </button>
+  </div>
+
+  <!-- Add / Edit Form -->
+  <div id="memory-form-wrapper" class="memory-form-wrapper hidden">
+    <form id="memory-form" class="memory-form" novalidate>
+      <div class="memory-form-header">
+        <span id="memory-form-title" class="memory-form-title">Add Memory</span>
+        <button type="button" id="memory-form-cancel" class="memory-form-cancel-btn" title="Cancel">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label for="memory-field-memory">Memory <span class="field-required">*</span></label>
+        <textarea id="memory-field-memory" placeholder="e.g. My name is Prajwal, I am 20 years old" rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="memory-field-input">Input</label>
+        <input type="text" id="memory-field-input" placeholder="e.g. Tell me about the user">
+      </div>
+
+      <div class="memory-form-row">
+        <div class="form-group">
+          <label for="memory-field-agent">Agent ID</label>
+          <input type="text" id="memory-field-agent" placeholder="e.g. personal-assistant">
+        </div>
+        <div class="form-group">
+          <label for="memory-field-team">Team ID</label>
+          <input type="text" id="memory-field-team" placeholder="e.g. research-team">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="memory-field-topics">Topics</label>
+        <input type="text" id="memory-field-topics" placeholder="e.g. profile, preferences, education">
+      </div>
+
+      <div class="memory-form-actions">
+        <button type="button" id="memory-form-cancel2" class="btn btn-secondary">Cancel</button>
+        <button type="submit" id="memory-form-submit" class="btn btn-primary">
+          <i class="fas fa-save"></i>
+          <span id="memory-submit-label">Save Memory</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel-content" id="memory-panel-content">
+    <!-- Loading state -->
+    <div id="memory-loading" class="memory-state-block hidden">
+      <div class="memory-spinner"></div>
+      <span>Loading memories…</span>
+    </div>
+
+    <!-- Empty state -->
+    <div id="memory-empty" class="memory-state-block hidden">
+      <i class="fi fi-tr-brain memory-empty-icon"></i>
+      <p class="memory-empty-heading">No memories yet</p>
+      <p class="memory-empty-sub">Tap <strong>+</strong> to add your first memory.</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="memory-error" class="memory-state-block hidden">
+      <i class="fas fa-exclamation-circle memory-error-icon"></i>
+      <p class="memory-empty-heading">Failed to load memories</p>
+      <button id="memory-retry-btn" class="btn btn-secondary" style="margin-top:0.75rem">Retry</button>
+    </div>
+
+    <!-- Memory cards list -->
+    <div id="memory-list" class="memory-list">
+      <!-- populated by js -->
+    </div>
+  </div>
+</div>
+
+<!-- Assistant Notes Panel -->
+<div id="notes-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="notes">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Notes</h2>
+    <button id="notes-refresh-btn" class="memory-header-add-btn" title="Refresh notes">
+      <i class="fas fa-rotate-right"></i>
+    </button>
+  </div>
+  <div class="panel-content" id="notes-panel-content">
+    <p class="panel-description">Notes created by native assistant tools on this device.</p>
+    <div id="notes-storage-meta" class="notes-storage-meta">Storage: loading...</div>
+
+    <div id="notes-loading" class="memory-state-block hidden">
+      <div class="memory-spinner"></div>
+      <span>Loading notes...</span>
+    </div>
+
+    <div id="notes-empty" class="memory-state-block hidden">
+      <i class="fas fa-note-sticky memory-empty-icon"></i>
+      <p class="memory-empty-heading">No notes yet</p>
+      <p class="memory-empty-sub">Create notes with the assistant and they will appear here.</p>
+    </div>
+
+    <div id="notes-error" class="memory-state-block hidden">
+      <i class="fas fa-exclamation-circle memory-error-icon"></i>
+      <p class="memory-empty-heading">Failed to load notes</p>
+      <p class="memory-empty-sub">Try again or reopen this panel.</p>
+    </div>
+
+    <div id="notes-list" class="notes-list"></div>
+  </div>
+</div>
+
+<div id="deployments-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="deployments">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Deployments</h2>
+  </div>
+  <div class="panel-content">
+    <div class="settings-section-header">
+      <p class="panel-description">All deployed projects for your account.</p>
+    </div>
+    <div id="deployments-empty" class="settings-empty-state hidden">No deployments found.</div>
+    <div id="deployments-list" class="settings-card-list"></div>
+  </div>
+</div>
+
+<div id="files-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="files">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Files</h2>
+  </div>
+  <div id="files-panel-content" class="panel-content">
+    <div class="settings-section-header">
+      <p class="panel-description">Your persistent file vault. Upload files and make them available to your AI workflows.</p>
+    </div>
+    <div class="files-controls-stack">
+      <div class="files-controls-row files-controls-top">
+        <label class="files-search-control" for="files-search-input">
+          <i class="fas fa-magnifying-glass"></i>
+          <input id="files-search-input" type="text" placeholder="Search files" />
+        </label>
+        <div class="files-controls-actions files-primary-actions">
+          <button class="btn btn-primary settings-refresh-btn files-icon-btn" id="settings-upload-file-btn" type="button" title="Upload files" aria-label="Upload files">
+            <i class="fas fa-upload"></i>
+          </button>
+          <button class="btn btn-secondary settings-refresh-btn files-icon-btn" id="refresh-files-btn" type="button" title="Refresh files" aria-label="Refresh files">
+            <i class="fas fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+      <div class="files-controls-row files-controls-bottom">
+        <div class="files-view-toggle" role="tablist" aria-label="File view mode">
+          <button id="files-view-detailed-btn" class="files-view-btn active" type="button" data-view-mode="detailed" title="Detailed view" aria-label="Detailed view">
+            <i class="fas fa-list"></i>
+          </button>
+          <button id="files-view-preview-btn" class="files-view-btn" type="button" data-view-mode="preview" title="Preview view" aria-label="Preview view">
+            <i class="fas fa-table-cells-large"></i>
+          </button>
+        </div>
+        <div class="files-controls-actions files-secondary-actions">
+          <button class="btn btn-secondary settings-refresh-btn files-icon-btn files-folder-btn" id="open-files-cache-folder-btn" type="button" title="Open local cache folder" aria-label="Open local cache folder">
+            <i class="fas fa-folder-open"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <input id="settings-files-input" type="file" multiple class="hidden" />
+    <div id="files-empty" class="settings-empty-state hidden">No files found.</div>
+    <div id="files-list" class="settings-card-list files-detailed-view"></div>
+    <div id="files-inline-preview" class="files-inline-preview hidden" aria-live="polite"></div>
+  </div>
+</div>
+
+<div id="subscription-modal" class="subscription-modal hidden" role="dialog" aria-modal="true" aria-labelledby="subscription-modal-title">
+  <div id="subscription-modal-backdrop" class="subscription-modal-backdrop"></div>
+  <div class="subscription-modal-sheet">
+    <div class="subscription-modal-handle"></div>
+    <div class="subscription-modal-header">
+      <div>
+        <p class="subscription-modal-eyebrow">Plans</p>
+        <h2 id="subscription-modal-title">Manage Subscription</h2>
+      </div>
+      <button id="subscription-modal-close" class="subscription-modal-close" type="button" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="subscription-modal-content">
+      <section class="subscription-hero-card">
+        <div class="subscription-hero-header">
+          <div>
+            <p class="subscription-hero-eyebrow">Current plan</p>
+            <h3 id="subscription-hero-title" class="subscription-hero-title">Core</h3>
+          </div>
+          <span id="subscription-hero-status" class="subscription-status-pill">Free</span>
+        </div>
+        <p id="subscription-hero-limit" class="subscription-hero-limit">50,000 tokens/day</p>
+        <p id="subscription-hero-period" class="subscription-hero-period">Current day</p>
+      </section>
+      <div id="subscription-plan-grid" class="subscription-plan-grid"></div>
+      <p id="subscription-modal-footnote" class="subscription-modal-footnote">Choose a plan to continue.</p>
+    </div>
+  </div>
+</div>

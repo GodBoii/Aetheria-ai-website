@@ -1,0 +1,16 @@
+{
+  "name": "aetheria-ai",
+  "version": "1.0.4",
+  "description": "Aetheria AI PWA: An AI-Powered Progressive Web Application",
+  "scripts": {
+    "start": "http-server . -p 3000 -c-1",
+    "build": "node scripts/build.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.10",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

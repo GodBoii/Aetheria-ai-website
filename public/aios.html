@@ -1,0 +1,427 @@
+<!-- aios.html -->
+<div id="settings-view" class="profile-settings-panel">
+  <!-- Account Section (Primary - Always Shown First) -->
+  <div class="settings-section account-section active" data-section="account">
+          <h3 class="section-heading">Account</h3>
+
+          <!-- Logged Out State -->
+          <div id="account-logged-out" class="auth-state">
+            <div class="auth-tabs">
+              <button class="auth-tab-btn active" data-auth-tab="login">Login</button>
+              <button class="auth-tab-btn" data-auth-tab="signup">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+              <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" placeholder="Enter your email" required>
+              </div>
+              <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password" required>
+              </div>
+              <div id="login-error" class="auth-error"></div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Login</button>
+              </div>
+              <div class="auth-divider">
+                <span>or</span>
+              </div>
+              <div class="form-actions">
+                <button type="button" id="google-signin-btn" class="btn btn-google">
+                  <i class="fab fa-google"></i>
+                  <span>Continue with Google</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- Sign Up Form -->
+            <form id="signup-form" class="auth-form">
+        <div class="form-group">
+          <label for="signupName">Name</label>
+          <input type="text" id="signupName" placeholder="Enter your name" required>
+        </div>
+        <div class="form-group">
+          <label for="signupPhone">Mobile number</label>
+          <input type="tel" id="signupPhone" inputmode="tel" autocomplete="tel" placeholder="+919876543210" required>
+        </div>
+        <div class="form-group">
+          <label for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" placeholder="Enter your email" required>
+              </div>
+              <div class="form-group">
+                <label for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" placeholder="Create a password" required>
+              </div>
+              <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+              </div>
+              <div id="signup-error" class="auth-error"></div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Sign Up</button>
+              </div>
+              <div class="auth-divider">
+                <span>or</span>
+              </div>
+              <div class="form-actions">
+                <button type="button" id="google-signup-btn" class="btn btn-google">
+                  <i class="fab fa-google"></i>
+                  <span>Sign up with Google</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Logged In State -->
+          <div id="account-logged-in" class="auth-state hidden">
+            <!-- Profile Header Card -->
+            <div class="profile-header-card">
+              <div class="profile-avatar-large" id="profile-avatar-large">
+                <i class="fi fi-tr-circle-user"></i>
+              </div>
+              <div class="profile-info-text">
+                <div class="user-name-display" id="userName-display">User Name</div>
+                <div class="user-email-display" id="userEmail-display">user@example.com</div>
+              </div>
+            </div>
+
+            <div class="account-actions">
+              <button class="btn btn-secondary" id="logout-btn" aria-label="Logout">
+                <i class="fi fi-tr-sign-out-alt"></i>
+                <span>Log out</span>
+              </button>
+            </div>
+          </div>
+  </div>
+
+  <!-- Other Sections Menu -->
+  <div class="settings-menu-divider"></div>
+
+  <!-- Integrations Section -->
+  <button class="settings-menu-item" data-section="integrations">
+    <i class="fi fi-tr-layer-plus"></i>
+    <span>Integrations</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <button class="settings-menu-item" data-section="deployments">
+    <i class="fas fa-globe"></i>
+    <span>Deployments</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <button class="settings-menu-item" data-section="files">
+    <i class="fas fa-folder-open"></i>
+    <span>Files</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Profile Section -->
+  <button class="settings-menu-item" data-section="profile">
+    <i class="fi fi-tr-circle-user"></i>
+    <span>Profile</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Theme Section -->
+  <button class="settings-menu-item" data-section="theme">
+    <i class="fi fi-tr-circle-half-stroke"></i>
+    <span>Theme</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- About Section -->
+  <button class="settings-menu-item" data-section="about">
+    <i class="fi fi-tr-information"></i>
+    <span>About</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Know Me Section -->
+  <button class="settings-menu-item" data-section="know-me">
+    <i class="fi fi-tr-sparkles"></i>
+    <span>Know Me</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+
+  <!-- Support Section -->
+  <button class="settings-menu-item" data-section="support">
+    <i class="fa-regular fa-circle-question"></i>
+    <span>Support</span>
+    <i class="fas fa-chevron-right item-arrow"></i>
+  </button>
+</div>
+
+<!-- Full Screen Panels for Each Section -->
+<div id="integrations-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="integrations">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Integrations</h2>
+  </div>
+  <div class="panel-content">
+    <p class="panel-description">Connect your external accounts to enhance your experience.</p>
+    
+    <!-- GitHub Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-github"></i>
+        <span>GitHub</span>
+      </div>
+      <button class="connect-btn" id="connect-github-btn" data-provider="github">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+    <!-- Google Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-google"></i>
+        <span>Google</span>
+      </div>
+      <button class="connect-btn" id="connect-google-btn" data-provider="google">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+    <!-- Google Services Subbar - Compact -->
+    <div class="google-services-subbar-compact">
+      <span class="services-label">Includes:</span>
+      <div class="service-badge" title="Gmail - Read, send, and manage emails">
+        <i class="fas fa-envelope"></i>
+        <span>Gmail</span>
+      </div>
+      <div class="service-badge" title="Google Drive - Search, read, and manage files">
+        <i class="fab fa-google-drive"></i>
+        <span>Drive</span>
+      </div>
+      <div class="service-badge" title="Google Sheets - Read, write, and manage spreadsheets">
+        <i class="fas fa-table-cells"></i>
+        <span>Sheets</span>
+      </div>
+    </div>
+
+    <!-- Vercel Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <svg class="integration-icon-svg" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 1L24 22H0L12 1Z"/>
+        </svg>
+        <span>Vercel</span>
+      </div>
+      <button class="connect-btn" id="connect-vercel-btn" data-provider="vercel">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+    <!-- Supabase Integration Item -->
+    <div class="integration-item">
+      <div class="integration-info">
+        <i class="fas fa-database"></i>
+        <span>Supabase</span>
+      </div>
+      <button class="connect-btn" id="connect-supabase-btn" data-provider="supabase">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="profile-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="profile">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Profile Information</h2>
+  </div>
+  <div class="panel-content">
+    <form id="profile-form">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" placeholder="Enter your full name" aria-label="Full Name">
+      </div>
+      <div class="form-group">
+        <label for="nickname">Nickname</label>
+        <input type="text" id="nickname" placeholder="Enter your preferred name" aria-label="Nickname">
+      </div>
+      <div class="form-group">
+        <label for="occupation">Occupation</label>
+        <input type="text" id="occupation" placeholder="Enter your occupation" aria-label="Occupation">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="deployments-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="deployments">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Deployments</h2>
+  </div>
+  <div class="panel-content">
+    <div class="settings-section-header">
+      <p class="panel-description">All deployed projects for your account.</p>
+      <button class="btn btn-secondary settings-refresh-btn" id="refresh-deployments-btn">
+        <i class="fas fa-rotate"></i>
+        <span>Refresh</span>
+      </button>
+    </div>
+    <div id="deployments-empty" class="settings-empty-state hidden">No deployments found.</div>
+    <div id="deployments-list" class="settings-card-list"></div>
+  </div>
+</div>
+
+<div id="files-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="files">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Files</h2>
+  </div>
+  <div id="files-panel-content" class="panel-content">
+    <div class="settings-section-header">
+      <p class="panel-description">Your persistent file vault. Upload files and make them available to your AI workflows.</p>
+    </div>
+    <div class="files-controls-stack">
+      <div class="files-controls-row files-controls-top">
+        <label class="files-search-control" for="files-search-input">
+          <i class="fas fa-magnifying-glass"></i>
+          <input id="files-search-input" type="text" placeholder="Search files" />
+        </label>
+        <div class="files-controls-actions files-primary-actions">
+          <button class="btn btn-primary settings-refresh-btn files-icon-btn" id="settings-upload-file-btn" type="button" title="Upload files" aria-label="Upload files">
+            <i class="fas fa-upload"></i>
+          </button>
+          <button class="btn btn-secondary settings-refresh-btn files-icon-btn" id="refresh-files-btn" type="button" title="Refresh files" aria-label="Refresh files">
+            <i class="fas fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+      <div class="files-controls-row files-controls-bottom">
+        <div class="files-view-toggle" role="tablist" aria-label="File view mode">
+          <button id="files-view-detailed-btn" class="files-view-btn active" type="button" data-view-mode="detailed" title="Detailed view" aria-label="Detailed view">
+            <i class="fas fa-list"></i>
+          </button>
+          <button id="files-view-preview-btn" class="files-view-btn" type="button" data-view-mode="preview" title="Preview view" aria-label="Preview view">
+            <i class="fas fa-table-cells-large"></i>
+          </button>
+        </div>
+        <div class="files-controls-actions files-secondary-actions">
+          <button class="btn btn-secondary settings-refresh-btn files-icon-btn files-folder-btn" id="open-files-cache-folder-btn" type="button" title="Open local cache folder" aria-label="Open local cache folder">
+            <i class="fas fa-folder-open"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <input id="settings-files-input" type="file" multiple class="hidden" />
+    <div id="files-empty" class="settings-empty-state hidden">No files found.</div>
+    <div id="files-list" class="settings-card-list files-detailed-view"></div>
+    <div id="files-inline-preview" class="files-inline-preview hidden" aria-live="polite"></div>
+  </div>
+</div>
+
+<div id="theme-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="theme">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Theme Settings</h2>
+  </div>
+  <div class="panel-content">
+    <div class="form-group">
+      <label for="theme-options">Appearance</label>
+      <div class="theme-selector" id="theme-options">
+        <button class="theme-option" data-theme="light">
+          <i class="fas fa-sun"></i> Light
+        </button>
+        <button class="theme-option active" data-theme="dark">
+          <i class="fas fa-moon"></i> Dark
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="about-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="about">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>About</h2>
+  </div>
+  <div class="panel-content">
+    <p>A modern mobile application for managing your account and preferences. Built for optimal performance and user experience.</p>
+  </div>
+</div>
+
+<div id="know-me-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="know-me">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Know Me</h2>
+  </div>
+  <div class="panel-content">
+    <p class="panel-description">A quick guide to what Aetheria can do for you.</p>
+    <ul class="know-me-list">
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Native Assistant:</strong> Launch Aetheria with the power button.</div>
+        <details class="know-me-guide">
+          <summary>Setup tip</summary>
+          <p>Settings → Apps → Default apps → Digital assistant → Aetheria. Set Power button action to Assistant.</p>
+        </details>
+      </li>
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Circle to Search:</strong> Find anything on screen fast.</div>
+        <details class="know-me-guide">
+          <summary>How to use</summary>
+          <p>Open Native Assistant → press & hold the Aetheria logo → circle anything to search.</p>
+        </details>
+      </li>
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Mindspace Tile:</strong> Save screen insights instantly.</div>
+        <details class="know-me-guide">
+          <summary>How to add</summary>
+          <p>Open Quick Settings → Edit tiles → add Mindspace → tap the tile to capture.</p>
+        </details>
+      </li>
+      <li class="know-me-item">
+        <div class="know-me-item-header"><strong>Tasks:</strong> Capture and track follow-ups fast.</div>
+        <details class="know-me-guide">
+          <summary>How to create</summary>
+          <p>Type your task → tap the Tasks button → save. Use “Add reminder” to set a time.</p>
+        </details>
+      </li>
+      <li><strong>File Attachments:</strong> Add up to 20 files per message for richer context.</li>
+      <li><strong>Thinking Mode:</strong> Deeper reasoning when you need step-by-step clarity.</li>
+      <li><strong>Tools:</strong> Use built-in tools for search, writing, analysis, and workflows.</li>
+      <li><strong>Sub-Agents:</strong> Specialist helpers for coding, research, design, and planning.</li>
+    </ul>
+  </div>
+</div>
+
+<div id="support-panel" class="settings-full-panel hidden">
+  <div class="panel-header">
+    <button class="back-to-menu-btn" data-back="support">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h2>Support</h2>
+  </div>
+  <div class="panel-content">
+    <p>Contact support or access documentation here.</p>
+  </div>
+</div>

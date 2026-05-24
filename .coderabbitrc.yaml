@@ -1,0 +1,205 @@
+# Coderabbit Configuration for Aetheria AI Mobile Project
+# This configuration enables comprehensive code reviews across the entire codebase
+
+# Enable Coderabbit for this repository
+enabled: true
+
+# Review scope - set to 'full' to analyze entire codebase even for small PRs
+review_scope: full
+
+# Language-specific settings
+languages:
+  python:
+    # Enable comprehensive Python analysis
+    enabled: true
+    # Check for security vulnerabilities
+    security_checks: true
+    # Analyze code complexity
+    complexity_analysis: true
+    # Check for PEP 8 compliance
+    style_checks: true
+    
+  javascript:
+    # Enable comprehensive JavaScript analysis
+    enabled: true
+    # Check for security vulnerabilities
+    security_checks: true
+    # Analyze code complexity
+    complexity_analysis: true
+    # Check for ESLint compliance
+    style_checks: true
+    
+  typescript:
+    enabled: true
+    security_checks: true
+    complexity_analysis: true
+    
+  html:
+    enabled: true
+    # Check for accessibility issues
+    accessibility_checks: true
+    # Validate HTML structure
+    structure_validation: true
+    
+  css:
+    enabled: true
+    # Check for CSS best practices
+    best_practices: true
+
+# File patterns to include in analysis
+filePatterns:
+  # Python backend files
+  - "python-backend/**/*.py"
+  - "**/*.py"
+  
+  # JavaScript frontend files
+  - "js/**/*.js"
+  - "**/*.js"
+  
+  # TypeScript files (if any)
+  - "**/*.ts"
+  
+  # HTML files
+  - "**/*.html"
+  - "public/**/*.html"
+  
+  # CSS files
+  - "css/**/*.css"
+  - "dist/css/**/*.css"
+  - "**/*.css"
+  
+  # Configuration files
+  - "package.json"
+  - "requirements.txt"
+  - "Dockerfile*"
+  - "docker-compose.yml"
+  - "*.yaml"
+  - "*.yml"
+  
+  # Mobile-specific files
+  - "android/**/*"
+  - "ios/**/*"
+  - "capacitor.config.json"
+  - "manifest.json"
+
+# File patterns to exclude from analysis
+excludePatterns:
+  # Generated and build files
+  - "node_modules/**/*"
+  - "__pycache__/**/*"
+  - "dist/**/*"
+  - "build/**/*"
+  
+  # Log files
+  - "*.log"
+  - "**/*.log"
+  
+  # Temporary files
+  - "*.tmp"
+  - "*.temp"
+  
+  # Large media files
+  - "*.mp4"
+  - "*.mp3"
+  - "*.png"
+  - "*.jpg"
+  - "*.jpeg"
+  - "*.gif"
+  
+  # Database files
+  - "*.csv"
+  - "*.sql"
+
+# Review rules and settings
+rules:
+  # Security rules
+  security:
+    # Check for hardcoded secrets
+    detect_secrets: true
+    # Check for SQL injection vulnerabilities
+    sql_injection: true
+    # Check for XSS vulnerabilities
+    xss: true
+    # Check for insecure dependencies
+    dependency_check: true
+    
+  # Code quality rules
+  quality:
+    # Check for code duplication
+    duplication_check: true
+    # Check for complex functions
+    complexity_threshold: 10
+    # Check for long functions
+    max_function_length: 50
+    # Check for long files
+    max_file_length: 500
+    
+  # Performance rules
+  performance:
+    # Check for performance anti-patterns
+    anti_patterns: true
+    # Check for memory leaks
+    memory_leaks: true
+    # Check for inefficient loops
+    loop_optimization: true
+
+# Custom instructions for Coderabbit
+custom_instructions: |
+  You are reviewing the Aetheria AI Mobile project, which consists of:
+  
+  1. **Flask Backend** (python-backend/): AI-powered assistant with OAuth integrations, Socket.IO, and Supabase
+  2. **PWA Frontend**: Mobile-focused progressive web app with JavaScript modules
+  3. **Mobile Components**: Android and iOS native components via Capacitor
+  
+  Key areas to focus on:
+  - Security: OAuth flows, API keys, database connections
+  - Performance: Mobile optimization, bundle sizes, loading times
+  - Accessibility: PWA features, mobile UX
+  - Code quality: Error handling, async operations, state management
+  
+  The project uses:
+  - Backend: Flask, Supabase, Socket.IO, Celery
+  - Frontend: Vanilla JavaScript, PWA, Service Workers
+  - Mobile: Capacitor, Android/iOS native builds
+  - Database: Supabase (PostgreSQL)
+  
+  Please provide detailed feedback on:
+  1. Security vulnerabilities and best practices
+  2. Mobile performance optimizations
+  3. PWA compliance and features
+  4. Code maintainability and architecture
+  5. Error handling and edge cases
+
+# Integration settings
+integrations:
+  # GitHub integration
+  github:
+    # Auto-comment on PRs
+    auto_comment: true
+    # Create summary comments
+    summary_comments: true
+    # Enable line-by-line comments
+    line_comments: true
+    
+  # Slack notifications (optional)
+  slack:
+    enabled: false
+    webhook_url: ""
+
+# Review depth settings
+review_depth:
+  # Maximum number of files to analyze in a single review
+  max_files: 100
+  # Maximum lines per file to analyze
+  max_lines_per_file: 1000
+  # Timeout for analysis (in seconds)
+  timeout: 300
+
+# Reporting settings
+reporting:
+  # Generate detailed reports
+  detailed_reports: true
+  # Include metrics in reports
+  include_metrics: true
+  # Export reports to file
+  export_reports: false

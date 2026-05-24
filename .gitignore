@@ -1,0 +1,93 @@
+# Dependencies
+node_modules/
+aios/
+
+# Environment variables
+.env
+.env.local
+.env*.local
+
+# Logs
+*.log
+*.txt
+!requirements*.txt
+!package-lock.json
+
+# Documentation and notes (exclude all .md except README.md)
+*.md
+!README.md
+
+# Data files
+*.csv
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!convex/tsconfig.json
+!next.config.js
+!tailwind.config.js
+!postcss.config.js
+!vercel.json
+!.well-known/assetlinks.json
+!render.yaml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Gradle
+.gradle/
+gradle/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Agent and workflow files
+.agent/
+.gemini/
+
+# Media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.mkv
+
+# Image files (keep only essential ones)
+*.png
+!assets/*.png
+!public/assets/*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+!assets/*.ico
+!public/assets/*.ico
+
+# SQL files (usually not needed in repo)
+*.sql
+
+# GitHub workflows (keep these)
+# .github/
+
+# Well-known (keep this for verification)
+# .well-known/

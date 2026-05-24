@@ -1,0 +1,173 @@
+/* Assistant Overlay Styles */
+body.assistant-overlay-active,
+body.assistant-overlay-active html {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+.assist-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    pointer-events: none;
+    /* Allow clicks through when hidden */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.assist-overlay:not(.hidden) {
+    pointer-events: auto;
+}
+
+.assist-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(2px);
+}
+
+.assist-overlay:not(.hidden) .assist-backdrop {
+    opacity: 1;
+}
+
+.assist-sheet {
+    position: relative;
+    width: 100%;
+    background: linear-gradient(180deg, #1e1e1e 0%, #000000 100%);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    min-height: 200px;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+    border-top: 2px solid transparent;
+}
+
+.assist-overlay:not(.hidden) .assist-sheet::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853, #4285f4);
+    background-size: 400% 400%;
+    z-index: 10;
+    border-top-left-radius: 26px;
+    border-top-right-radius: 26px;
+    animation: gemini-glow 3s linear infinite;
+}
+
+@keyframes gemini-glow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+.assist-handle {
+    width: 40px;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    margin-bottom: 10px;
+}
+
+/* Glowing Orb / Brand Animation */
+.assist-glow-orb {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #4285f4 0%, #ea4335 25%, #fbbc05 50%, #34a853 75%, transparent 100%);
+    background-size: 200% 200%;
+    filter: blur(8px);
+    animation: orb-spin 3s linear infinite, orb-pulse 2s ease-in-out infinite alternate;
+    box-shadow: 0 0 20px rgba(66, 133, 244, 0.6);
+}
+
+.assist-status {
+    font-size: 1.2rem;
+    color: white;
+    font-weight: 500;
+}
+
+.assist-response {
+    width: 100%;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    line-height: 1.5;
+    min-height: 20px;
+}
+
+.assist-input-area {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Animations */
+@keyframes orb-spin {
+    0% {
+        background-position: 0% 50%;
+        transform: rotate(0deg);
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes orb-pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+/* Light Mode Support */
+body:not(.dark-mode) .assist-sheet {
+    background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
+}
+
+body:not(.dark-mode) .assist-status {
+    color: #202124;
+}
+
+body:not(.dark-mode) .assist-response {
+    color: #202124;
+}
+
+body:not(.dark-mode) .assist-handle {
+    background-color: rgba(0, 0, 0, 0.2);
+}
