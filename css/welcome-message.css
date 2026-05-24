@@ -206,3 +206,10 @@
         -webkit-text-fill-color: unset;
     }
 }
+
+@media (min-width: 769px) {
+    .welcome-container {
+        top: 30%;
+    }
+}
+
