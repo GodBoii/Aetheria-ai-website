@@ -43,11 +43,11 @@ html {
 .top-bar {
     box-sizing: border-box;
     /* Use safe-area-inset-top strictly + 2px gap, with fallback */
-    padding-top: max(env(safe-area-inset-top), 45px) !important;
+    padding-top: max(env(safe-area-inset-top), 12px) !important;
     padding-bottom: 0px !important;
     height: auto !important;
     /* The visible header height (60px) + the safe area */
-    min-height: calc(60px + max(env(safe-area-inset-top), 45px)) !important;
+    min-height: calc(60px + max(env(safe-area-inset-top), 12px)) !important;
     /* Ensure content remains centered in the visible bar area */
     display: flex;
     align-items: center;
