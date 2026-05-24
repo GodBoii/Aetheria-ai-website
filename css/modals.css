@@ -169,23 +169,25 @@ body:not(.dark-mode) .dropdown-item i {
     transition: padding 0.3s ease;
 }
 
-.floating-input-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 100%;
-}
+@media (max-width: 768px) {
+    .floating-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
 
-/* Override desktop positioning - keep input container in place for mobile */
-.floating-input-container.welcome-mode,
-.floating-input-container.chat-mode,
-.floating-input-container.centered {
-    position: relative !important;
-    bottom: auto !important;
-    left: auto !important;
-    transform: none !important;
-    width: 100% !important;
-    max-width: none !important;
+    /* Override desktop positioning - keep input container in place for mobile */
+    .floating-input-container.welcome-mode,
+    .floating-input-container.chat-mode,
+    .floating-input-container.centered {
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
 }
 
 .input-action-menu {

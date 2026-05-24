@@ -771,3 +771,163 @@ body:not(.dark-mode) .voice-input-btn:hover {
 .voice-input-btn.listening .waveform-container.is-silent .waveform-bar::after {
     opacity: 0.35;
 }
+
+/* --- Desktop Specific Styles (Floating Input Redesign) --- */
+@media (min-width: 769px) {
+    /* 1. Center the big floating container only in welcome mode */
+    .floating-input-container.welcome-mode,
+    .floating-input-container.centered {
+        top: 50% !important;
+        bottom: auto !important;
+        transform: translate(-50%, -50%) !important;
+    }
+
+    /* Common sizing for both modes on desktop */
+    .floating-input-container {
+        width: 760px !important;
+        max-width: 90vw !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 16px !important;
+        padding: 0 !important;
+    }
+
+    /* Ensure it stays at bottom in chat mode */
+    .floating-input-container.chat-mode {
+        top: auto !important;
+        bottom: 24px !important;
+        transform: translateX(-50%) !important;
+    }
+
+    /* 2. Style the inner input field to be the actual visible box */
+    .input-field {
+        display: grid !important;
+        grid-template-columns: auto auto 1fr auto auto !important;
+        grid-template-rows: auto auto !important;
+        gap: 8px 4px !important;
+        padding: 16px 20px 12px 20px !important;
+        border-radius: 16px !important;
+        background-color: #1a1a1a !important; /* Dark grey like desktop-ui */
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    /* 3. Textarea takes the full top row */
+    .input-field .floating-input {
+        grid-column: 1 / -1 !important;
+        grid-row: 1 !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 14px 16px 14px !important;
+        min-height: 48px !important;
+        font-size: 1.05rem !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    /* 4. Bottom Row Layout */
+    
+    /* Plus Button (Hide on desktop, we use the expanded menu) */
+    #attach-file-btn {
+        display: none !important;
+    }
+
+    /* Action Menu (Toolbar Left) */
+    .floating-input-container .input-action-menu {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        position: static !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 4px !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        min-width: auto !important;
+        transform: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    .floating-input-container .input-action-menu.hidden {
+        display: flex !important;
+    }
+
+    .input-action-menu::before {
+        display: none !important;
+    }
+
+    .input-action-menu-item {
+        padding: 8px !important;
+        border-radius: 8px !important;
+        background: transparent !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        width: 36px !important;
+        height: 36px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .input-action-menu-item:hover {
+        color: rgba(255, 255, 255, 0.9) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .input-action-menu-item i {
+        font-size: 1.1rem !important;
+        width: auto !important;
+    }
+
+    .input-action-menu-item span {
+        display: none !important;
+    }
+
+    #voice-input-btn {
+        grid-column: 4 !important;
+        grid-row: 2 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        font-size: 1.1rem !important;
+        margin: 0 !important;
+    }
+
+    #voice-input-btn:hover {
+        color: rgba(255, 255, 255, 0.9) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    #send-message {
+        grid-column: 5 !important;
+        grid-row: 2 !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        border-radius: 12px !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    #send-message i {
+        font-size: 0.95rem !important;
+    }
+
+    #send-message:hover {
+        background-color: #f5f5f5 !important;
+    }
+}
