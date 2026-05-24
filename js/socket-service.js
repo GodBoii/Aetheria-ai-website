@@ -10,7 +10,7 @@ import { supabase } from './supabase-client.js';
 
 // Backend URL - Local Testing
 
-const BACKEND_URL = 'https://api.pawsitivestrides.store';
+const BACKEND_URL = 'https://api.aetheriaai.website';
 
 let socket = null;
 let socketAuthToken = null;
