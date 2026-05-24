@@ -156,7 +156,8 @@ self.addEventListener('fetch', (event) => {
   // Strategy 1: Network-first for other API calls (with timeout)
   if (url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/login/') ||
-    url.hostname.includes('api.pawsitivestrides.store') ||
+    url.hostname.includes('api.aetheriaai.website') ||
+    url.hostname.includes('api.aetheriaai.online') ||
     url.hostname.includes('supabase.co')) {
     event.respondWith(networkFirstWithTimeout(request, 5000));
     return;
