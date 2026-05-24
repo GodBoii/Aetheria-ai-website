@@ -4,7 +4,7 @@ import { supabase } from './supabase-client.js';
 import { chatModule } from './chat.js';
 
 // Backend URL for file upload API - Production (Cloudflare Tunnel)
-const API_PROXY_URL = 'https://api.pawsitivestrides.store';
+const API_PROXY_URL = 'https://api.aetheriaai.website';
 
 class FileAttachmentHandler {
   constructor() {
