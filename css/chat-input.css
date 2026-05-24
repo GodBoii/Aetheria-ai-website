@@ -805,14 +805,15 @@ body:not(.dark-mode) .voice-input-btn:hover {
         display: grid !important;
         grid-template-columns: auto auto 1fr auto auto !important;
         grid-template-rows: auto auto !important;
-        gap: 8px 4px !important;
-        padding: 16px 20px 12px 20px !important;
+        gap: 0 !important;
+        padding: 0 !important;
         border-radius: 16px !important;
-        background-color: #1a1a1a !important; /* Dark grey like desktop-ui */
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background-color: var(--window-bg, #1a1a1a) !important;
+        border: 2px solid var(--border-color, rgba(255, 255, 255, 0.08)) !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
         align-items: center !important;
         width: 100% !important;
+        overflow: hidden !important;
     }
 
     /* 3. Textarea takes the full top row */
@@ -821,11 +822,14 @@ body:not(.dark-mode) .voice-input-btn:hover {
         grid-row: 1 !important;
         background-color: transparent !important;
         border: none !important;
+        border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08)) !important;
+        border-radius: 16px 16px 0 0 !important;
         box-shadow: none !important;
-        padding: 0 14px 16px 14px !important;
+        padding: 18px 20px !important;
         min-height: 48px !important;
-        font-size: 1.05rem !important;
-        color: rgba(255, 255, 255, 0.9) !important;
+        font-size: calc(1.05rem + 2px) !important;
+        color: var(--text-color, rgba(255, 255, 255, 0.9)) !important;
+        margin: 0 !important;
     }
 
     /* 4. Bottom Row Layout */
@@ -843,11 +847,11 @@ body:not(.dark-mode) .voice-input-btn:hover {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 4px !important;
+        gap: 8px !important;
         background: transparent !important;
         box-shadow: none !important;
         border: none !important;
-        padding: 0 !important;
+        padding: 10px 16px !important;
         min-width: auto !important;
         transform: none !important;
         opacity: 1 !important;
@@ -864,19 +868,20 @@ body:not(.dark-mode) .voice-input-btn:hover {
 
     .input-action-menu-item {
         padding: 8px !important;
-        border-radius: 8px !important;
+        border-radius: 12px !important;
         background: transparent !important;
-        color: rgba(255, 255, 255, 0.6) !important;
+        color: var(--text-secondary, rgba(255, 255, 255, 0.6)) !important;
         width: 36px !important;
         height: 36px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        transition: background 0.2s ease, color 0.2s ease !important;
     }
 
     .input-action-menu-item:hover {
-        color: rgba(255, 255, 255, 0.9) !important;
-        background: rgba(255, 255, 255, 0.1) !important;
+        color: var(--accent-color, rgba(255, 255, 255, 0.9)) !important;
+        background: var(--hover-bg, rgba(255, 255, 255, 0.1)) !important;
     }
 
     .input-action-menu-item i {
@@ -897,14 +902,19 @@ body:not(.dark-mode) .voice-input-btn:hover {
         width: 36px !important;
         height: 36px !important;
         min-width: 36px !important;
-        color: rgba(255, 255, 255, 0.6) !important;
+        min-height: 36px !important;
+        padding: 0 !important;
+        color: var(--text-secondary, rgba(255, 255, 255, 0.6)) !important;
         font-size: 1.1rem !important;
-        margin: 0 !important;
+        margin: 10px 4px 10px 0 !important;
+        border-radius: 12px !important;
+        transition: background 0.2s ease, color 0.2s ease !important;
+        align-self: center !important;
     }
 
     #voice-input-btn:hover {
-        color: rgba(255, 255, 255, 0.9) !important;
-        background: rgba(255, 255, 255, 0.1) !important;
+        color: var(--accent-color, rgba(255, 255, 255, 0.9)) !important;
+        background: var(--hover-bg, rgba(255, 255, 255, 0.1)) !important;
     }
 
     #send-message {
@@ -913,14 +923,27 @@ body:not(.dark-mode) .voice-input-btn:hover {
         width: 36px !important;
         height: 36px !important;
         min-width: 36px !important;
+        min-height: 36px !important;
+        padding: 0 !important;
         border-radius: 12px !important;
         background-color: #ffffff !important;
         color: #000000 !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-        margin: 0 !important;
+        margin: 10px 16px 10px 4px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        transition: background-color 0.2s ease !important;
+        align-self: center !important;
+    }
+
+    body:not(.dark-mode) #send-message {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+    }
+
+    body:not(.dark-mode) #send-message:hover {
+        background-color: #2e2e2e !important;
     }
 
     #send-message i {
