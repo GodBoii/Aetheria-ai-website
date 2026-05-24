@@ -10,9 +10,9 @@ import { DeploySettingsManager } from './deploy-settings-manager.js';
 import { OfflineModelManager } from './offline-model-manager.js';
 
 // Backend URL for OAuth integrations - Production (Cloudflare Tunnel)
-const OAUTH_BACKEND_URL = 'https://api.pawsitivestrides.store';
+const OAUTH_BACKEND_URL = 'https://api.aetheriaai.website';
 // Backend URL for API calls - Production (Cloudflare Tunnel)
-const API_BACKEND_URL = 'https://api.pawsitivestrides.store';
+const API_BACKEND_URL = 'https://api.aetheriaai.website';
 const COMPOSIO_PROVIDERS = {
     'composio-googlesheets': {
         toolkit: 'GOOGLESHEETS',
