@@ -21,6 +21,12 @@ ENV/
 *.log
 *.csv
 *.json
+!package.json
+!package-lock.json
+!vercel.json
+!manifest.json
+!tsconfig.json
+!.well-known/assetlinks.json
 agno_sessions_rows*.csv
 agno_sessions_rows*.json
 
