@@ -9,7 +9,7 @@
 .top-bar-center-slot {
     position: absolute;
     left: 50%;
-    top: calc(max(env(safe-area-inset-top), 45px) + 6px);
+    top: calc(max(env(safe-area-inset-top), 12px) + 6px);
     transform: translateX(-50%);
     pointer-events: none;
     z-index: 2;
