@@ -1,0 +1,270 @@
+/* =================================================================
+ * DESKTOP-ONLY OVERRIDES (>= 1024px)
+ * Mirrors the AI-OS desktop app: sidebar + pills + carousel
+ *
+ * Below 1024px the existing mobile layout is fully preserved.
+ * ================================================================= */
+
+/* ---------------------------------------------------------------
+ * Sidebar — hidden by default (mobile/tablet portrait)
+ * --------------------------------------------------------------- */
+.desktop-sidebar {
+    display: none;
+}
+
+/* Hide pill suggestions + carousel on mobile/tablet — desktop only */
+.home-suggestions-wrapper,
+.home-carousel {
+    display: none;
+}
+
+/* ---------------------------------------------------------------
+ * Desktop breakpoint (laptop / desktop / landscape tablet)
+ * --------------------------------------------------------------- */
+@media (min-width: 1024px) {
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    .desktop-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 56px;
+        background: rgba(8, 8, 8, 0.90);
+        border-right: 1px solid rgba(255, 255, 255, 0.07);
+        backdrop-filter: blur(20px) saturate(1.2);
+        -webkit-backdrop-filter: blur(20px) saturate(1.2);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 1rem 0;
+        gap: 0.5rem;
+    }
+
+    body:not(.dark-mode) .desktop-sidebar {
+        background: rgba(255, 255, 255, 0.85);
+        border-right: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .desktop-sidebar-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        color: rgba(255, 255, 255, 0.55);
+        background: transparent;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 0;
+    }
+
+    .desktop-sidebar-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .desktop-sidebar-icon:hover {
+        color: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(255, 255, 255, 0.18);
+        transform: translateY(-2px);
+        box-shadow:
+            0 4px 16px rgba(0, 0, 0, 0.55),
+            inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    }
+
+    .desktop-sidebar-icon.active {
+        color: rgba(255, 255, 255, 1);
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.22);
+        box-shadow:
+            0 4px 16px rgba(0, 0, 0, 0.55),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    body:not(.dark-mode) .desktop-sidebar-icon {
+        color: rgba(15, 23, 42, 0.55);
+    }
+
+    body:not(.dark-mode) .desktop-sidebar-icon:hover {
+        color: rgba(15, 23, 42, 0.95);
+        background: rgba(15, 23, 42, 0.06);
+        border-color: rgba(15, 23, 42, 0.15);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    body:not(.dark-mode) .desktop-sidebar-icon.active {
+        color: rgba(15, 23, 42, 1);
+        background: rgba(15, 23, 42, 0.10);
+        border-color: rgba(15, 23, 42, 0.20);
+    }
+
+    /* User initials/avatar inside the sidebar profile button */
+    #sidebar-profile-btn .desktop-sidebar-avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: var(--accent-color);
+        color: var(--bg-color);
+    }
+
+    #sidebar-profile-btn .desktop-sidebar-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #sidebar-profile-btn .desktop-sidebar-avatar.hidden { display: none; }
+
+    /* Hide the cog icon when avatar is present */
+    #sidebar-profile-btn:has(.desktop-sidebar-avatar:not(.hidden)) .desktop-sidebar-cog {
+        display: none;
+    }
+
+    /* Tooltip on hover */
+    .desktop-sidebar-icon::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: calc(100% + 12px);
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 6px 10px;
+        background: rgba(20, 20, 22, 0.96);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.78rem;
+        font-weight: 500;
+        border-radius: 6px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 1500;
+    }
+
+    .desktop-sidebar-icon:hover::after {
+        opacity: 1;
+    }
+
+    body:not(.dark-mode) .desktop-sidebar-icon::after {
+        background: #ffffff;
+        color: #0f172a;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+
+    /* ── Hide mobile top-bar; replaced by sidebar ──────────── */
+    .top-bar {
+        display: none !important;
+    }
+
+    /* Pad the page so content does not sit under the sidebar */
+    .app-container {
+        padding-left: 56px;
+    }
+
+    /* Main content fills remaining space; remove iOS safe-area top */
+    .main-content {
+        padding-top: 0 !important;
+    }
+
+    /* ── Welcome heading: classic desktop placement ───────── */
+    .welcome-container {
+        top: 30% !important;
+        /* Nudge toward the right of the sidebar */
+        left: calc(50% + 28px) !important;
+    }
+
+    /* ── Floating input: account for sidebar offset ───────── */
+    .floating-input-container,
+    .floating-input-container.welcome-mode,
+    .floating-input-container.centered,
+    .floating-input-container.chat-mode {
+        left: calc(50% + 28px) !important;
+    }
+
+    /* ── Show pills + carousel ─────────────────────────────── */
+    .home-suggestions-wrapper,
+    .home-carousel {
+        display: flex;
+    }
+
+    .home-suggestions-wrapper {
+        left: calc(50% + 28px);
+        top: 60%;
+        z-index: 50;
+    }
+
+    .home-carousel {
+        left: calc(50% + 28px);
+        z-index: 50;
+    }
+
+    /* The pill content area can grow large; keep wrapper scrollable */
+    .home-suggestions-wrapper {
+        max-height: 36vh;
+    }
+
+    .home-pill-content {
+        max-height: 30vh;
+        overflow-y: auto;
+        scrollbar-width: none;
+    }
+
+    .home-pill-content::-webkit-scrollbar { display: none; }
+
+    /* ── Profile dropdown: anchor next to sidebar ─────────── */
+    .profile-dropdown {
+        position: fixed !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: 16px !important;
+        left: 68px !important;
+        max-width: 320px;
+        max-height: 70vh;
+        overflow-y: auto;
+        animation: desktopDropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes desktopDropdownIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ── Chat container: shift right of sidebar ───────────── */
+    .chat-container {
+        left: calc(50% + 28px) !important;
+    }
+}
+
+/* ---------------------------------------------------------------
+ * Slightly larger desktop adjustments (>= 1280px)
+ * --------------------------------------------------------------- */
+@media (min-width: 1280px) {
+    .home-suggestions-wrapper {
+        width: min(72%, 860px);
+    }
+
+    .home-carousel {
+        width: min(60%, 620px);
+    }
+}
