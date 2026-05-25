@@ -2,6 +2,11 @@
  * UNIFIED FLOATING INPUT COMPONENT
  * ================================================================= */
 
+/* Hide new-chat action button on mobile (visible only on desktop via media query) */
+.input-action-menu-item[data-menu-action="new-chat"] {
+    display: none;
+}
+
 /* --- Main Input Container --- */
 .floating-input-container {
     position: fixed;
@@ -862,6 +867,11 @@ body:not(.dark-mode) .voice-input-btn:hover {
         display: flex !important;
     }
 
+    /* Show the new-chat menu item only on desktop */
+    .input-action-menu-item[data-menu-action="new-chat"] {
+        display: flex !important;
+    }
+
     .input-action-menu::before {
         display: none !important;
     }
@@ -906,7 +916,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         padding: 0 !important;
         color: var(--text-secondary, rgba(255, 255, 255, 0.6)) !important;
         font-size: 1.1rem !important;
-        margin: 10px 4px 10px 0 !important;
+        margin: 10px 8px 10px 0 !important;
         border-radius: 12px !important;
         transition: background 0.2s ease, color 0.2s ease !important;
         align-self: center !important;
@@ -929,7 +939,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         background-color: #ffffff !important;
         color: #000000 !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-        margin: 10px 16px 10px 4px !important;
+        margin: 10px 20px 10px 4px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;

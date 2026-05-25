@@ -171,6 +171,8 @@
         display: none !important;
     }
 
+    /* Profile dropdown: re-parented to body on desktop via JS */
+
     /* Pad the page so content does not sit under the sidebar */
     .app-container {
         padding-left: 56px;
