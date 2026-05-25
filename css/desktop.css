@@ -192,9 +192,14 @@
      * CRITICAL FIX: Chat container & input width alignment
      * The chat container and input must be the SAME width and
      * chat messages must NEVER go behind the input.
+     *
+     * NOTE: The HTML element is <div id="chat-container"> (ID, not class!)
+     * chat-layout.css targets .chat-container (class) which does NOT match.
+     * On desktop we must use #chat-container to actually style it.
      * ═══════════════════════════════════════════════════════════ */
 
     /* Chat container: fixed position, same width as input, stops above input */
+    #chat-container,
     .chat-container {
         position: fixed !important;
         top: 10px !important;
@@ -202,16 +207,57 @@
         width: 760px !important;
         max-width: calc(100vw - 120px) !important;
         transform: translateX(-50%) !important;
-        /* CRITICAL: stop the container ABOVE the input (input is ~120px tall from bottom) */
+        /* CRITICAL: container stops ABOVE the input (input is ~120px from bottom) */
         height: calc(100vh - 160px) !important;
         bottom: auto !important;
         padding: 10px 0 !important;
+        z-index: 50 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
-    /* Chat messages: extra bottom padding so copy/share buttons are accessible */
-    .chat-messages {
-        padding-bottom: 40px !important;
+    /* Chat window inside the container */
+    #chat-container .chat-window,
+    .chat-container .chat-window {
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        pointer-events: none !important;
+        position: relative !important;
+    }
+
+    /* Top blur fade effect */
+    #chat-container .chat-window::before {
+        content: '' !important;
+        position: absolute !important;
+        top: -10px !important;
+        left: -10px !important;
+        right: -10px !important;
+        height: 60px !important;
+        z-index: 10 !important;
+        pointer-events: none !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        mask-image: linear-gradient(to bottom, black 40%, transparent 100%) !important;
+        -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%) !important;
+    }
+
+    /* Chat messages: scrollable area, stops before hitting the input */
+    #chat-container .chat-messages,
+    .chat-container .chat-messages {
+        flex-grow: 1 !important;
+        overflow-y: auto !important;
+        scroll-behavior: smooth !important;
         max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+        padding: 20px 0 40px 0 !important;
+        pointer-events: auto !important;
+        scrollbar-width: none !important;
+    }
+
+    #chat-container .chat-messages::-webkit-scrollbar {
+        display: none !important;
     }
 
     /* Messages must stay within the container width */
