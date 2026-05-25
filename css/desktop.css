@@ -376,8 +376,19 @@
         overflow-y: auto !important;
         overflow-x: hidden !important;
         border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
-        scrollbar-width: thin !important;
+        scrollbar-width: none !important;
         flex-shrink: 0 !important;
+    }
+
+    .profile-dropdown .profile-settings-panel::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    /* Hide Mindspace, Notes, Offline Mode from desktop sidebar */
+    .profile-dropdown .settings-menu-item[data-section="mindspace"],
+    .profile-dropdown .settings-menu-item[data-section="notes"],
+    .profile-dropdown .settings-menu-item[data-section="offline-mode"] {
+        display: none !important;
     }
 
     /* Account heading styled as panel title */

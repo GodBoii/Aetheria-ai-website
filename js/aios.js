@@ -508,7 +508,6 @@ export class AIOS {
                 // Hide the desktop account right panel when showing a section panel
                 const accountRightPanel = document.getElementById('desktop-account-right-panel');
                 if (accountRightPanel) accountRightPanel.classList.add('hidden');
-                }
             } else {
                 this.closeProfileMenu();
             }
