@@ -190,6 +190,53 @@
         padding-top: 0 !important;
     }
 
+    /* ── Chat container: proper height on desktop ─────────── */
+    .chat-container {
+        top: 10px !important;
+        height: calc(100% - 140px) !important;
+        left: calc(50% + 28px) !important;
+        width: min(52vw, 760px) !important;
+        max-width: calc(100vw - 120px) !important;
+    }
+
+    /* ── Chat messages: add bottom padding so last message isn't behind input ── */
+    .chat-messages {
+        padding-bottom: 100px !important;
+    }
+
+    /* ── Messages: constrain width to match input container ── */
+    .message {
+        max-width: 100% !important;
+    }
+
+    .message-user {
+        max-width: 75% !important;
+        /* Glassmorphism user bubble on desktop — matches desktop app */
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 20px !important;
+        border-bottom-right-radius: 4px !important;
+        padding: 14px 20px !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.05) !important;
+    }
+
+    body:not(.dark-mode) .message-user {
+        background: rgba(255, 255, 255, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05), inset 0 0 15px rgba(255, 255, 255, 0.4) !important;
+    }
+
+    .message-bot {
+        max-width: 100% !important;
+    }
+
+    /* ── User message text alignment on desktop ── */
+    .user-message-text {
+        text-align: left !important;
+    }
+
     /* ── Welcome heading: classic desktop placement ───────── */
     .welcome-container {
         top: 30% !important;
@@ -203,6 +250,8 @@
     .floating-input-container.centered,
     .floating-input-container.chat-mode {
         left: calc(50% + 28px) !important;
+        width: min(52vw, 760px) !important;
+        max-width: calc(100vw - 120px) !important;
     }
 
     /* ── Show pills + carousel ─────────────────────────────── */
@@ -238,11 +287,6 @@
     .home-pill-content::-webkit-scrollbar { display: none; }
 
     /* ── Profile dropdown: styled in the Account/Profile section below ── */
-
-    /* ── Chat container: shift right of sidebar ───────────── */
-    .chat-container {
-        left: calc(50% + 28px) !important;
-    }
 
     /* ── Context window (Past Chats): full-screen panel on desktop ── */
     .context-window {
@@ -305,17 +349,33 @@
         display: none !important;
     }
 
-    /* Settings view inside profile dropdown: vertical layout with scroll */
+    /* Desktop: the settings panel becomes a scrollable sidebar-style navigation */
     .profile-dropdown .profile-settings-panel {
-        padding: 24px !important;
+        padding: 20px 12px !important;
         overflow-y: auto !important;
         height: 100% !important;
+        width: 100% !important;
+        scrollbar-width: thin !important;
+    }
+
+    /* Account section: compact on desktop */
+    .profile-dropdown .settings-section.account-section {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .profile-dropdown .settings-section.account-section .section-heading {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+        padding: 4px 8px 12px !important;
     }
 
     /* Settings menu items: styled as list buttons */
     .profile-dropdown .settings-menu-item {
         border-radius: 8px !important;
         transition: background 0.2s ease !important;
+        padding: 10px 12px !important;
     }
 
     .profile-dropdown .settings-menu-item:hover {
@@ -326,7 +386,7 @@
         opacity: 0.4 !important;
     }
 
-    /* Full panels: when appended to dropdown on desktop, fill the window */
+    /* Full panels: overlay the entire dropdown on desktop */
     .profile-dropdown .settings-full-panel {
         position: absolute !important;
         top: 0 !important;
@@ -343,6 +403,12 @@
     .profile-dropdown .settings-full-panel .panel-header {
         padding: 20px 24px !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+    }
+
+    .profile-dropdown .settings-full-panel .panel-content {
+        padding: 24px !important;
+        overflow-y: auto !important;
+        height: calc(100% - 70px) !important;
     }
 
     .profile-dropdown .settings-full-panel .back-to-menu-btn {
