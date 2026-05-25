@@ -35,7 +35,10 @@
   <link rel="stylesheet" href="css/install-prompt.css" />
   <link rel="stylesheet" href="css/subscription-pricing.css" />
   <link rel="stylesheet" href="css/glassmorphism-panels.css" />
+  <link rel="stylesheet" href="css/home-screen-cards.css" />
   <link rel="stylesheet" href="css/auth-gate.css?v=web-cleanup-4" />
+  <!-- Desktop overrides MUST be loaded last to win the cascade on >=1024px -->
+  <link rel="stylesheet" href="css/desktop.css" />
 
   <!-- Icon Libraries -->
   <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-thin-rounded/css/uicons-thin-rounded.css'>
@@ -72,6 +75,45 @@
   </script>
 
   <div class="app-container">
+    <!-- Desktop Sidebar (visible only on >=1024px viewports) -->
+    <aside class="desktop-sidebar" aria-label="Primary navigation">
+      <button id="sidebar-profile-btn" class="desktop-sidebar-icon" type="button" data-tooltip="Profile" aria-label="Profile">
+        <svg class="desktop-sidebar-cog" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        <span id="sidebar-profile-avatar" class="desktop-sidebar-avatar hidden" aria-hidden="true"></span>
+      </button>
+      <button id="sidebar-tasks-btn" class="desktop-sidebar-icon" type="button" data-tooltip="Tasks" aria-label="Tasks">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="6" height="6" rx="1" />
+          <path d="m3 17 2 2 4-4" />
+          <path d="M13 6h8" />
+          <path d="M13 12h8" />
+          <path d="M13 18h8" />
+        </svg>
+      </button>
+      <button id="sidebar-project-btn" class="desktop-sidebar-icon" type="button" data-tooltip="Project Workspace" aria-label="Project Workspace">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6" />
+          <polyline points="8 6 2 12 8 18" />
+        </svg>
+      </button>
+      <button id="sidebar-history-btn" class="desktop-sidebar-icon" type="button" data-tooltip="Past Chats" aria-label="Past Chats">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+          <path d="M3 3v5h5" />
+          <path d="M12 7v5l3 3" />
+        </svg>
+      </button>
+      <button id="sidebar-new-chat-btn" class="desktop-sidebar-icon" type="button" data-tooltip="New chat" aria-label="New chat">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14" />
+          <path d="M5 12h14" />
+        </svg>
+      </button>
+    </aside>
+
     <!-- Top Bar (Simplified) -->
     <div class="top-bar">
       <div class="top-bar-action">
@@ -1039,6 +1081,89 @@
         // Close the plus button menu when input is focused
         closeDropdowns();
       });
+
+      // ── Desktop sidebar wiring (>=1024px) ─────────────────
+      bindDesktopSidebar();
+    }
+
+    function bindDesktopSidebar() {
+      const profileBtn = document.getElementById('sidebar-profile-btn');
+      const tasksBtn = document.getElementById('sidebar-tasks-btn');
+      const projectBtn = document.getElementById('sidebar-project-btn');
+      const historyBtn = document.getElementById('sidebar-history-btn');
+      const newChatBtn = document.getElementById('sidebar-new-chat-btn');
+
+      const setActive = (btn) => {
+        document.querySelectorAll('.desktop-sidebar-icon').forEach((el) => el.classList.remove('active'));
+        btn?.classList.add('active');
+      };
+
+      profileBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.aios?.toggleProfileMenu) {
+          window.aios.toggleProfileMenu();
+        }
+        setActive(profileBtn);
+      });
+
+      tasksBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const todo = window.todo;
+        if (!todo?.toggleWindow) return;
+        const isOpen = todo.elements?.container && !todo.elements.container.classList.contains('hidden');
+        todo.toggleWindow(!isOpen);
+        setActive(isOpen ? null : tasksBtn);
+      });
+
+      projectBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.projectWorkspace?.toggleFromMenu) {
+          window.projectWorkspace.toggleFromMenu();
+          setActive(window.projectWorkspace?.state?.active ? projectBtn : null);
+        }
+      });
+
+      historyBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const handler = window.contextHandler;
+        if (!handler?.toggleWindow) return;
+        const isOpen = !!handler.isWindowOpen;
+        handler.toggleWindow(!isOpen);
+        setActive(isOpen ? null : historyBtn);
+      });
+
+      newChatBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.chat?.clearChat?.();
+      });
+
+      // Close active state when clicking elsewhere on the page
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.desktop-sidebar') &&
+            !e.target.closest('#profile-dropdown') &&
+            !e.target.closest('#to-do-list-container') &&
+            !e.target.closest('#context-window')) {
+          // No-op: we only mark active on open. Real close paths drop active via state listener below.
+        }
+      });
+
+      // Sync sidebar avatar with profile photo if present
+      const updateAvatar = () => {
+        const profilePhoto = document.getElementById('profile-photo');
+        const sidebarAvatar = document.getElementById('sidebar-profile-avatar');
+        if (!sidebarAvatar) return;
+        if (profilePhoto && !profilePhoto.classList.contains('hidden') && profilePhoto.src) {
+          sidebarAvatar.innerHTML = `<img src="${profilePhoto.src}" alt="Profile" />`;
+          sidebarAvatar.classList.remove('hidden');
+        } else {
+          sidebarAvatar.classList.add('hidden');
+          sidebarAvatar.innerHTML = '';
+        }
+      };
+      updateAvatar();
+      // Re-check shortly after init so it picks up async profile loads
+      setTimeout(updateAvatar, 1500);
+      setTimeout(updateAvatar, 4000);
     }
 
 

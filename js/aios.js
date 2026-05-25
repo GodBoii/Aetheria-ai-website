@@ -242,7 +242,9 @@ export class AIOS {
 
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('#profile-menu-btn') && !e.target.closest('#profile-dropdown')) {
+            if (!e.target.closest('#profile-menu-btn') &&
+                !e.target.closest('#profile-dropdown') &&
+                !e.target.closest('#sidebar-profile-btn')) {
                 this.closeProfileMenu();
             }
         });
