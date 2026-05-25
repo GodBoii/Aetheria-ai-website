@@ -1,6 +1,6 @@
 /* =================================================================
  * DESKTOP-ONLY OVERRIDES (>= 1024px)
- * Mirrors the AI-OS desktop app: sidebar + pills + carousel
+ * Mirrors the AI-OS desktop app: sidebar + centered chat + floating window account
  *
  * Below 1024px the existing mobile layout is fully preserved.
  * ================================================================= */
@@ -178,40 +178,52 @@
         display: none !important;
     }
 
-    /* Profile dropdown: re-parented to body on desktop via JS */
-
-    /* Pad the page so content does not sit under the sidebar */
+    /* ── Pad the page so content does not sit under the sidebar ── */
     .app-container {
         padding-left: 56px;
     }
 
-    /* Main content fills remaining space; remove iOS safe-area top */
+    /* ── Main content fills remaining space ── */
     .main-content {
         padding-top: 0 !important;
     }
 
-    /* ── Chat container: proper height on desktop ─────────── */
+    /* ═══════════════════════════════════════════════════════════
+     * CRITICAL FIX: Chat container & input width alignment
+     * The chat container and input must be the SAME width and
+     * chat messages must NEVER go behind the input.
+     * ═══════════════════════════════════════════════════════════ */
+
+    /* Chat container: fixed position, same width as input, stops above input */
     .chat-container {
+        position: fixed !important;
         top: 10px !important;
-        height: calc(100% - 140px) !important;
         left: calc(50% + 28px) !important;
-        width: min(52vw, 760px) !important;
+        width: 760px !important;
         max-width: calc(100vw - 120px) !important;
+        transform: translateX(-50%) !important;
+        /* CRITICAL: stop the container ABOVE the input (input is ~120px tall from bottom) */
+        height: calc(100vh - 160px) !important;
+        bottom: auto !important;
+        padding: 10px 0 !important;
     }
 
-    /* ── Chat messages: add bottom padding so last message isn't behind input ── */
+    /* Chat messages: extra bottom padding so copy/share buttons are accessible */
     .chat-messages {
-        padding-bottom: 100px !important;
-    }
-
-    /* ── Messages: constrain width to match input container ── */
-    .message {
+        padding-bottom: 40px !important;
         max-width: 100% !important;
     }
 
+    /* Messages must stay within the container width */
+    .message {
+        max-width: 100% !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+    }
+
     .message-user {
-        max-width: 75% !important;
-        /* Glassmorphism user bubble on desktop — matches desktop app */
+        max-width: 70% !important;
+        /* Glassmorphism user bubble — matches desktop Electron app */
         background: rgba(255, 255, 255, 0.08) !important;
         border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 20px !important;
@@ -219,42 +231,53 @@
         padding: 14px 20px !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.05) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 0 15px rgba(255, 255, 255, 0.05) !important;
     }
 
     body:not(.dark-mode) .message-user {
         background: rgba(255, 255, 255, 0.4) !important;
         border: 1px solid rgba(255, 255, 255, 0.6) !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05), inset 0 0 15px rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05),
+            inset 0 0 15px rgba(255, 255, 255, 0.4) !important;
     }
 
     .message-bot {
         max-width: 100% !important;
     }
 
-    /* ── User message text alignment on desktop ── */
+    /* User message text: left-align inside the bubble (bubble itself is right-aligned) */
     .user-message-text {
         text-align: left !important;
     }
 
-    /* ── Welcome heading: classic desktop placement ───────── */
-    .welcome-container {
-        top: 30% !important;
-        /* Nudge toward the right of the sidebar */
-        left: calc(50% + 28px) !important;
-    }
-
-    /* ── Floating input: account for sidebar offset ───────── */
+    /* Floating input: same 760px width, offset for sidebar */
     .floating-input-container,
     .floating-input-container.welcome-mode,
     .floating-input-container.centered,
     .floating-input-container.chat-mode {
         left: calc(50% + 28px) !important;
-        width: min(52vw, 760px) !important;
+        width: 760px !important;
         max-width: calc(100vw - 120px) !important;
     }
 
-    /* ── Show pills + carousel ─────────────────────────────── */
+    /* Ensure chat-mode input stays at bottom and doesn't float to center */
+    .floating-input-container.chat-mode {
+        top: auto !important;
+        bottom: 24px !important;
+        transform: translateX(-50%) !important;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+     * Welcome / home screen
+     * ═══════════════════════════════════════════════════════════ */
+
+    .welcome-container {
+        top: 30% !important;
+        left: calc(50% + 28px) !important;
+    }
+
+    /* Show pills + carousel */
     .home-suggestions-wrapper,
     .home-carousel {
         display: flex;
@@ -266,16 +289,12 @@
         left: calc(50% + 28px);
         top: 60%;
         z-index: 50;
+        max-height: 36vh;
     }
 
     .home-carousel {
         left: calc(50% + 28px);
         z-index: 50;
-    }
-
-    /* The pill content area can grow large; keep wrapper scrollable */
-    .home-suggestions-wrapper {
-        max-height: 36vh;
     }
 
     .home-pill-content {
@@ -286,9 +305,9 @@
 
     .home-pill-content::-webkit-scrollbar { display: none; }
 
-    /* ── Profile dropdown: styled in the Account/Profile section below ── */
-
-    /* ── Context window (Past Chats): full-screen panel on desktop ── */
+    /* ═══════════════════════════════════════════════════════════
+     * Context window (Past Chats): full-screen panel on desktop
+     * ═══════════════════════════════════════════════════════════ */
     .context-window {
         top: 0 !important;
         left: 56px !important;
@@ -308,16 +327,13 @@
         display: none !important;
     }
 
-    /* ── Account/Profile: Desktop floating window style ────── */
+    /* ═══════════════════════════════════════════════════════════
+     * ACCOUNT / PROFILE DROPDOWN — Desktop floating window
+     * Mimics the Electron app's split-layout: sidebar + content
+     * ═══════════════════════════════════════════════════════════ */
     @keyframes desktopDropdownIn {
-        from {
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.92);
-        }
-        to {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
+        from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+        to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     }
 
     .profile-dropdown {
@@ -332,50 +348,53 @@
         height: 600px !important;
         max-height: 85vh !important;
         border-radius: 16px !important;
-        background: rgba(12, 12, 12, 0.95) !important;
+        background: rgba(12, 12, 12, 0.96) !important;
         border: 1.5px solid rgba(255, 255, 255, 0.09) !important;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+            0 10px 30px rgba(0, 0, 0, 0.35) !important;
         backdrop-filter: blur(20px) saturate(1.2) !important;
         -webkit-backdrop-filter: blur(20px) saturate(1.2) !important;
         overflow: hidden !important;
         animation: desktopDropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
         padding: 0 !important;
         z-index: 1200 !important;
+        /* Flex row for split layout */
         display: flex !important;
-        flex-direction: column !important;
+        flex-direction: row !important;
     }
 
     .profile-dropdown.hidden {
         display: none !important;
     }
 
-    /* Desktop: the settings panel becomes a scrollable sidebar-style navigation */
+    /* The .profile-settings-panel becomes the LEFT sidebar nav */
     .profile-dropdown .profile-settings-panel {
+        width: 240px !important;
+        min-width: 240px !important;
+        height: 100% !important;
         padding: 20px 12px !important;
         overflow-y: auto !important;
-        height: 100% !important;
-        width: 100% !important;
+        overflow-x: hidden !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
         scrollbar-width: thin !important;
+        flex-shrink: 0 !important;
     }
 
-    /* Account section: compact on desktop */
-    .profile-dropdown .settings-section.account-section {
-        margin-bottom: 0.5rem !important;
-    }
-
+    /* Account heading styled as panel title */
     .profile-dropdown .settings-section.account-section .section-heading {
         font-size: 18px !important;
         font-weight: 700 !important;
         letter-spacing: 0 !important;
         text-transform: none !important;
-        padding: 4px 8px 12px !important;
+        color: #ffffff !important;
+        padding: 4px 8px 16px !important;
     }
 
-    /* Settings menu items: styled as list buttons */
+    /* Settings menu items in the sidebar */
     .profile-dropdown .settings-menu-item {
         border-radius: 8px !important;
-        transition: background 0.2s ease !important;
         padding: 10px 12px !important;
+        transition: background 0.2s ease !important;
     }
 
     .profile-dropdown .settings-menu-item:hover {
@@ -386,33 +405,87 @@
         opacity: 0.4 !important;
     }
 
-    /* Full panels: overlay the entire dropdown on desktop */
+    /* Full panels: fill the RIGHT side of the split layout */
     .profile-dropdown .settings-full-panel {
         position: absolute !important;
         top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
+        left: 240px !important;
+        right: 0 !important;
+        width: auto !important;
         height: 100% !important;
-        border-radius: 16px !important;
+        border-radius: 0 16px 16px 0 !important;
         z-index: 10 !important;
-        background: rgba(12, 12, 12, 0.98) !important;
+        background: rgba(14, 14, 14, 0.99) !important;
         animation: none !important;
         transform: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .profile-dropdown .settings-full-panel.hidden {
+        display: none !important;
     }
 
     .profile-dropdown .settings-full-panel .panel-header {
         padding: 20px 24px !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+        flex-shrink: 0 !important;
     }
 
     .profile-dropdown .settings-full-panel .panel-content {
         padding: 24px !important;
         overflow-y: auto !important;
-        height: calc(100% - 70px) !important;
+        flex: 1 !important;
     }
 
     .profile-dropdown .settings-full-panel .back-to-menu-btn {
         display: inline-flex !important;
+    }
+
+    /* Desktop Account Right Panel (shows account info on the right by default) */
+    .desktop-account-right-panel {
+        position: absolute !important;
+        top: 0 !important;
+        left: 240px !important;
+        right: 0 !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background: rgba(14, 14, 14, 0.99) !important;
+        border-radius: 0 16px 16px 0 !important;
+        overflow: hidden !important;
+    }
+
+    .desktop-account-right-panel.hidden {
+        display: none !important;
+    }
+
+    .desktop-account-right-header {
+        padding: 24px 28px 16px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+        flex-shrink: 0 !important;
+    }
+
+    .desktop-account-right-header h2 {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        margin: 0 !important;
+    }
+
+    .desktop-account-right-content {
+        padding: 24px 28px !important;
+        overflow-y: auto !important;
+        flex: 1 !important;
+    }
+
+    /* Hide the account section content from the LEFT sidebar on desktop
+       (it's shown on the right panel instead) */
+    .profile-dropdown .settings-section.account-section .auth-state,
+    .profile-dropdown .settings-section.account-section .profile-header-card,
+    .profile-dropdown .settings-section.account-section .account-subscription-card,
+    .profile-dropdown .settings-section.account-section .account-actions {
+        display: none !important;
     }
 }
 
