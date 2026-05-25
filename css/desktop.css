@@ -23,6 +23,13 @@
  * --------------------------------------------------------------- */
 @media (min-width: 1024px) {
 
+    /* ── Force pure black background on desktop dark mode ── */
+    body.dark-mode,
+    body.dark-mode .app-container {
+        background: #000000 !important;
+        background-image: none !important;
+    }
+
     /* ── Sidebar ─────────────────────────────────────────────── */
     .desktop-sidebar {
         position: fixed;
@@ -202,6 +209,8 @@
     .home-suggestions-wrapper,
     .home-carousel {
         display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     .home-suggestions-wrapper {
