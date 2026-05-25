@@ -490,7 +490,18 @@ export class AIOS {
         const panel = document.getElementById(`${section}-panel`);
         if (panel) {
             panel.classList.remove('hidden');
-            this.closeProfileMenu();
+
+            // On desktop (>=1024px), keep the profile dropdown open and show panel inside it
+            const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+            if (isDesktop) {
+                // Move panel into the profile dropdown for split-layout display
+                const dropdown = this.elements.profileDropdown;
+                if (dropdown && !dropdown.contains(panel)) {
+                    dropdown.appendChild(panel);
+                }
+            } else {
+                this.closeProfileMenu();
+            }
 
             // Update integration status when opening integrations panel
             if (section === 'integrations') {
@@ -528,7 +539,12 @@ export class AIOS {
         // Close any open card dropdowns
         document.querySelectorAll('.mem-card-dropdown').forEach(d => d.classList.add('hidden'));
         document.querySelectorAll('.mem-card-more-btn').forEach(b => b.classList.remove('active'));
-        this.openProfileMenu();
+
+        // On desktop, keep profile menu open; on mobile, reopen it
+        const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+        if (!isDesktop) {
+            this.openProfileMenu();
+        }
     }
 
     switchAuthTab(tabName) {

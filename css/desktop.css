@@ -237,33 +237,116 @@
 
     .home-pill-content::-webkit-scrollbar { display: none; }
 
-    /* ── Profile dropdown: anchor next to sidebar ─────────── */
-    .profile-dropdown {
-        position: fixed !important;
-        top: auto !important;
-        right: auto !important;
-        bottom: 16px !important;
-        left: 68px !important;
-        max-width: 320px;
-        max-height: 70vh;
-        overflow-y: auto;
-        animation: desktopDropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes desktopDropdownIn {
-        from {
-            opacity: 0;
-            transform: translateY(8px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+    /* ── Profile dropdown: styled in the Account/Profile section below ── */
 
     /* ── Chat container: shift right of sidebar ───────────── */
     .chat-container {
         left: calc(50% + 28px) !important;
+    }
+
+    /* ── Context window (Past Chats): full-screen panel on desktop ── */
+    .context-window {
+        top: 0 !important;
+        left: 56px !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        transform: none !important;
+        width: auto !important;
+        max-width: none !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+        background: #000000 !important;
+        border: none !important;
+        z-index: 1100 !important;
+    }
+
+    .context-window.hidden {
+        display: none !important;
+    }
+
+    /* ── Account/Profile: Desktop floating window style ────── */
+    @keyframes desktopDropdownIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.92);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+
+    .profile-dropdown {
+        position: fixed !important;
+        top: 50% !important;
+        left: calc(50% + 28px) !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: translate(-50%, -50%) !important;
+        width: 900px !important;
+        max-width: 90vw !important;
+        height: 600px !important;
+        max-height: 85vh !important;
+        border-radius: 16px !important;
+        background: rgba(12, 12, 12, 0.95) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.09) !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+        backdrop-filter: blur(20px) saturate(1.2) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(1.2) !important;
+        overflow: hidden !important;
+        animation: desktopDropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        padding: 0 !important;
+        z-index: 1200 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .profile-dropdown.hidden {
+        display: none !important;
+    }
+
+    /* Settings view inside profile dropdown: vertical layout with scroll */
+    .profile-dropdown .profile-settings-panel {
+        padding: 24px !important;
+        overflow-y: auto !important;
+        height: 100% !important;
+    }
+
+    /* Settings menu items: styled as list buttons */
+    .profile-dropdown .settings-menu-item {
+        border-radius: 8px !important;
+        transition: background 0.2s ease !important;
+    }
+
+    .profile-dropdown .settings-menu-item:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+    }
+
+    .profile-dropdown .settings-menu-item .item-arrow {
+        opacity: 0.4 !important;
+    }
+
+    /* Full panels: when appended to dropdown on desktop, fill the window */
+    .profile-dropdown .settings-full-panel {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 16px !important;
+        z-index: 10 !important;
+        background: rgba(12, 12, 12, 0.98) !important;
+        animation: none !important;
+        transform: none !important;
+    }
+
+    .profile-dropdown .settings-full-panel .panel-header {
+        padding: 20px 24px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+    }
+
+    .profile-dropdown .settings-full-panel .back-to-menu-btn {
+        display: inline-flex !important;
     }
 }
 
