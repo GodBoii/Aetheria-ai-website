@@ -476,6 +476,12 @@ export class AIOS {
             this.elements.profileDropdown.appendChild(this.elements.settingsView);
         }
 
+        // On desktop: auto-open the account panel on the right side
+        const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+        if (isDesktop) {
+            this.openDesktopAccountPanel();
+        }
+
         // Update integration status if user is on account section
         this.updateIntegrationStatus();
         this.loadUsageData();
@@ -498,6 +504,10 @@ export class AIOS {
                 const dropdown = this.elements.profileDropdown;
                 if (dropdown && !dropdown.contains(panel)) {
                     dropdown.appendChild(panel);
+                }
+                // Hide the desktop account right panel when showing a section panel
+                const accountRightPanel = document.getElementById('desktop-account-right-panel');
+                if (accountRightPanel) accountRightPanel.classList.add('hidden');
                 }
             } else {
                 this.closeProfileMenu();
@@ -540,11 +550,59 @@ export class AIOS {
         document.querySelectorAll('.mem-card-dropdown').forEach(d => d.classList.add('hidden'));
         document.querySelectorAll('.mem-card-more-btn').forEach(b => b.classList.remove('active'));
 
-        // On desktop, keep profile menu open; on mobile, reopen it
+        // On desktop, keep profile menu open and show account panel; on mobile, reopen it
         const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
         if (!isDesktop) {
             this.openProfileMenu();
+        } else {
+            this.openDesktopAccountPanel();
         }
+    }
+
+    /**
+     * Desktop only: Creates/shows an "Account" panel on the right side of the
+     * split-layout profile dropdown, mirroring the Electron app's Account tab.
+     */
+    openDesktopAccountPanel() {
+        const dropdown = this.elements.profileDropdown;
+        if (!dropdown) return;
+
+        // Get or create the desktop account right panel
+        let accountPanel = document.getElementById('desktop-account-right-panel');
+        if (!accountPanel) {
+            accountPanel = document.createElement('div');
+            accountPanel.id = 'desktop-account-right-panel';
+            accountPanel.className = 'desktop-account-right-panel';
+            dropdown.appendChild(accountPanel);
+        }
+
+        // Clone the account section content into the right panel
+        const accountSection = dropdown.querySelector('.settings-section.account-section');
+        if (accountSection) {
+            // Only refresh if the content has changed
+            const accountHTML = accountSection.innerHTML;
+            if (accountPanel.dataset.rendered !== 'true') {
+                accountPanel.innerHTML = `
+                    <div class="desktop-account-right-header">
+                        <h2>Account</h2>
+                    </div>
+                    <div class="desktop-account-right-content"></div>
+                `;
+                accountPanel.dataset.rendered = 'true';
+            }
+            // Mirror the live content (account-logged-in or account-logged-out)
+            const rightContent = accountPanel.querySelector('.desktop-account-right-content');
+            if (rightContent) {
+                rightContent.innerHTML = accountSection.innerHTML;
+                // Remove the "Account" heading from the right panel clone (it's in the header)
+                const headingClone = rightContent.querySelector('.section-heading');
+                if (headingClone) headingClone.remove();
+            }
+        }
+
+        // Show it and hide any full panels
+        accountPanel.classList.remove('hidden');
+        this.elements.settingsPanels?.forEach(panel => panel.classList.add('hidden'));
     }
 
     switchAuthTab(tabName) {
