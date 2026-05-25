@@ -92,10 +92,10 @@
 /* Dark Mode Theme Overrides - Pure Black with Glassmorphism */
 .dark-mode {
     /* Window & Background Colors */
-    --window-bg: rgba(255, 255, 255, 0.03);
-    --taskbar-bg: rgba(255, 255, 255, 0.05);
-    --elevated-bg: rgba(255, 255, 255, 0.08);
-    --input-bg: rgba(255, 255, 255, 0.06);
+    --window-bg: rgba(12, 12, 12, 0.92);
+    --taskbar-bg: rgba(10, 10, 10, 0.85);
+    --elevated-bg: rgba(255, 255, 255, 0.055);
+    --input-bg: rgba(255, 255, 255, 0.04);
     --hover-bg: rgba(255, 255, 255, 0.12);
 
     /* Text Colors */

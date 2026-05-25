@@ -813,7 +813,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         gap: 0 !important;
         padding: 0 !important;
         border-radius: 16px !important;
-        background-color: var(--window-bg, #1a1a1a) !important;
+        background-color: var(--window-bg, #0c0c0c) !important;
         border: 2px solid var(--border-color, rgba(255, 255, 255, 0.08)) !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
         align-items: center !important;
@@ -916,7 +916,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         padding: 0 !important;
         color: var(--text-secondary, rgba(255, 255, 255, 0.6)) !important;
         font-size: 1.1rem !important;
-        margin: 10px 8px 10px 0 !important;
+        margin: 10px 8px 14px 0 !important;
         border-radius: 12px !important;
         transition: background 0.2s ease, color 0.2s ease !important;
         align-self: center !important;
@@ -939,7 +939,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         background-color: #ffffff !important;
         color: #000000 !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-        margin: 10px 20px 10px 4px !important;
+        margin: 10px 20px 14px 4px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
