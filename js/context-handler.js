@@ -894,6 +894,20 @@ class ContextHandler {
         const welcomeContainer = document.querySelector('.welcome-container');
         welcomeContainer?.classList.add('hidden');
 
+        // Hide pills and carousel (they are separate fixed elements)
+        const suggestionsWrapper = document.querySelector('.home-suggestions-wrapper');
+        const carousel = document.querySelector('.home-carousel');
+        suggestionsWrapper?.classList.add('hidden');
+        suggestionsWrapper?.classList.remove('visible');
+        carousel?.classList.add('hidden');
+
+        // Switch floating input to chat mode (bottom positioned)
+        const floatingInput = document.getElementById('floating-input-container');
+        if (floatingInput) {
+            floatingInput.classList.remove('welcome-mode', 'centered');
+            floatingInput.classList.add('chat-mode');
+        }
+
         // Clear current chat messages and show loading
         mainChatMessages.innerHTML = '<div class="session-item-loading" style="padding: 40px; text-align: center;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading conversation...</div>';
 
@@ -1261,6 +1275,22 @@ class ContextHandler {
         // Show welcome display again
         const welcomeContainer = document.querySelector('.welcome-container');
         welcomeContainer?.classList.remove('hidden');
+
+        // Restore pills and carousel on desktop
+        const suggestionsWrapper = document.querySelector('.home-suggestions-wrapper');
+        const carousel = document.querySelector('.home-carousel');
+        if (window.matchMedia('(min-width: 1024px)').matches) {
+            suggestionsWrapper?.classList.remove('hidden');
+            suggestionsWrapper?.classList.add('visible');
+            carousel?.classList.remove('hidden');
+        }
+
+        // Restore floating input to welcome mode
+        const floatingInput = document.getElementById('floating-input-container');
+        if (floatingInput) {
+            floatingInput.classList.remove('chat-mode');
+            floatingInput.classList.add('welcome-mode');
+        }
 
         // Hide content button
         const viewContentBtn = document.getElementById('view-content-btn');
