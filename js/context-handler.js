@@ -1094,10 +1094,10 @@ class ContextHandler {
                         thinkingIndicator.className = 'thinking-indicator steps-done';
 
                         const parts = [];
-                        if (toolCalls.length > 0) parts.push(`${toolCalls.length} tool${toolCalls.length > 1 ? 's' : ''}`);
-                        // Count unique agent reasoning blocks
+                        // Count unique agent reasoning blocks as thoughts
                         const reasoningAgents = new Set(reasoningSteps.map(r => r.agent_name));
-                        if (reasoningAgents.size > 0) parts.push(`${reasoningAgents.size} agent${reasoningAgents.size > 1 ? 's' : ''}`);
+                        if (reasoningAgents.size > 0) parts.push(`${reasoningAgents.size} thought${reasoningAgents.size > 1 ? 's' : ''}`);
+                        if (toolCalls.length > 0) parts.push(`${toolCalls.length} tool${toolCalls.length > 1 ? 's' : ''}`);
                         const summaryText = parts.length > 0 ? `Reasoning: ${parts.join(', ')}` : 'Reasoning';
 
                         thinkingIndicator.innerHTML = `
@@ -1125,33 +1125,24 @@ class ContextHandler {
                             reasoningByAgent[agentKey].steps.push(rs.step);
                         });
 
-                        // Add reasoning sections
+                        // Add reasoning sections (matching live chat structure)
                         Object.entries(reasoningByAgent).forEach(([agentKey, agentData]) => {
                             const section = document.createElement('div');
-                            section.className = 'content-block log-block';
+                            section.className = 'content-block log-block reasoning-thought-block';
                             section.id = `reasoning-log-${messageId}-${agentKey}`;
 
-                            const headerDiv = document.createElement('div');
-                            headerDiv.className = 'content-block-header';
-                            headerDiv.textContent = `${agentData.name.replace(/_/g, ' ')} reasoning`;
-                            section.appendChild(headerDiv);
+                            section.innerHTML = `
+                                <div class="reasoning-thought-header">
+                                    <i class="fi fi-tr-brain reasoning-thought-icon"></i>
+                                    <span>Deep reasoning</span>
+                                </div>
+                                <div class="inner-content reasoning-thought-content"></div>
+                            `;
 
-                            const innerContent = document.createElement('div');
-                            innerContent.className = 'inner-content';
+                            const innerContent = section.querySelector('.reasoning-thought-content');
+                            // Join all reasoning steps into a single continuous text block
+                            innerContent.textContent = agentData.steps.join('');
 
-                            agentData.steps.forEach(step => {
-                                const entry = document.createElement('div');
-                                entry.className = 'tool-log-entry reasoning-log-entry';
-                                entry.innerHTML = `
-                                    <i class="fi fi-tr-comment-alt-middle"></i>
-                                    <div class="tool-log-details">
-                                        <span class="tool-log-action">${this.escapeHtml(step)}</span>
-                                    </div>
-                                `;
-                                innerContent.appendChild(entry);
-                            });
-
-                            section.appendChild(innerContent);
                             detailedLogs.appendChild(section);
                         });
 
