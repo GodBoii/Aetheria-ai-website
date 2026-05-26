@@ -99,6 +99,22 @@
           <polyline points="8 6 2 12 8 18" />
         </svg>
       </button>
+      <button id="sidebar-download-btn" class="desktop-sidebar-icon sidebar-download-btn" type="button" data-tooltip="Download Desktop App" aria-label="Download Desktop App">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      </button>
+      <!-- Download popup toast -->
+      <div id="download-popup" class="download-popup hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        <span>Download Desktop App</span>
+      </div>
     </aside>
 
     <!-- Top Bar (Simplified) -->
@@ -416,6 +432,21 @@
     import skeletonLoader from './js/skeleton-loader.js';
     import { authGate } from './js/auth-gate.js';
     import './js/assist.js'; // Logic for Assistant Overlay
+
+    // Download button logic
+    (function () {
+      const downloadBtn = document.getElementById('sidebar-download-btn');
+      const downloadPopup = document.getElementById('download-popup');
+      if (downloadBtn && downloadPopup) {
+        downloadBtn.addEventListener('click', () => {
+          window.open('https://aetheriaai.online/download', '_blank');
+          downloadPopup.classList.remove('hidden');
+          setTimeout(() => {
+            downloadPopup.classList.add('hidden');
+          }, 3000);
+        });
+      }
+    })();
 
     // ★★★ NEW: Context Viewer Class (Expanded Logic) ★★★
     class ContextViewer {
