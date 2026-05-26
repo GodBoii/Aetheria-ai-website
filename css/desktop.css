@@ -558,3 +558,235 @@
         width: min(60%, 620px);
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * LIGHT MODE — Desktop Account Panel Overrides
+ * Ensures the floating account window is legible in light mode
+ * ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+    /* Main dropdown container */
+    body:not(.dark-mode) .profile-dropdown {
+        background: rgba(255, 255, 255, 0.97) !important;
+        border: 1.5px solid #cbd5e1 !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12),
+            0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* LEFT sidebar nav */
+    body:not(.dark-mode) .profile-dropdown .profile-settings-panel {
+        border-right: 1px solid #e2e8f0 !important;
+        background: #f8fafc !important;
+    }
+
+    /* Section heading */
+    body:not(.dark-mode) .profile-dropdown .settings-section.account-section .section-heading {
+        color: #0f172a !important;
+    }
+
+    /* Menu items */
+    body:not(.dark-mode) .profile-dropdown .settings-menu-item {
+        color: #334155 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-menu-item i:first-child {
+        color: #475569 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-menu-item span {
+        color: #334155 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-menu-item .item-arrow {
+        color: #94a3b8 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-menu-item:hover {
+        background: rgba(15, 23, 42, 0.05) !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-menu-item:hover i:first-child,
+    body:not(.dark-mode) .profile-dropdown .settings-menu-item:hover span {
+        color: #0f172a !important;
+    }
+
+    /* RIGHT panel — full panels */
+    body:not(.dark-mode) .profile-dropdown .settings-full-panel {
+        background: #ffffff !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-full-panel .panel-header {
+        border-bottom: 1px solid #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-full-panel .panel-header h2 {
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-full-panel .panel-header .back-to-menu-btn {
+        color: #475569 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-full-panel .panel-header .back-to-menu-btn:hover {
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-full-panel .panel-content {
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .settings-full-panel .panel-description {
+        color: #64748b !important;
+    }
+
+    /* Desktop Account Right Panel */
+    body:not(.dark-mode) .desktop-account-right-panel {
+        background: #ffffff !important;
+    }
+
+    body:not(.dark-mode) .desktop-account-right-header {
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    body:not(.dark-mode) .desktop-account-right-header h2 {
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .desktop-account-right-content {
+        color: #0f172a !important;
+    }
+
+    /* Profile card in account panel */
+    body:not(.dark-mode) .profile-dropdown .profile-header-card {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .profile-header-card .profile-name {
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .profile-header-card .profile-email {
+        color: #64748b !important;
+    }
+
+    /* Account actions */
+    body:not(.dark-mode) .profile-dropdown .account-actions button {
+        color: #475569 !important;
+        border-color: #e2e8f0 !important;
+        background: #ffffff !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .account-actions button:hover {
+        color: #0f172a !important;
+        border-color: #94a3b8 !important;
+        background: #f8fafc !important;
+    }
+
+    /* Usage section inside panel */
+    body:not(.dark-mode) .profile-dropdown .account-usage-section {
+        background: #ffffff !important;
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .usage-title {
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .usage-total-hero {
+        color: #0f172a !important;
+        text-shadow: none !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .usage-lifetime-label {
+        color: #64748b !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .usage-breakdown {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .breakdown-label {
+        color: #64748b !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .breakdown-value {
+        color: #0f172a !important;
+    }
+
+    /* Subscription section */
+    body:not(.dark-mode) .profile-dropdown .account-subscription-card {
+        background: #ffffff !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .subscription-title {
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .subscription-subtitle {
+        color: #64748b !important;
+    }
+
+    /* Theme panel */
+    body:not(.dark-mode) .profile-dropdown #theme-panel .panel-content label,
+    body:not(.dark-mode) .profile-dropdown #theme-panel .panel-content span {
+        color: #0f172a !important;
+    }
+
+    /* About panel */
+    body:not(.dark-mode) .profile-dropdown #about-panel .panel-content p {
+        color: #334155 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown #about-panel .panel-content h3,
+    body:not(.dark-mode) .profile-dropdown #about-panel .panel-content h4 {
+        color: #0f172a !important;
+    }
+
+    /* Support panel */
+    body:not(.dark-mode) .profile-dropdown #support-panel .panel-content p {
+        color: #334155 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown #support-panel .panel-content a {
+        color: #2563eb !important;
+    }
+
+    /* Know Me panel */
+    body:not(.dark-mode) .profile-dropdown .know-me-item {
+        color: #334155 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown .know-me-item-header strong {
+        color: #0f172a !important;
+    }
+
+    /* Memory panel */
+    body:not(.dark-mode) .profile-dropdown #memory-panel .panel-content {
+        color: #334155 !important;
+    }
+
+    /* Profile panel form */
+    body:not(.dark-mode) .profile-dropdown #profile-panel .form-group label {
+        color: #334155 !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown #profile-panel .form-group input {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+        color: #0f172a !important;
+    }
+
+    body:not(.dark-mode) .profile-dropdown #profile-panel .form-group input::placeholder {
+        color: #94a3b8 !important;
+    }
+
+    /* Files panel */
+    body:not(.dark-mode) .profile-dropdown #files-panel .panel-content {
+        color: #334155 !important;
+    }
+}
