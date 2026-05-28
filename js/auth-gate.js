@@ -163,10 +163,12 @@ class AuthGate {
     this.root.innerHTML = `
       <div class="auth-split-layout">
         <section class="auth-illustration-pane" aria-label="Aetheria AI">
+          <div class="auth-nebula-bg"></div>
           <div class="auth-stars"></div>
-          <div class="auth-orbit auth-orbit-one"></div>
-          <div class="auth-orbit auth-orbit-two"></div>
-          <div class="auth-planet" aria-hidden="true"></div>
+          <div class="auth-glow-orb orb-1"></div>
+          <div class="auth-glow-orb orb-2"></div>
+          <div class="auth-glow-orb orb-3"></div>
+          <div class="auth-noise-overlay"></div>
           <div class="auth-branding">
             <h1>AETHERIA AI</h1>
             <p>ELEVATE YOURSELF WITH AETHERIA AI</p>
