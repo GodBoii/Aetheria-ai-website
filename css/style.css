@@ -24,8 +24,9 @@ body:not(.dark-mode) {
 
 /* Dark mode - pure black, no gradient overlay */
 .dark-mode {
-    background: #000000;
-    background-image: none;
+    background: #000000 !important;
+    background-image: none !important;
+    background-color: #000000 !important;
 }
 
 /* --- Connection Status --- */

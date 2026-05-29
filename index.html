@@ -230,15 +230,46 @@
                 <i class="fas fa-plus"></i>
                 <span>New Chat</span>
               </button>
-              <button type="button" class="input-action-menu-item active" data-menu-action="memory" role="menuitem"
-                aria-pressed="true">
-                <i class="fi fi-tr-brain"></i>
-                <span>Memory</span>
-              </button>
               <button type="button" class="input-action-menu-item" data-menu-action="attach" role="menuitem">
                 <i class="fas fa-paperclip"></i>
                 <span>Attach file</span>
               </button>
+              <!-- Shuffle dropdown: Memory + Tools -->
+              <div class="input-action-menu-item shuffle-btn-wrapper" data-menu-action="shuffle" role="menuitem">
+                <i class="fas fa-sliders-h"></i>
+                <span>Configure</span>
+                <div class="shuffle-menu" role="menu" aria-label="Memory and tools options">
+                  <!-- Memory Item with Toggle -->
+                  <div class="shuffle-item" data-action="memory" role="menuitem" tabindex="-1" aria-label="Toggle memory">
+                    <div class="shuffle-item-content">
+                      <i class="fa-solid fa-brain" aria-hidden="true"></i>
+                      <span class="shuffle-item-label">Memory</span>
+                    </div>
+                    <div class="toggle-switch" data-toggle="memory" role="switch" aria-checked="true">
+                      <div class="toggle-slider"></div>
+                    </div>
+                  </div>
+                  <!-- Tools Item (Navigation) -->
+                  <div class="shuffle-item shuffle-item-nav" data-action="tools" role="menuitem" tabindex="-1" aria-label="Open tools submenu" aria-haspopup="true">
+                    <div class="shuffle-item-content">
+                      <i class="fas fa-wrench" aria-hidden="true"></i>
+                      <span class="shuffle-item-label">Tools</span>
+                    </div>
+                    <i class="fas fa-chevron-right submenu-indicator" aria-hidden="true"></i>
+                    <!-- Tools Submenu -->
+                    <div class="tools-menu" role="menu" aria-label="Connected tools">
+                      <div class="tools-menu-header">
+                        <span class="tools-menu-title">CONNECTED TOOLS</span>
+                      </div>
+                      <div class="tool-items-list" data-role="integration-tools-list"></div>
+                      <div class="tool-item tool-empty-state" data-role="integration-tools-empty" aria-live="polite">
+                        <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
+                        <span>No connected tools</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <button type="button" class="input-action-menu-item" data-menu-action="sessions" role="menuitem">
                 <i class="fi fi-tr-rectangle-vertical-history"></i>
                 <span>Chats</span>
@@ -255,7 +286,7 @@
                 <div class="waveform-bar"></div>
               </div>
             </button>
-            <button id="send-message" class="input-action-btn circular-btn"><i class="fas fa-paper-plane"></i></button>
+            <button id="send-message" class="input-action-btn circular-btn"><i class="fas fa-arrow-up"></i></button>
           </div>
         </div>
         <input type="file" id="file-input" style="display: none;" multiple />
@@ -1305,6 +1336,78 @@
       }
       deferredPrompt = null;
     });
+  </script>
+
+  <!-- Shuffle Menu Controller (Memory + Tools Dropdown) -->
+  <script>
+    (function() {
+      const shuffleWrapper = document.querySelector('.shuffle-btn-wrapper');
+      if (!shuffleWrapper) return;
+
+      const shuffleMenu = shuffleWrapper.querySelector('.shuffle-menu');
+      const memoryToggle = shuffleMenu?.querySelector('.toggle-switch[data-toggle="memory"]');
+      const toolsNav = shuffleMenu?.querySelector('.shuffle-item-nav[data-action="tools"]');
+      const toolsMenu = shuffleMenu?.querySelector('.tools-menu');
+
+      // Set memory on by default
+      if (memoryToggle) {
+        memoryToggle.setAttribute('aria-checked', 'true');
+      }
+
+      // Toggle shuffle menu visibility on click
+      shuffleWrapper.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (shuffleMenu) {
+          shuffleMenu.classList.toggle('visible');
+        }
+      });
+
+      // Memory toggle
+      if (memoryToggle) {
+        memoryToggle.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const isChecked = memoryToggle.getAttribute('aria-checked') === 'true';
+          const next = !isChecked;
+          memoryToggle.setAttribute('aria-checked', String(next));
+          // Dispatch to chatModule
+          if (window.chat && typeof window.chat.setMemoryEnabled === 'function') {
+            window.chat.setMemoryEnabled(next);
+          } else {
+            // Try dispatching a custom event for chatModule to pick up
+            document.dispatchEvent(new CustomEvent('shuffleMemoryToggle', { detail: { enabled: next } }));
+          }
+        });
+      }
+
+      // Tools submenu hover/click
+      if (toolsNav && toolsMenu) {
+        toolsNav.addEventListener('mouseenter', function() {
+          toolsMenu.classList.add('visible');
+        });
+        toolsNav.addEventListener('mouseleave', function() {
+          toolsMenu.classList.remove('visible');
+        });
+        toolsNav.addEventListener('click', function(e) {
+          e.stopPropagation();
+          toolsMenu.classList.toggle('visible');
+        });
+      }
+
+      // Close menus when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!shuffleWrapper.contains(e.target)) {
+          shuffleMenu?.classList.remove('visible');
+          toolsMenu?.classList.remove('visible');
+        }
+      });
+
+      // Listen for custom event from chatModule to update toggle state
+      document.addEventListener('shuffleMemoryToggle', function(e) {
+        if (memoryToggle && e.detail) {
+          memoryToggle.setAttribute('aria-checked', String(!!e.detail.enabled));
+        }
+      });
+    })();
   </script>
 </body>
 
