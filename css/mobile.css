@@ -9,6 +9,24 @@ html {
     font-family: var(--font-sans);
 }
 
+/* Ensure pure black on mobile dark mode */
+body.dark-mode,
+body.dark-mode html {
+    background: #000000 !important;
+    background-color: #000000 !important;
+}
+
+.dark-mode .app-container {
+    background: #000000 !important;
+    background-color: #000000 !important;
+}
+
+/* Ensure top-bar blends with pure black background */
+.dark-mode .top-bar {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 .app-container {
     display: flex;
     flex-direction: column;

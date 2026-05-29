@@ -254,10 +254,10 @@
     padding: 6px;
     border-radius: 24px;
     background: var(--input-bg);
-    border: var(--glass-border);
+    border: 1.5px solid var(--border-color);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     transition: all var(--anim-normal) var(--easing-standard);
     min-height: 52px;
     contain: layout;
@@ -796,6 +796,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         box-shadow: none !important;
         border-radius: 16px !important;
         padding: 0 !important;
+        overflow: visible !important;
     }
 
     /* Ensure it stays at bottom in chat mode */
@@ -813,12 +814,12 @@ body:not(.dark-mode) .voice-input-btn:hover {
         gap: 0 !important;
         padding: 0 !important;
         border-radius: 16px !important;
-        background-color: var(--window-bg, #0c0c0c) !important;
-        border: 2px solid var(--border-color, rgba(255, 255, 255, 0.08)) !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        background-color: var(--window-bg, #080808) !important;
+        border: 1.5px solid var(--border-color, rgba(255, 255, 255, 0.10)) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
         align-items: center !important;
         width: 100% !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
 
     /* 3. Textarea takes the full top row */
@@ -861,6 +862,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         transform: none !important;
         opacity: 1 !important;
         visibility: visible !important;
+        overflow: visible !important;
     }
 
     .floating-input-container .input-action-menu.hidden {
@@ -901,6 +903,33 @@ body:not(.dark-mode) .voice-input-btn:hover {
 
     .input-action-menu-item span {
         display: none !important;
+    }
+
+    /* Shuffle wrapper: keep it 36x36 as an icon-button but allow overflow for the dropdown */
+    .input-action-menu-item.shuffle-btn-wrapper {
+        overflow: visible !important;
+        position: relative !important;
+    }
+
+    /* Inside the shuffle dropdown, spans MUST be visible (override the hide rule above) */
+    .input-action-menu-item.shuffle-btn-wrapper .shuffle-menu span {
+        display: inline !important;
+    }
+
+    .input-action-menu-item.shuffle-btn-wrapper .shuffle-menu .shuffle-item-label {
+        display: inline !important;
+    }
+
+    .input-action-menu-item.shuffle-btn-wrapper .shuffle-menu .tools-menu-title {
+        display: inline !important;
+    }
+
+    .input-action-menu-item.shuffle-btn-wrapper .shuffle-menu .tool-empty-state span {
+        display: inline !important;
+    }
+
+    .input-action-menu-item.shuffle-btn-wrapper .shuffle-menu .tool-item label span {
+        display: inline !important;
     }
 
     #voice-input-btn {
@@ -962,5 +991,439 @@ body:not(.dark-mode) .voice-input-btn:hover {
 
     #send-message:hover {
         background-color: #f5f5f5 !important;
+    }
+}
+
+
+/* =================================================================
+ * SHUFFLE DROPDOWN MENU (Memory + Tools)
+ * Matches the desktop-ui Electron app pattern
+ * ================================================================= */
+
+/* ── CSS Variables for Shuffle Menu ── */
+:root {
+    --shuffle-menu-bg: #ffffff;
+    --shuffle-menu-text: #0f172a;
+    --shuffle-menu-icon: #64748b;
+    --shuffle-menu-hover: rgba(0, 0, 0, 0.05);
+    --shuffle-menu-border: rgba(0, 0, 0, 0.1);
+    --shuffle-toggle-active: #fbbf24;
+    --shuffle-toggle-active-hover: #fcd34d;
+    --shuffle-menu-width: 220px;
+    --shuffle-item-height: 40px;
+    --shuffle-toggle-width: 38px;
+    --shuffle-toggle-height: 20px;
+    --shuffle-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --shuffle-duration: 250ms;
+}
+
+.dark-mode {
+    --shuffle-menu-bg: #0a0a0b;
+    --shuffle-menu-text: rgba(255, 255, 255, 0.95);
+    --shuffle-menu-icon: rgba(255, 255, 255, 0.6);
+    --shuffle-menu-hover: rgba(255, 255, 255, 0.08);
+    --shuffle-menu-border: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Shuffle Wrapper inside action menu ── */
+.shuffle-btn-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+
+/* On mobile, the shuffle-btn-wrapper acts like a normal menu item */
+.input-action-menu .shuffle-btn-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shuffle-btn-wrapper > .shuffle-menu {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    width: var(--shuffle-menu-width);
+    background: var(--shuffle-menu-bg);
+    border: 1px solid var(--shuffle-menu-border);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 8px;
+    z-index: calc(var(--z-dropdown-menu, 1000) + 10);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px) scale(0.96);
+    transition:
+        opacity var(--shuffle-duration) var(--shuffle-ease),
+        transform var(--shuffle-duration) var(--shuffle-ease),
+        visibility 0s var(--shuffle-duration);
+    will-change: opacity, transform;
+}
+
+.shuffle-btn-wrapper > .shuffle-menu.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    transition:
+        opacity var(--shuffle-duration) var(--shuffle-ease),
+        transform var(--shuffle-duration) var(--shuffle-ease),
+        visibility 0s 0s;
+}
+
+/* ── Shuffle Menu Items ── */
+.shuffle-menu .shuffle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--shuffle-item-height);
+    padding: 0 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 150ms ease;
+}
+
+.shuffle-menu .shuffle-item:not(:last-child) {
+    margin-bottom: 3px;
+}
+
+.shuffle-menu .shuffle-item:hover {
+    background: var(--shuffle-menu-hover);
+}
+
+.shuffle-menu .shuffle-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.shuffle-menu .shuffle-item-content i {
+    width: 16px;
+    text-align: center;
+    color: var(--shuffle-menu-icon);
+    font-size: 14px;
+    transition: color 150ms ease;
+}
+
+.shuffle-menu .shuffle-item:hover .shuffle-item-content i {
+    color: var(--shuffle-menu-text);
+}
+
+.shuffle-menu .shuffle-item-label {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--shuffle-menu-text);
+}
+
+/* ── Toggle Switch ── */
+.shuffle-menu .toggle-switch {
+    position: relative;
+    width: var(--shuffle-toggle-width);
+    height: var(--shuffle-toggle-height);
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 11px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+    flex-shrink: 0;
+}
+
+.dark-mode .shuffle-menu .toggle-switch {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.shuffle-menu .toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition:
+        transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 150ms ease;
+}
+
+.dark-mode .shuffle-menu .toggle-slider {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+/* Active toggle - yellow */
+.shuffle-menu .toggle-switch[aria-checked="true"] {
+    background: var(--shuffle-toggle-active) !important;
+    border-color: var(--shuffle-toggle-active) !important;
+}
+
+.shuffle-menu .toggle-switch[aria-checked="true"] .toggle-slider {
+    transform: translateX(18px);
+    background: white !important;
+}
+
+.shuffle-menu .shuffle-item:hover .toggle-switch[aria-checked="true"] {
+    background: var(--shuffle-toggle-active-hover) !important;
+}
+
+/* ── Tools Navigation Item ── */
+.shuffle-menu .shuffle-item-nav .submenu-indicator {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.4);
+    transition: color 150ms ease, transform 150ms ease;
+    flex-shrink: 0;
+}
+
+.dark-mode .shuffle-menu .shuffle-item-nav .submenu-indicator {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.shuffle-menu .shuffle-item-nav:hover .submenu-indicator {
+    color: var(--shuffle-menu-text);
+    transform: translateX(2px);
+}
+
+/* ── Tools Submenu ── */
+.shuffle-menu .tools-menu {
+    position: absolute;
+    left: calc(100% + 10px);
+    bottom: 0;
+    width: var(--shuffle-menu-width);
+    background: var(--shuffle-menu-bg);
+    border: 1px solid var(--shuffle-menu-border);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 8px;
+    z-index: calc(var(--z-dropdown-menu, 1000) + 11);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-8px) scale(0.96);
+    transition:
+        opacity var(--shuffle-duration) var(--shuffle-ease),
+        transform var(--shuffle-duration) var(--shuffle-ease),
+        visibility 0s var(--shuffle-duration);
+    will-change: opacity, transform;
+}
+
+.shuffle-menu .tools-menu.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0) scale(1);
+    transition:
+        opacity var(--shuffle-duration) var(--shuffle-ease),
+        transform var(--shuffle-duration) var(--shuffle-ease),
+        visibility 0s 0s;
+}
+
+.shuffle-menu .tools-menu-header {
+    padding: 6px 10px 10px;
+    border-bottom: 1px solid var(--shuffle-menu-border);
+    margin-bottom: 6px;
+}
+
+.shuffle-menu .tools-menu-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .shuffle-menu .tools-menu-title {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.shuffle-menu .tool-items-list {
+    max-height: 240px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.shuffle-menu .tool-items-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.shuffle-menu .tool-items-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+}
+
+.dark-mode .shuffle-menu .tool-items-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.shuffle-menu .tool-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--shuffle-item-height);
+    padding: 0 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.shuffle-menu .tool-item:not(:last-child) {
+    margin-bottom: 3px;
+}
+
+.shuffle-menu .tool-item:hover {
+    background: var(--shuffle-menu-hover);
+}
+
+.shuffle-menu .tool-item label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    cursor: pointer;
+    color: var(--shuffle-menu-text);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.shuffle-menu .tool-item label i {
+    width: 16px;
+    text-align: center;
+    color: var(--shuffle-menu-icon);
+    font-size: 14px;
+}
+
+.shuffle-menu .tool-item:hover label i {
+    color: var(--shuffle-menu-text);
+}
+
+.shuffle-menu .tool-empty-state {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 12px;
+    color: var(--shuffle-menu-icon);
+    font-size: 13px;
+    line-height: 1.5;
+    cursor: default;
+}
+
+.shuffle-menu .tool-empty-state i {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* ── Mobile: Position tools-menu ABOVE instead of to the right ── */
+@media (max-width: 768px) {
+    .shuffle-btn-wrapper > .shuffle-menu {
+        left: -10px;
+        width: 200px;
+    }
+
+    .shuffle-menu .tools-menu {
+        left: 0;
+        bottom: calc(100% + 8px);
+        width: 200px;
+    }
+}
+
+/* ── Desktop (>=769px): Shuffle menu positioning within the action menu ── */
+@media (min-width: 769px) {
+    .shuffle-btn-wrapper {
+        position: relative !important;
+        overflow: visible !important;
+    }
+
+    .shuffle-btn-wrapper > .shuffle-menu {
+        bottom: calc(100% + 12px) !important;
+        top: auto !important;
+        left: 0 !important;
+        z-index: 9999 !important;
+    }
+
+    /* The shuffle-btn-wrapper inside the desktop grid toolbar */
+    .input-action-menu .shuffle-btn-wrapper {
+        position: relative !important;
+        overflow: visible !important;
+    }
+
+    .input-action-menu .shuffle-btn-wrapper > .shuffle-menu {
+        bottom: calc(100% + 12px) !important;
+        top: auto !important;
+        left: 0 !important;
+        z-index: 9999 !important;
+    }
+
+    /* Tools submenu on desktop opens to the right */
+    .shuffle-menu .tools-menu {
+        z-index: 10000 !important;
+    }
+
+    /* ── Dark mode: force dark bg + white text on desktop shuffle menu ── */
+    .dark-mode .shuffle-btn-wrapper > .shuffle-menu {
+        background: #0a0a0b !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .dark-mode .shuffle-menu .shuffle-item-label {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    .dark-mode .shuffle-menu .shuffle-item-content i {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .dark-mode .shuffle-menu .shuffle-item:hover .shuffle-item-content i {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    .dark-mode .shuffle-menu .shuffle-item:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .dark-mode .shuffle-menu .shuffle-item-nav .submenu-indicator {
+        color: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    .dark-mode .shuffle-menu .shuffle-item-nav:hover .submenu-indicator {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    .dark-mode .shuffle-menu .tools-menu {
+        background: #0a0a0b !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .dark-mode .shuffle-menu .tools-menu-title {
+        color: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    .dark-mode .shuffle-menu .tools-menu-header {
+        border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .dark-mode .shuffle-menu .tool-item label {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+
+    .dark-mode .shuffle-menu .tool-item label i {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .dark-mode .shuffle-menu .tool-empty-state {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    .dark-mode .shuffle-menu .tool-empty-state i {
+        color: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .dark-mode .shuffle-menu .toggle-switch {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    .dark-mode .shuffle-menu .toggle-slider {
+        background: rgba(255, 255, 255, 0.7) !important;
     }
 }
