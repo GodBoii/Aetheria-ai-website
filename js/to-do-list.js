@@ -1,4 +1,4 @@
-// js/to-do-list.js
+// js/to-do-list.js — Task System Redesign (Card Grid + Output Panel + Amber Design)
 import NotificationService from './notification-service.js';
 import { supabase } from './supabase-client.js';
 
@@ -10,6 +10,7 @@ export class ToDoList {
         this.notificationService = new NotificationService();
         this.subscription = null;
         this.bootstrapPromise = null;
+        this.currentOutputTask = null;
     }
 
     async init() {
@@ -27,16 +28,9 @@ export class ToDoList {
 
     async initializeDataInBackground() {
         try {
-            // Wait for auth to be ready
             const isReady = await this.waitForAppReady();
-            if (!isReady) {
-                return false;
-            }
-
-            // Initial fetch
+            if (!isReady) return false;
             await this.fetchTasks();
-
-            // Setup realtime
             this.setupRealtimeSubscription();
             return true;
         } catch (error) {
@@ -46,7 +40,6 @@ export class ToDoList {
     }
 
     async waitForAppReady() {
-        // Wait until we have a session
         let attempts = 0;
         while (attempts < 30) {
             const { data: { session } } = await supabase.auth.getSession();
@@ -61,62 +54,74 @@ export class ToDoList {
     cacheElements() {
         this.elements = {
             container: document.getElementById('to-do-list-container'),
-            panel: document.querySelector('.to-do-list-panel'),
-            closeBtn: document.querySelector('.to-do-list-header .close-btn'),
+            closeBtn: document.querySelector('.task-panel-close-btn'),
+            taskGrid: document.getElementById('task-grid'),
+            emptyState: document.getElementById('task-empty-state'),
+            addTaskFab: document.getElementById('add-task-fab'),
 
-            taskList: document.getElementById('task-list'),
-            addTaskBtn: document.getElementById('add-task-btn'),
+            // Create Modal
             newTaskModal: document.getElementById('new-task-modal'),
-
-            // Cached Inputs
             taskNameInput: document.getElementById('task-name'),
             taskDescriptionInput: document.getElementById('task-description'),
             taskPriorityInput: document.getElementById('task-priority'),
-            taskDeadlineInput: document.getElementById('task-deadline'),
             taskTagsInput: document.getElementById('task-tags'),
-
+            taskScheduleTime: document.getElementById('task-schedule-time'),
+            taskScheduleDate: document.getElementById('task-schedule-date'),
+            taskRepeat: document.getElementById('task-repeat'),
+            customIntervalGroup: document.getElementById('custom-interval-group'),
+            customIntervalValue: document.getElementById('task-custom-interval-value'),
+            customIntervalUnit: document.getElementById('task-custom-interval-unit'),
+            taskInstructions: document.getElementById('task-instructions'),
             saveTaskBtn: document.getElementById('save-task-btn'),
             cancelTaskBtn: document.getElementById('cancel-task-btn'),
 
-            // Task Work Modal Elements
-            taskWorkModal: document.getElementById('task-work-modal'),
-            taskWorkContent: document.getElementById('task-work-content'),
-            taskWorkCloseBtn: document.querySelector('.task-work-modal-close'),
+            // Output Panel
+            outputBackdrop: document.getElementById('task-output-backdrop'),
+            outputPanel: document.getElementById('task-output-panel'),
+            outputTitle: document.getElementById('task-output-title'),
+            outputMeta: document.getElementById('task-output-meta'),
+            outputContent: document.getElementById('task-output-content'),
+            outputDownload: document.getElementById('task-output-download'),
+            outputClose: document.getElementById('task-output-close'),
 
-            // User Context
-            contextBtn: document.getElementById('context-btn'),
-            userContextModal: document.getElementById('user-context-modal'),
-            saveContextBtn: document.getElementById('save-context-btn'),
-            cancelContextBtn: document.getElementById('cancel-context-btn'),
+            // Detail Modal
+            detailModal: document.getElementById('task-detail-modal'),
+            detailTitle: document.getElementById('task-detail-title'),
+            detailBody: document.getElementById('task-detail-body'),
+            detailCloseBtn: document.querySelector('.task-detail-close-btn'),
         };
     }
 
     setupEventListeners() {
-        // Main Panel
+        // Panel close
         this.elements.closeBtn?.addEventListener('click', () => this.toggleWindow(false));
-        this.elements.container?.addEventListener('click', (e) => {
-            if (e.target === this.elements.container) {
-                this.toggleWindow(false);
-            }
-        });
 
-        // Add Task
-        this.elements.addTaskBtn?.addEventListener('click', () => this.openNewTaskModal());
+        // FAB
+        this.elements.addTaskFab?.addEventListener('click', () => this.openNewTaskModal());
+
+        // Create Modal
         this.elements.saveTaskBtn?.addEventListener('click', () => this.saveNewTask());
         this.elements.cancelTaskBtn?.addEventListener('click', () => this.closeNewTaskModal());
-
-        // Task Work Modal
-        this.elements.taskWorkCloseBtn?.addEventListener('click', () => this.closeTaskWorkModal());
-        this.elements.taskWorkModal?.addEventListener('click', (e) => {
-            if (e.target === this.elements.taskWorkModal) {
-                this.closeTaskWorkModal();
-            }
+        this.elements.newTaskModal?.addEventListener('click', (e) => {
+            if (e.target === this.elements.newTaskModal) this.closeNewTaskModal();
         });
 
-        // Context (Placeholder)
-        this.elements.contextBtn?.addEventListener('click', () => this.openUserContextModal());
-        this.elements.saveContextBtn?.addEventListener('click', () => this.saveUserContext());
-        this.elements.cancelContextBtn?.addEventListener('click', () => this.closeUserContextModal());
+        // Repeat → custom interval toggle
+        this.elements.taskRepeat?.addEventListener('change', (e) => {
+            const show = e.target.value === 'custom';
+            this.elements.customIntervalGroup?.classList.toggle('hidden', !show);
+        });
+
+        // Output Panel
+        this.elements.outputClose?.addEventListener('click', () => this.closeOutputPanel());
+        this.elements.outputBackdrop?.addEventListener('click', () => this.closeOutputPanel());
+        this.elements.outputDownload?.addEventListener('click', () => this.downloadOutput());
+
+        // Detail Modal
+        this.elements.detailCloseBtn?.addEventListener('click', () => this.closeDetailModal());
+        this.elements.detailModal?.addEventListener('click', (e) => {
+            if (e.target === this.elements.detailModal) this.closeDetailModal();
+        });
     }
 
     toggleWindow(show, buttonElement = null) {
@@ -128,9 +133,12 @@ export class ToDoList {
 
         this.elements.container.classList.toggle('hidden', !show);
 
-        // Add body class for layout shifts if needed
-        if (show) document.body.classList.add('tasks-panel-open');
-        else document.body.classList.remove('tasks-panel-open');
+        // Toggle body class
+        if (show) {
+            document.body.classList.add('tasks-panel-open');
+        } else {
+            document.body.classList.remove('tasks-panel-open');
+        }
 
         if (!show && this.triggerButton) {
             this.triggerButton.classList.remove('active');
@@ -145,24 +153,17 @@ export class ToDoList {
     setupRealtimeSubscription() {
         this.subscription = supabase
             .channel('tasks_channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-                console.log('Realtime update:', payload);
-                // Refresh list on any change
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
                 this.fetchTasks();
             })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log('ToDoList: Subscribed to realtime updates');
-                }
-            });
+            .subscribe();
     }
 
     async fetchTasks() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return; // Should not happen if waitForAppReady passes
+            if (!user) return;
 
-            console.log('Fetching tasks for user:', user.id);
             const { data, error } = await supabase
                 .from('tasks')
                 .select('*')
@@ -171,7 +172,6 @@ export class ToDoList {
 
             if (error) throw error;
 
-            console.log('Tasks fetched:', data?.length);
             this.tasks = data || [];
             this.renderTasks();
         } catch (err) {
@@ -180,8 +180,35 @@ export class ToDoList {
         }
     }
 
+    // ================================================================
+    // TASK CREATION
+    // ================================================================
+
+    openNewTaskModal() {
+        this.elements.newTaskModal?.classList.remove('hidden');
+        this.elements.taskNameInput?.focus();
+    }
+
+    closeNewTaskModal() {
+        this.elements.newTaskModal?.classList.add('hidden');
+        // Reset form
+        if (this.elements.taskNameInput) this.elements.taskNameInput.value = '';
+        if (this.elements.taskDescriptionInput) this.elements.taskDescriptionInput.value = '';
+        if (this.elements.taskPriorityInput) this.elements.taskPriorityInput.value = 'medium';
+        if (this.elements.taskTagsInput) this.elements.taskTagsInput.value = '';
+        if (this.elements.taskScheduleTime) this.elements.taskScheduleTime.value = '';
+        if (this.elements.taskScheduleDate) this.elements.taskScheduleDate.value = '';
+        if (this.elements.taskRepeat) this.elements.taskRepeat.value = 'none';
+        if (this.elements.customIntervalValue) this.elements.customIntervalValue.value = '1';
+        if (this.elements.customIntervalUnit) this.elements.customIntervalUnit.value = 'hours';
+        if (this.elements.taskInstructions) this.elements.taskInstructions.value = '';
+        this.elements.customIntervalGroup?.classList.add('hidden');
+        // Uncheck all tool chips
+        document.querySelectorAll('#tool-chips input[type="checkbox"]').forEach(cb => cb.checked = false);
+    }
+
     async saveNewTask() {
-        const taskName = this.elements.taskNameInput.value.trim();
+        const taskName = this.elements.taskNameInput?.value.trim();
         if (!taskName) {
             this.showNotification('Task name is required.', 'warning');
             return;
@@ -190,47 +217,83 @@ export class ToDoList {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                this.showNotification('You must be logged in to create tasks.', 'error');
+                this.showNotification('You must be logged in.', 'error');
                 return;
             }
 
-            const rawTags = this.elements.taskTagsInput.value || '';
+            // Gather tools
+            const tools = [];
+            document.querySelectorAll('#tool-chips input[type="checkbox"]:checked').forEach(cb => {
+                tools.push(cb.value);
+            });
+
+            // Gather schedule
+            const scheduleTime = this.elements.taskScheduleTime?.value || '';
+            const scheduleDate = this.elements.taskScheduleDate?.value || '';
+            let deadline = null;
+            let nextRunAt = null;
+
+            if (scheduleTime && scheduleDate) {
+                // Convert local time to UTC ISO string
+                const localDatetime = new Date(`${scheduleDate}T${scheduleTime}:00`);
+                deadline = localDatetime.toISOString();
+                nextRunAt = deadline;
+            } else if (scheduleDate) {
+                const localDatetime = new Date(`${scheduleDate}T00:00:00`);
+                deadline = localDatetime.toISOString();
+                nextRunAt = deadline;
+            }
+
+            // Gather repeat
+            const repeat = this.elements.taskRepeat?.value || 'none';
+            let customInterval = null;
+            if (repeat === 'custom') {
+                customInterval = {
+                    value: parseInt(this.elements.customIntervalValue?.value) || 1,
+                    unit: this.elements.customIntervalUnit?.value || 'hours'
+                };
+            }
+
+            // Tags
+            const rawTags = this.elements.taskTagsInput?.value || '';
             const tagsArray = rawTags.split(',').map(t => t.trim()).filter(t => t);
 
-            // Generate UUID for the task to ensure ID consistency
+            // Build metadata
+            const metadata = {
+                source: 'pwa',
+                tools: tools,
+                custom_instructions: this.elements.taskInstructions?.value.trim() || null,
+                repeat: repeat !== 'none' ? repeat : null,
+                custom_interval: customInterval,
+                next_run_at: nextRunAt,
+                user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                tz_offset_minutes: -new Date().getTimezoneOffset()
+            };
+
             const taskId = crypto.randomUUID();
 
             const newTask = {
                 id: taskId,
                 user_id: user.id,
                 text: taskName,
-                description: this.elements.taskDescriptionInput.value.trim() || null,
-                priority: this.elements.taskPriorityInput.value || 'medium',
+                description: this.elements.taskDescriptionInput?.value.trim() || null,
+                priority: this.elements.taskPriorityInput?.value || 'medium',
                 status: 'pending',
-                deadline: this.elements.taskDeadlineInput.value || null,
+                deadline: deadline,
                 tags: tagsArray,
                 created_at: new Date().toISOString(),
-                metadata: { source: 'pwa', user_agent: navigator.userAgent }
+                metadata: metadata
             };
 
-            // Use select() to return the inserted data to verify it hit the DB
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('tasks')
                 .insert([newTask])
                 .select();
 
-            if (error) {
-                console.error('Supabase Insert Error:', error);
-                throw error;
-            }
+            if (error) throw error;
 
-            console.log('Task inserted successfully:', data);
-
-            this.showNotification('Task created successfully', 'success');
+            this.showNotification('Task created — AI will process it', 'success');
             this.closeNewTaskModal();
-
-            // Optimistic update not strictly needed if realtime is fast/active, 
-            // but we call fetch to be sure
             await this.fetchTasks();
 
         } catch (err) {
@@ -239,10 +302,296 @@ export class ToDoList {
         }
     }
 
-    async toggleTaskCompletion(taskId, isChecked) {
-        // If checked, mark as completed. If unchecked, revert to pending.
-        const newStatus = isChecked ? 'completed' : 'pending';
-        const completedAt = isChecked ? new Date().toISOString() : null;
+    // ================================================================
+    // CARD GRID RENDERING
+    // ================================================================
+
+    renderTasks() {
+        if (!this.elements.taskGrid) return;
+        this.elements.taskGrid.innerHTML = '';
+
+        if (this.tasks.length === 0) {
+            this.elements.emptyState?.classList.remove('hidden');
+            return;
+        }
+
+        this.elements.emptyState?.classList.add('hidden');
+
+        this.tasks.forEach((task, index) => {
+            const card = this.createTaskCard(task, index);
+            this.elements.taskGrid.appendChild(card);
+        });
+    }
+
+    createTaskCard(task, index) {
+        const card = document.createElement('div');
+        card.className = `task-card${task.status === 'completed' ? ' completed' : ''}`;
+        card.style.animationDelay = `${index * 55}ms`;
+        card.dataset.id = task.id;
+
+        // Click card to open detail
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.task-card-action-btn')) return;
+            this.openDetailModal(task);
+        });
+
+        // Priority dot + Title
+        const header = document.createElement('div');
+        header.className = 'task-card-header';
+
+        const dot = document.createElement('div');
+        dot.className = `task-card-priority-dot ${task.priority || 'medium'}`;
+        header.appendChild(dot);
+
+        const title = document.createElement('div');
+        title.className = 'task-card-title';
+        title.textContent = task.text;
+        header.appendChild(title);
+
+        card.appendChild(header);
+
+        // Status badge
+        const statusBadge = document.createElement('div');
+        statusBadge.className = `task-card-status ${task.status || 'pending'}`;
+        statusBadge.textContent = this.formatStatus(task.status);
+        card.appendChild(statusBadge);
+
+        // Description (2-line clamp)
+        if (task.description) {
+            const desc = document.createElement('div');
+            desc.className = 'task-card-desc';
+            desc.textContent = task.description;
+            card.appendChild(desc);
+        }
+
+        // Schedule badge
+        const schedule = this.getScheduleDisplay(task);
+        if (schedule) {
+            const schedBadge = document.createElement('div');
+            schedBadge.className = 'task-card-schedule';
+            schedBadge.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${schedule}`;
+            card.appendChild(schedBadge);
+        }
+
+        // Tool badges
+        const tools = task.metadata?.tools;
+        if (tools && tools.length > 0) {
+            const toolsDiv = document.createElement('div');
+            toolsDiv.className = 'task-card-tools';
+            tools.forEach(tool => {
+                const badge = document.createElement('span');
+                badge.className = 'task-card-tool-badge';
+                badge.textContent = this.formatToolName(tool);
+                toolsDiv.appendChild(badge);
+            });
+            card.appendChild(toolsDiv);
+        }
+
+        // Action buttons (hover reveal on desktop, always on mobile)
+        const actions = document.createElement('div');
+        actions.className = 'task-card-actions';
+
+        // View output (only if has task_work)
+        if (task.task_work && task.task_work.trim().length > 0) {
+            const viewBtn = document.createElement('button');
+            viewBtn.className = 'task-card-action-btn view-output';
+            viewBtn.title = 'View Output';
+            viewBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+            viewBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openOutputPanel(task);
+            });
+            actions.appendChild(viewBtn);
+        }
+
+        // Complete toggle
+        const completeBtn = document.createElement('button');
+        completeBtn.className = `task-card-action-btn complete-toggle${task.status === 'completed' ? ' is-completed' : ''}`;
+        completeBtn.title = task.status === 'completed' ? 'Mark Pending' : 'Mark Complete';
+        completeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        completeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleTaskCompletion(task.id, task.status !== 'completed');
+        });
+        actions.appendChild(completeBtn);
+
+        // Delete
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'task-card-action-btn delete';
+        deleteBtn.title = 'Delete';
+        deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteTask(task.id);
+        });
+        actions.appendChild(deleteBtn);
+
+        card.appendChild(actions);
+
+        return card;
+    }
+
+    // ================================================================
+    // OUTPUT PANEL
+    // ================================================================
+
+    openOutputPanel(task) {
+        this.currentOutputTask = task;
+
+        // Set title
+        if (this.elements.outputTitle) {
+            this.elements.outputTitle.textContent = task.text;
+        }
+
+        // Set meta
+        if (this.elements.outputMeta) {
+            let metaHtml = '';
+            metaHtml += `<span class="task-output-meta-badge">${this.formatStatus(task.status)}</span>`;
+            if (task.deadline) {
+                metaHtml += `<span class="task-output-meta-badge">${new Date(task.deadline).toLocaleString()}</span>`;
+            }
+            const tools = task.metadata?.tools;
+            if (tools && tools.length > 0) {
+                tools.forEach(t => {
+                    metaHtml += `<span class="task-output-meta-badge">${this.formatToolName(t)}</span>`;
+                });
+            }
+            this.elements.outputMeta.innerHTML = metaHtml;
+        }
+
+        // Parse and render content
+        if (this.elements.outputContent) {
+            const content = task.task_work || '';
+            if (typeof marked !== 'undefined') {
+                this.elements.outputContent.innerHTML = marked.parse(content);
+                // Highlight code
+                if (typeof hljs !== 'undefined') {
+                    this.elements.outputContent.querySelectorAll('pre code').forEach(block => {
+                        hljs.highlightElement(block);
+                    });
+                }
+            } else {
+                this.elements.outputContent.textContent = content;
+            }
+        }
+
+        // Show
+        this.elements.outputBackdrop?.classList.remove('hidden');
+        this.elements.outputPanel?.classList.remove('hidden');
+    }
+
+    closeOutputPanel() {
+        this.elements.outputBackdrop?.classList.add('hidden');
+        this.elements.outputPanel?.classList.add('hidden');
+        this.currentOutputTask = null;
+    }
+
+    downloadOutput() {
+        if (!this.currentOutputTask) return;
+        const task = this.currentOutputTask;
+
+        // Build markdown content
+        const sanitizedTitle = task.text.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+        let mdContent = `# ${task.text}\n\n`;
+        mdContent += `**Status:** ${this.formatStatus(task.status)}\n`;
+        if (task.deadline) mdContent += `**Schedule:** ${new Date(task.deadline).toLocaleString()}\n`;
+        const tools = task.metadata?.tools;
+        if (tools && tools.length > 0) mdContent += `**Tools:** ${tools.map(t => this.formatToolName(t)).join(', ')}\n`;
+        mdContent += `**Generated:** ${new Date().toLocaleString()}\n\n---\n\n`;
+        mdContent += task.task_work || '';
+
+        const blob = new Blob([mdContent], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${sanitizedTitle || 'task_output'}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // ================================================================
+    // TASK DETAIL MODAL (COMPACT)
+    // ================================================================
+
+    openDetailModal(task) {
+        if (!this.elements.detailModal || !this.elements.detailBody) return;
+
+        if (this.elements.detailTitle) {
+            this.elements.detailTitle.textContent = task.text;
+        }
+
+        let rows = '';
+
+        // Status + Priority row
+        rows += this.detailRow('Status', `<span class="task-card-status ${task.status}">${this.formatStatus(task.status)}</span>`);
+        rows += this.detailRow('Priority', this.capitalize(task.priority || 'medium'));
+
+        // Description
+        if (task.description) {
+            rows += this.detailRow('Desc', this.escapeHtml(task.description));
+        }
+
+        // Schedule
+        if (task.deadline) {
+            rows += this.detailRow('Schedule', new Date(task.deadline).toLocaleString());
+        }
+
+        // Repeat
+        const repeat = task.metadata?.repeat;
+        if (repeat) {
+            let repeatText = this.capitalize(repeat);
+            if (repeat === 'custom' && task.metadata?.custom_interval) {
+                const ci = task.metadata.custom_interval;
+                repeatText = `Every ${ci.value} ${ci.unit}`;
+            }
+            rows += this.detailRow('Repeat', repeatText);
+        }
+
+        // Tools
+        const tools = task.metadata?.tools;
+        if (tools && tools.length > 0) {
+            rows += this.detailRow('Tools', tools.map(t => this.formatToolName(t)).join(', '));
+        }
+
+        // Instructions
+        if (task.metadata?.custom_instructions) {
+            rows += this.detailRow('Instruct', this.escapeHtml(task.metadata.custom_instructions));
+        }
+
+        // Tags
+        if (task.tags && task.tags.length > 0) {
+            rows += this.detailRow('Tags', task.tags.join(', '));
+        }
+
+        // Timezone
+        if (task.metadata?.user_timezone) {
+            rows += this.detailRow('TZ', task.metadata.user_timezone);
+        }
+
+        // Created
+        rows += this.detailRow('Created', new Date(task.created_at).toLocaleString());
+
+        this.elements.detailBody.innerHTML = rows;
+        this.elements.detailModal.classList.remove('hidden');
+    }
+
+    closeDetailModal() {
+        this.elements.detailModal?.classList.add('hidden');
+    }
+
+    detailRow(label, value) {
+        return `<div class="task-detail-row"><div class="task-detail-label">${label}</div><div class="task-detail-value">${value}</div></div>`;
+    }
+
+    // ================================================================
+    // TASK ACTIONS
+    // ================================================================
+
+    async toggleTaskCompletion(taskId, markComplete) {
+        const newStatus = markComplete ? 'completed' : 'pending';
+        const completedAt = markComplete ? new Date().toISOString() : null;
 
         try {
             const { error } = await supabase
@@ -252,7 +601,6 @@ export class ToDoList {
 
             if (error) throw error;
 
-            // Re-fetch handled by realtime usually, but local update helps UI responsiveness
             const task = this.tasks.find(t => t.id === taskId);
             if (task) {
                 task.status = newStatus;
@@ -261,13 +609,12 @@ export class ToDoList {
         } catch (err) {
             console.error('Error updating task:', err);
             this.showNotification('Failed to update task', 'error');
-            // Revert UI if failed
             await this.fetchTasks();
         }
     }
 
     async deleteTask(taskId) {
-        if (!confirm('Are you sure you want to delete this task?')) return;
+        if (!confirm('Delete this task?')) return;
 
         try {
             const { error } = await supabase
@@ -276,262 +623,78 @@ export class ToDoList {
                 .eq('id', taskId);
 
             if (error) throw error;
-
-            this.showNotification('Task removed', 'info');
-            // Realtime handles refetch
+            this.showNotification('Task deleted', 'info');
         } catch (err) {
             console.error('Error deleting task:', err);
             this.showNotification('Failed to delete task', 'error');
         }
     }
 
-    renderTasks() {
-        if (!this.elements.taskList) return;
-        this.elements.taskList.innerHTML = '';
+    // ================================================================
+    // HELPERS
+    // ================================================================
 
-        if (this.tasks.length === 0) {
-            this.elements.taskList.innerHTML = '<li class="empty-state">No tasks found. Create one to get started!</li>';
-            return;
-        }
-
-        this.tasks.forEach(task => {
-            const listItem = document.createElement('li');
-            listItem.dataset.id = task.id;
-            listItem.dataset.priority = task.priority;
-
-            const isCompleted = task.status === 'completed';
-            if (isCompleted) listItem.classList.add('completed');
-
-            // --- Header Row ---
-            const headerRow = document.createElement('div');
-            headerRow.className = 'task-header-row';
-
-            // Checkbox
-            const checkboxWrapper = document.createElement('div');
-            checkboxWrapper.className = 'checkbox-wrapper';
-            checkboxWrapper.innerHTML = `
-                <input type="checkbox" id="task-${task.id}" ${isCompleted ? 'checked' : ''}>
-                <label class="checkmark" for="task-${task.id}">
-                    <i class="fas fa-check"></i>
-                </label>
-            `;
-            // Listener for checkbox
-            const checkbox = checkboxWrapper.querySelector('input');
-            checkbox.addEventListener('change', (e) => {
-                e.stopPropagation(); // Prevent toggling accordion
-                this.toggleTaskCompletion(task.id, e.target.checked);
-            });
-
-            // Title
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'task-text';
-            titleSpan.textContent = this.escapeHtml(task.text);
-            // Click title to toggle
-            titleSpan.addEventListener('click', () => listItem.classList.toggle('expanded'));
-
-            // Toggle Button (Chevron)
-            const toggleBtn = document.createElement('button');
-            toggleBtn.className = 'task-toggle-btn';
-            toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
-            toggleBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                listItem.classList.toggle('expanded');
-            });
-
-            headerRow.appendChild(checkboxWrapper);
-            headerRow.appendChild(titleSpan);
-            headerRow.appendChild(toggleBtn);
-
-            // --- Expanded Content Body ---
-            const expandedContent = document.createElement('div');
-            expandedContent.className = 'task-expanded-content';
-
-            // Description
-            if (task.description) {
-                const desc = document.createElement('div');
-                desc.className = 'task-description';
-                desc.textContent = task.description;
-                expandedContent.appendChild(desc);
-            }
-
-            // Tags
-            if (task.tags && task.tags.length > 0) {
-                const tagsDiv = document.createElement('div');
-                tagsDiv.className = 'task-tags';
-                tagsDiv.innerHTML = task.tags.map(tag => `<span class="task-tag">${this.escapeHtml(tag)}</span>`).join('');
-                expandedContent.appendChild(tagsDiv);
-            }
-
-            // Footer Row (Date, Status, Actions)
-            const footerRow = document.createElement('div');
-            footerRow.className = 'task-footer-row';
-
-            // Deadline / Date
-            const dateDiv = document.createElement('div');
-            if (task.deadline) {
-                dateDiv.className = 'task-deadline';
-                dateDiv.innerHTML = `<i class="fas fa-clock"></i> ${new Date(task.deadline).toLocaleString()}`;
-                footerRow.appendChild(dateDiv);
-            }
-
-            // Status Badge (if processing)
-            if (task.status === 'in_progress') {
-                const statusBadge = document.createElement('div');
-                statusBadge.className = 'status-indicator status-in-progress';
-                statusBadge.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing';
-                footerRow.appendChild(statusBadge);
-            }
-
-            // Actions Wrapper (Vertical Stack: View Work above Delete)
-            const actionsWrapper = document.createElement('div');
-            actionsWrapper.className = 'task-actions-wrapper';
-
-            // View Work Button (Icon Only)
-            if (task.task_work && task.task_work.trim().length > 0) {
-                const viewWorkBtn = document.createElement('button');
-                viewWorkBtn.className = 'view-work-btn';
-                viewWorkBtn.title = "View Work";
-                viewWorkBtn.innerHTML = '<i class="fas fa-file-alt"></i>'; // Icon only
-                viewWorkBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.showTaskWorkModal(task.task_work);
-                });
-                actionsWrapper.appendChild(viewWorkBtn);
-            }
-
-            // Delete Button
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.title = "Delete Task";
-            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.deleteTask(task.id);
-            });
-            actionsWrapper.appendChild(deleteBtn);
-
-            footerRow.appendChild(actionsWrapper);
-
-            expandedContent.appendChild(footerRow);
-
-            // Assemble List Item
-            listItem.appendChild(headerRow);
-            listItem.appendChild(expandedContent);
-
-            this.elements.taskList.appendChild(listItem);
-        });
+    formatStatus(status) {
+        const map = {
+            pending: 'Pending',
+            in_progress: 'Processing',
+            completed: 'Completed'
+        };
+        return map[status] || 'Pending';
     }
 
-    showTaskWorkModal(content) {
-        if (!this.elements.taskWorkContent || !this.elements.taskWorkModal) return;
-
-        // Parse Markdown
-        if (typeof marked !== 'undefined') {
-            // Configure marked for custom renderer if needed, or just use parse
-            this.elements.taskWorkContent.innerHTML = marked.parse(content);
-
-            // Highlight code blocks and add copy buttons
-            if (typeof hljs !== 'undefined') {
-                this.elements.taskWorkContent.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                    this.addCopyButton(block);
-                });
-            }
-
-            // Render Mermaid diagrams
-            if (typeof mermaid !== 'undefined') {
-                const mermaidBlocks = this.elements.taskWorkContent.querySelectorAll('.language-mermaid');
-                mermaidBlocks.forEach((block, index) => {
-                    const div = document.createElement('div');
-                    div.classList.add('mermaid');
-                    div.textContent = block.textContent;
-                    div.id = `mermaid-chart-${Date.now()}-${index}`;
-                    block.parentElement.replaceWith(div);
-                });
-
-                try {
-                    mermaid.init(undefined, this.elements.taskWorkContent.querySelectorAll('.mermaid'));
-                } catch (e) {
-                    console.error('Mermaid init failed', e);
-                }
-            }
-
-        } else {
-            this.elements.taskWorkContent.textContent = content;
-        }
-
-        this.elements.taskWorkModal.classList.remove('hidden');
+    formatToolName(tool) {
+        const map = {
+            internet_search: 'Web Search',
+            browser: 'Browser',
+            email: 'Email',
+            google_drive: 'Drive',
+            google_sheets: 'Sheets',
+            github: 'GitHub'
+        };
+        return map[tool] || tool;
     }
 
-    addCopyButton(block) {
-        const pre = block.parentElement;
-        if (pre.querySelector('.copy-btn')) return; // Already exists
+    getScheduleDisplay(task) {
+        const deadline = task.deadline;
+        const nextRun = task.metadata?.next_run_at;
+        const target = nextRun || deadline;
+        if (!target) return null;
 
-        const btn = document.createElement('button');
-        btn.className = 'copy-btn';
-        btn.innerHTML = '<i class="fas fa-copy"></i>';
-        btn.title = 'Copy code';
-        btn.style.position = 'absolute';
-        btn.style.top = '0.5rem';
-        btn.style.right = '0.5rem';
-        btn.style.background = 'rgba(255,255,255,0.1)';
-        btn.style.border = 'none';
-        btn.style.color = '#fff';
-        btn.style.padding = '0.25rem 0.5rem';
-        btn.style.borderRadius = '4px';
-        btn.style.cursor = 'pointer';
+        try {
+            const d = new Date(target);
+            const now = new Date();
+            const diffMs = d - now;
 
-        // Ensure pre is relative
-        if (getComputedStyle(pre).position === 'static') {
-            pre.style.position = 'relative';
-        }
-
-        btn.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(block.textContent);
-                btn.innerHTML = '<i class="fas fa-check"></i>';
-                setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i>', 2000);
-            } catch (err) {
-                console.error('Failed to copy', err);
+            // If in the past, show date
+            if (diffMs < 0) {
+                return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
             }
-        });
 
-        pre.appendChild(btn);
-    }
+            // If within 24 hours
+            if (diffMs < 86400000) {
+                return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            }
 
-    closeTaskWorkModal() {
-        if (this.elements.taskWorkModal) {
-            this.elements.taskWorkModal.classList.add('hidden');
-            this.elements.taskWorkContent.innerHTML = ''; // Clear content
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } catch {
+            return null;
         }
     }
 
-    openNewTaskModal() {
-        this.elements.newTaskModal?.classList.remove('hidden');
+    capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
-    closeNewTaskModal() {
-        this.elements.newTaskModal?.classList.add('hidden');
-        const form = this.elements.newTaskModal?.querySelector('.modal-content');
-        if (form) {
-            form.querySelectorAll('input, textarea, select').forEach(el => {
-                if (el.tagName === 'SELECT') return; // Keep defaults
-                el.value = '';
-            });
-        }
-    }
-
-    openUserContextModal() {
-        this.elements.userContextModal?.classList.remove('hidden');
-    }
-
-    closeUserContextModal() {
-        this.elements.userContextModal?.classList.add('hidden');
-    }
-
-    saveUserContext() {
-        this.showNotification('User context saved (simulation).', 'success');
-        this.closeUserContextModal();
+    escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     registerFloatingWindow() {
@@ -546,15 +709,5 @@ export class ToDoList {
         } else {
             console.log(`[${type}] ${message}`);
         }
-    }
-
-    escapeHtml(text) {
-        if (!text) return '';
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
     }
 }
