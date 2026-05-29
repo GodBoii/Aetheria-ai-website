@@ -9,6 +9,8 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/favicon.ico',
+  '/icon.ico',
   '/assets/icon.png',
   '/assets/splash-512.png',
   '/assets/splash-1024.png',
