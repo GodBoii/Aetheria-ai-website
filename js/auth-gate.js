@@ -67,7 +67,7 @@ class AuthGate {
     this.root.querySelector('#auth-name')?.toggleAttribute('required', isSignup);
     this.root.querySelector('#auth-phone')?.toggleAttribute('required', isSignup);
     this.setText('.auth-header h2', isSignup ? 'Create an account' : 'Welcome back');
-    this.setText('.auth-header p', isSignup ? 'Begin your Aetheria workspace.' : 'Enter your details to access your workspace.');
+    this.setText('.auth-header p', isSignup ? 'Begin your Aetheria workspace.' : 'Access your workspace.');
     this.setText('#auth-submit-label', isSignup ? 'Sign up' : 'Sign in');
     this.setText('#auth-footer-copy', isSignup ? 'Already have an account?' : "Don't have an account?");
     this.setText('#auth-toggle-mode', isSignup ? 'Sign in' : 'Sign up');
@@ -173,7 +173,7 @@ class AuthGate {
         <section class="auth-illustration-pane" aria-label="Aetheria AI">
           <div class="auth-branding">
             <h1>AETHERIA AI</h1>
-            <p>ELEVATE YOURSELF WITH AETHERIA AI</p>
+            <p>ELEVATE YOURSELF WITH AETHERIA</p>
           </div>
         </section>
         <section class="auth-form-pane" aria-label="Authentication">
@@ -184,7 +184,7 @@ class AuthGate {
           <div class="auth-glass-card" data-mode="login">
             <div class="auth-header">
               <h2>Welcome back</h2>
-              <p>Enter your details to access your workspace.</p>
+              <p>Access your workspace.</p>
             </div>
             <form class="auth-form" id="auth-main-form">
               <div class="auth-input-group hidden" id="auth-name-field">
