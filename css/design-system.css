@@ -94,8 +94,8 @@
 
 /* Dark Theme Variables - Pure Black with Glassmorphism */
 .dark-mode {
-  --bg-color: #000000;
-  --elevated-bg: rgba(255, 255, 255, 0.08);
+  --bg-color: #000000 !important;
+  --elevated-bg: rgba(255, 255, 255, 0.05);
   --text-color: #ffffff;
   --text-secondary: #a1a1aa;
 
