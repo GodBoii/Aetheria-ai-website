@@ -22,6 +22,7 @@ const itemsToCopy = [
     'chat.html',
     'to-do-list.html',
     'test-colors.html',
+    'icon.ico',
     '.well-known'
 ];
 
@@ -50,5 +51,13 @@ itemsToCopy.forEach(item => {
     console.log(`Copying ${item}...`);
     copyRecursiveSync(srcPath, destPath);
 });
+
+// Copy icon.ico as favicon.ico to handle browser fallback requests
+const iconIcoSrc = path.join(rootDir, 'icon.ico');
+const faviconIcoDest = path.join(distDir, 'favicon.ico');
+if (fs.existsSync(iconIcoSrc)) {
+    console.log('Copying icon.ico as favicon.ico...');
+    fs.copyFileSync(iconIcoSrc, faviconIcoDest);
+}
 
 console.log('Build complete!');
