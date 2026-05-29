@@ -89,6 +89,9 @@ class WelcomeDisplay {
     this.carouselIndex = 0;
     this.carouselTimer = null;
 
+    /* Mobile pills state */
+    this.mobilePillActive = null;
+
     this.recentSessions = [];
     this.recentTasks = [];
 
@@ -112,6 +115,8 @@ class WelcomeDisplay {
 
     if (this.isDesktop()) {
       this.createDesktopRail();
+    } else {
+      this.createMobilePills();
     }
 
     this.bindEvents();
@@ -211,6 +216,215 @@ class WelcomeDisplay {
     this.carouselContainer = null;
     this.pillContentContainer = null;
     this.activePill = null;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     MOBILE PILLS — inline pills + expandable content panel
+     ═══════════════════════════════════════════════════════════════ */
+  createMobilePills() {
+    if (!this.element || this.element.querySelector('.home-pills-container')) return;
+
+    const pillsContainer = document.createElement('div');
+    pillsContainer.className = 'home-pills-container';
+    pillsContainer.innerHTML = PILL_CONFIG.map(pill => `
+      <button class="home-pill" data-pill-key="${pill.key}" type="button">
+        <i class="${pill.icon}" aria-hidden="true"></i>
+        <span>${pill.label}</span>
+      </button>
+    `).join('');
+
+    const contentPanel = document.createElement('div');
+    contentPanel.className = 'home-pill-content-panel hidden';
+    contentPanel.innerHTML = `
+      <div class="home-pill-content-header">
+        <button class="close-pill-content-btn" type="button">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <span class="home-pill-content-title"></span>
+      </div>
+      <div class="home-pill-content-body"></div>
+    `;
+
+    this.element.appendChild(pillsContainer);
+    this.element.appendChild(contentPanel);
+
+    pillsContainer.querySelectorAll('.home-pill').forEach(btn => {
+      btn.addEventListener('click', () => this.onMobilePillClick(btn.dataset.pillKey));
+    });
+
+    contentPanel.querySelector('.close-pill-content-btn').addEventListener('click', () => {
+      this.closeMobilePill();
+    });
+  }
+
+  destroyMobilePills() {
+    if (!this.element) return;
+    this.element.querySelector('.home-pills-container')?.remove();
+    this.element.querySelector('.home-pill-content-panel')?.remove();
+    this.element.classList.remove('panel-active');
+    this.mobilePillActive = null;
+  }
+
+  onMobilePillClick(key) {
+    if (this.mobilePillActive === key) {
+      this.closeMobilePill();
+      return;
+    }
+
+    this.mobilePillActive = key;
+
+    this.element.querySelectorAll('.home-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.pillKey === key);
+    });
+
+    this.renderMobilePillContent(key);
+
+    const panel = this.element.querySelector('.home-pill-content-panel');
+    if (panel) {
+      panel.classList.remove('hidden');
+      panel.classList.add('visible');
+    }
+
+    this.element.classList.add('panel-active');
+  }
+
+  closeMobilePill() {
+    this.mobilePillActive = null;
+
+    this.element.querySelectorAll('.home-pill').forEach(btn => btn.classList.remove('active'));
+
+    const panel = this.element.querySelector('.home-pill-content-panel');
+    if (panel) {
+      panel.classList.remove('visible');
+      panel.classList.add('hidden');
+    }
+
+    this.element.classList.remove('panel-active');
+  }
+
+  renderMobilePillContent(key) {
+    const panel = this.element.querySelector('.home-pill-content-panel');
+    if (!panel) return;
+    const titleSpan = panel.querySelector('.home-pill-content-title');
+    const body = panel.querySelector('.home-pill-content-body');
+
+    const config = PILL_CONFIG.find(p => p.key === key);
+    titleSpan.textContent = config ? config.label : '';
+    body.innerHTML = '';
+
+    switch (key) {
+      case 'templates': this.renderMobileTemplates(body); break;
+      case 'website':   this.renderMobilePromptGrid(body, WEBSITE_PROMPTS); break;
+      case 'design':    this.renderMobilePromptGrid(body, DESIGN_PROMPTS); break;
+      case 'sessions':  this.renderMobileSessions(body); break;
+      case 'tasks':     this.renderMobileTasks(body); break;
+    }
+  }
+
+  renderMobileTemplates(container) {
+    const selected = getSelectedPresentationTemplate();
+    const cardsHtml = PRESENTATION_TEMPLATES.map((t) => {
+      const isSelected = selected?.id === t.id;
+      const colors = t.colors || ['#222', '#444', '#666', '#888'];
+      return `
+        <div class="mobile-template-card ${isSelected ? 'selected' : ''}" data-template-id="${this.escapeHtml(t.id)}">
+          <span class="ppt-template-canvas" style="--ppt-bg:${colors[0]};--ppt-a:${colors[1]};--ppt-b:${colors[2]};--ppt-c:${colors[3]};">
+            <span class="ppt-template-line title"></span>
+            <span class="ppt-template-line short"></span>
+            <span class="ppt-template-bars"><i></i><i></i><i></i></span>
+          </span>
+          <div class="mobile-template-info">
+            <strong>${this.escapeHtml(t.name)}</strong>
+            <small>${this.escapeHtml(t.description || '')}</small>
+          </div>
+          ${isSelected ? '<span class="mobile-template-check"><i class="fa-solid fa-check" aria-hidden="true"></i></span>' : ''}
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="mobile-templates-scroll">${cardsHtml}</div>
+      <div class="mobile-templates-hint">Select a template before asking for slides, or let AI choose.</div>
+    `;
+
+    container.querySelectorAll('.mobile-template-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.templateId;
+        const sel = getSelectedPresentationTemplate();
+        if (sel?.id === id) {
+          clearSelectedPresentationTemplate();
+        } else {
+          setSelectedPresentationTemplate(id);
+          this.focusInput();
+        }
+        this.renderMobilePillContent('templates');
+      });
+    });
+  }
+
+  renderMobilePromptGrid(container, prompts) {
+    container.innerHTML = `<div class="mobile-prompt-grid">${prompts.map(p => `
+      <button class="mobile-prompt-card" data-prompt="${this.escapeHtml(p.prompt)}" type="button">
+        <div class="mobile-prompt-icon"><i class="${p.icon}" aria-hidden="true"></i></div>
+        <div class="mobile-prompt-copy">
+          <strong>${this.escapeHtml(p.title)}</strong>
+          <small>${this.escapeHtml(p.desc)}</small>
+        </div>
+      </button>
+    `).join('')}</div>`;
+
+    container.querySelectorAll('.mobile-prompt-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const input = document.getElementById('floating-input');
+        if (input) {
+          input.value = card.dataset.prompt;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.focus();
+          this.closeMobilePill();
+        }
+      });
+    });
+  }
+
+  renderMobileSessions(container) {
+    if (!this.recentSessions.length) {
+      container.innerHTML = `<div class="mobile-pill-empty"><i class="fas fa-comments"></i><p>No recent chats yet.</p></div>`;
+      return;
+    }
+    container.innerHTML = `<div class="mobile-sessions-list">${this.recentSessions.map(s => `
+      <button type="button" class="mobile-session-item" data-session-id="${this.escapeHtml(s.session_id)}">
+        <i class="fa-solid fa-message" aria-hidden="true"></i>
+        <span>${this.escapeHtml(s.title || `Session ${String(s.session_id).slice(0, 8)}`)}</span>
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+      </button>
+    `).join('')}</div>`;
+
+    container.querySelectorAll('[data-session-id]').forEach(btn => {
+      btn.addEventListener('click', () => this.openSessionHistory(btn.dataset.sessionId));
+    });
+  }
+
+  renderMobileTasks(container) {
+    if (!this.recentTasks.length) {
+      container.innerHTML = `
+        <div class="mobile-pill-empty">
+          <i class="fas fa-clipboard-check"></i>
+          <p>No active tasks.</p>
+          <button type="button" class="mobile-tasks-open-btn" data-action="open-tasks">Open Tasks Panel</button>
+        </div>`;
+      container.querySelector('[data-action="open-tasks"]')?.addEventListener('click', () => this.openTasksPanel());
+      return;
+    }
+    container.innerHTML = `
+      <div class="mobile-tasks-list">${this.recentTasks.map(task => `
+        <div class="mobile-task-item">
+          <span class="mobile-task-title">${this.escapeHtml(task.text || task.title || 'Untitled')}</span>
+          <span class="mobile-task-meta">${this.escapeHtml(this.getTaskMeta(task))}</span>
+        </div>
+      `).join('')}</div>
+      <button type="button" class="mobile-tasks-open-btn" data-action="open-tasks">Open Tasks Panel</button>
+    `;
+    container.querySelector('[data-action="open-tasks"]')?.addEventListener('click', () => this.openTasksPanel());
   }
 
   /* ── Carousel ──────────────────────────────────────────────── */
@@ -498,12 +712,15 @@ class WelcomeDisplay {
   handleViewportChange(event) {
     if (event.matches) {
       // Entered desktop range
+      this.destroyMobilePills();
       this.createDesktopRail();
       void this.loadDynamicData();
       this.updateDisplay();
     } else {
       // Left desktop range
       this.destroyDesktopRail();
+      this.createMobilePills();
+      this.updateDisplay();
     }
   }
 
@@ -552,13 +769,18 @@ class WelcomeDisplay {
   }
 
   async loadDynamicData() {
-    if (!this.isDesktop()) return;
     await Promise.allSettled([
       this.loadRecentSessions(),
       this.loadRecentTasks()
     ]);
-    if (this.activePill === 'sessions' || this.activePill === 'tasks') {
-      this.renderPillContent(this.activePill);
+    if (this.isDesktop()) {
+      if (this.activePill === 'sessions' || this.activePill === 'tasks') {
+        this.renderPillContent(this.activePill);
+      }
+    } else {
+      if (this.mobilePillActive === 'sessions' || this.mobilePillActive === 'tasks') {
+        this.renderMobilePillContent(this.mobilePillActive);
+      }
     }
   }
 
@@ -666,6 +888,11 @@ class WelcomeDisplay {
     this.suggestionsWrapper?.classList.add('hidden');
     this.carouselContainer?.classList.add('hidden');
     this.stopCarousel();
+
+    // Close mobile pill panel on hide
+    if (!this.isDesktop()) {
+      this.closeMobilePill();
+    }
   }
 
   hideForFloatingWindow() {
@@ -729,6 +956,7 @@ class WelcomeDisplay {
       this.desktopMQ.removeListener(this.handleViewportChange);
     }
     this.destroyDesktopRail();
+    this.destroyMobilePills();
     this.initialized = false;
   }
 }
