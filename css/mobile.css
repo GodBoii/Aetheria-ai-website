@@ -750,4 +750,23 @@ body:not(.dark-mode) .input-action-menu-item i {
     .input-field #send-message {
         order: 3;
     }
+
+    .input-field #plan-mode-btn {
+        position: absolute;
+        top: 50%;
+        right: 104px;
+        transform: translateY(-50%);
+        width: 68px;
+        min-width: 68px;
+        height: 40px;
+        min-height: 40px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        z-index: 2;
+    }
+
+    .input-field .floating-input {
+        padding-right: 178px;
+    }
 }

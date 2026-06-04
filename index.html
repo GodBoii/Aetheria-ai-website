@@ -42,9 +42,9 @@
   <link rel="stylesheet" href="css/skeleton.css" />
   <link rel="stylesheet" href="css/chat-variables.css?v=web-cleanup-4" />
   <link rel="stylesheet" href="css/chat-layout.css" />
-  <link rel="stylesheet" href="css/chat-messages.css" />
+  <link rel="stylesheet" href="css/chat-messages.css?v=plan-mode-1" />
   <link rel="stylesheet" href="css/chat-context.css" />
-  <link rel="stylesheet" href="css/chat-input.css?v=web-cleanup-4" />
+  <link rel="stylesheet" href="css/chat-input.css?v=plan-mode-1" />
   <link rel="stylesheet" href="css/message-actions.css" />
   <link rel="stylesheet" href="css/notifications.css" />
   <link rel="stylesheet" href="css/welcome-message.css?v=web-cleanup-4" />
@@ -55,7 +55,7 @@
   <link rel="stylesheet" href="css/browser-screenshot-viewer.css" />
   <link rel="stylesheet" href="css/aios.css" />
   <link rel="stylesheet" href="css/project-workspace-mobile.css" />
-  <link rel="stylesheet" href="css/mobile.css?v=web-cleanup-4" />
+  <link rel="stylesheet" href="css/mobile.css?v=plan-mode-1" />
   <link rel="stylesheet" href="css/modals.css" />
   <link rel="stylesheet" href="css/assist.css" />
   <link rel="stylesheet" href="css/install-prompt.css" />
@@ -64,7 +64,7 @@
   <link rel="stylesheet" href="css/home-screen-cards.css" />
   <link rel="stylesheet" href="css/auth-gate.css?v=web-cleanup-4" />
   <!-- Desktop overrides MUST be loaded last to win the cascade on >=1024px -->
-  <link rel="stylesheet" href="css/desktop.css?v=desktop-fix-2" />
+  <link rel="stylesheet" href="css/desktop.css?v=plan-mode-1" />
 
   <!-- Icon Libraries -->
   <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-thin-rounded/css/uicons-thin-rounded.css'>
@@ -276,6 +276,11 @@
               </button>
             </div>
             <textarea id="floating-input" class="floating-input" placeholder="Ask anything..." rows="1"></textarea>
+            <button id="plan-mode-btn" class="input-action-btn plan-mode-btn" type="button" aria-pressed="false"
+              title="Plan Mode">
+              <i class="fas fa-route" aria-hidden="true"></i>
+              <span>Plan</span>
+            </button>
             <button id="voice-input-btn" class="input-action-btn circular-btn voice-input-btn idle" title="Voice input">
               <i class="fas fa-microphone voice-icon"></i>
               <div class="waveform-container hidden">
@@ -479,7 +484,7 @@
   <!-- Application Logic -->
   <script type="module">
     import { AIOS } from './js/aios.js';
-    import { chatModule } from './js/chat.js';
+    import { chatModule } from './js/chat.js?v=plan-mode-1';
     import { ProjectWorkspaceManager } from './js/project-workspace-manager.js';
     import { ToDoList } from './js/to-do-list.js';
     import ContextHandler from './js/context-handler.js';

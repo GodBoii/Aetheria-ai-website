@@ -356,6 +356,51 @@
         transform: translateX(-50%) !important;
     }
 
+    .floating-input-container .input-field {
+        display: grid !important;
+        grid-template-columns: auto auto 1fr auto auto auto !important;
+        grid-template-rows: auto auto !important;
+        align-items: center !important;
+    }
+
+    .floating-input-container .input-field .floating-input {
+        grid-column: 1 / -1 !important;
+        grid-row: 1 !important;
+    }
+
+    .floating-input-container #input-action-menu {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+    }
+
+    .floating-input-container #plan-mode-btn {
+        grid-column: 4 !important;
+        grid-row: 2 !important;
+        position: static !important;
+        transform: none !important;
+        align-self: center !important;
+    }
+
+    .floating-input-container #voice-input-btn {
+        grid-column: 5 !important;
+        grid-row: 2 !important;
+        position: static !important;
+        transform: none !important;
+        right: auto !important;
+        top: auto !important;
+        align-self: center !important;
+    }
+
+    .floating-input-container #send-message {
+        grid-column: 6 !important;
+        grid-row: 2 !important;
+        position: static !important;
+        transform: none !important;
+        right: auto !important;
+        top: auto !important;
+        align-self: center !important;
+    }
+
     /* ═══════════════════════════════════════════════════════════
      * Welcome / home screen
      * ═══════════════════════════════════════════════════════════ */
