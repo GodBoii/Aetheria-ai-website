@@ -52,6 +52,8 @@ const eventListeners = {
 
     'run_completed': [], // agent finished — trigger local notification
 
+    'plan_response': [],
+
 };
 
 
@@ -175,6 +177,7 @@ function setupSocketHandlers() {
     socket.on('run_status', (data) => emitEvent('run_status', data));
     socket.on('run_catchup', (data) => emitEvent('run_catchup', data));
     socket.on('run_completed', (data) => emitEvent('run_completed', data));
+    socket.on('plan_response', (data) => emitEvent('plan_response', data));
 
 }
 
@@ -314,6 +317,44 @@ export const socketService = {
         // The backend expects the entire payload to be a single JSON string.
 
         socket.emit('send_message', JSON.stringify(authenticatedPayload));
+
+    },
+
+    sendPlanRequest: async (planPayload) => {
+
+        if (!socket || !socket.connected) {
+
+            console.error('Socket not connected. Cannot send plan request.');
+
+            throw new Error('Not connected to the server. Please wait or refresh.');
+
+        }
+
+        await supabase.auth.refreshSession();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+
+            console.error('User is not authenticated.');
+
+            throw new Error('You are not logged in. Please log in to use Plan Mode.');
+
+        }
+
+        if (session?.access_token && session.access_token !== socketAuthToken) {
+            socketAuthToken = session.access_token;
+            socket.auth = { ...(socket.auth || {}), token: socketAuthToken };
+        }
+
+        const authenticatedPayload = {
+
+            ...planPayload,
+
+            deviceType: getDeviceType()
+
+        };
+
+        socket.emit('plan_request', authenticatedPayload);
 
     },
 

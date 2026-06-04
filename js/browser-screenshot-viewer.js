@@ -148,7 +148,7 @@ class BrowserScreenshotViewer {
         if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
             return storagePath;
         }
-        const baseUrl = config?.supabase?.url || 'https://ilprcrqemdiilbtaqelm.supabase.co';
+        const baseUrl = config?.supabase?.url || 'https://gugmnnmjhqdtjwriaywa.supabase.co';
         return `${baseUrl}/storage/v1/object/public/media-uploads/${storagePath}`;
     }
 
