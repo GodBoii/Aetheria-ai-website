@@ -67,6 +67,9 @@ let connectionHasBeenLost = false;
 let socketListenersBound = false;
 let activeRunRequest = null;
 let stopRequested = false;
+let planModeActive = false;
+let activePlanRequest = null;
+let planGenerationActive = false;
 const pendingSendQueue = [];
 
 const GENERIC_FAILURE_MESSAGE = 'something gone wrong';
@@ -137,10 +140,28 @@ function cloneSelectedSessions(sessions = []) {
 function updateSendButtonState() {
     const sendBtn = document.getElementById('send-message');
     const sendIcon = sendBtn?.querySelector('i');
+    const planButton = document.getElementById('plan-mode-btn');
     if (!sendBtn || !sendIcon) return;
 
+    if (planButton) {
+        planButton.classList.toggle('active', planModeActive);
+        planButton.setAttribute('aria-pressed', String(planModeActive));
+        planButton.disabled = sessionActive || planGenerationActive;
+        planButton.title = planModeActive ? 'Plan Mode on' : 'Plan Mode';
+    }
+
+    if (planGenerationActive) {
+        sendIcon.classList.remove('fa-paper-plane', 'fa-arrow-up', 'fa-play');
+        sendIcon.classList.add('fa-hourglass-half');
+        sendBtn.classList.add('sending');
+        sendBtn.disabled = true;
+        sendBtn.setAttribute('aria-label', 'Generating plan');
+        sendBtn.setAttribute('title', 'Generating plan');
+        return;
+    }
+
     if (sessionActive) {
-        sendIcon.classList.remove('fa-paper-plane');
+        sendIcon.classList.remove('fa-paper-plane', 'fa-arrow-up', 'fa-hourglass-half');
         sendIcon.classList.add('fa-play');
         sendBtn.classList.add('sending');
         sendBtn.disabled = false;
@@ -149,7 +170,7 @@ function updateSendButtonState() {
         return;
     }
 
-    sendIcon.classList.remove('fa-play');
+    sendIcon.classList.remove('fa-play', 'fa-hourglass-half');
     sendIcon.classList.add('fa-paper-plane');
     sendBtn.classList.remove('sending');
     sendBtn.disabled = false;
@@ -599,6 +620,329 @@ function createBotMessagePlaceholder(messageId, container = null) {
         }
     });
     return messageDiv;
+}
+
+function setPlanModeActive(enabled) {
+    planModeActive = Boolean(enabled);
+    updateSendButtonState();
+    dispatchChatEvent('planModeChanged', { active: planModeActive });
+}
+
+function setupPlanModeControls() {
+    const planButton = document.getElementById('plan-mode-btn');
+    if (!planButton || planButton.dataset.bound === 'true') return;
+
+    planButton.dataset.bound = 'true';
+    planButton.addEventListener('click', () => {
+        if (sessionActive || planGenerationActive) {
+            notificationService?.show('Plan Mode can be changed after the current response finishes.', 'warning');
+            return;
+        }
+        setPlanModeActive(!planModeActive);
+    });
+    updateSendButtonState();
+}
+
+function getPlanChunk(data = {}) {
+    return data.content ?? data.chunk ?? data.delta ?? data.text ?? '';
+}
+
+function getPlanDoneText(data = {}) {
+    return data.plan ?? data.final_plan ?? data.finalPlan ?? data.content ?? '';
+}
+
+function sanitizePlanHtml(markdown = '') {
+    const formatted = messageFormatter.format(markdown || '', { inlineArtifacts: true });
+    return contentSecurity.sanitizeHTML(formatted, {
+        ALLOWED_TAGS: [
+            'p', 'br', 'strong', 'em', 'b', 'i', 'code', 'pre', 'a', 'ul', 'ol', 'li',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'table', 'thead', 'tbody',
+            'tr', 'th', 'td', 'span', 'div'
+        ],
+        ALLOWED_ATTR: ['href', 'class', 'id', 'target', 'rel', 'title'],
+        ALLOW_DATA_ATTR: true
+    });
+}
+
+function ensurePlanCard(messageId) {
+    const messageDiv = ongoingStreams.get(messageId) || getBotMessageElement(messageId);
+    if (!messageDiv) return null;
+
+    const mainContent = messageDiv.querySelector(`#main-content-${messageId}`) || messageDiv.querySelector('.message-content');
+    if (!mainContent) return null;
+
+    let card = mainContent.querySelector('.plan-mode-card');
+    if (card) return card;
+
+    const block = document.createElement('div');
+    block.className = 'content-block plan-mode-content-block';
+    block.innerHTML = `
+        <div class="inner-content">
+            <div class="plan-mode-card is-streaming">
+                <div class="plan-mode-card-header">
+                    <div class="plan-mode-title">
+                        <i class="fas fa-route" aria-hidden="true"></i>
+                        <span>Plan Mode</span>
+                    </div>
+                    <span class="plan-mode-status">Planning</span>
+                </div>
+                <div class="plan-mode-rendered"></div>
+                <textarea class="plan-mode-editor hidden" aria-label="Edit plan"></textarea>
+                <div class="plan-mode-actions hidden">
+                    <button type="button" class="plan-mode-action plan-mode-edit">
+                        <i class="fas fa-pen" aria-hidden="true"></i>
+                        <span>Edit</span>
+                    </button>
+                    <button type="button" class="plan-mode-action plan-mode-cancel">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                        <span>Cancel</span>
+                    </button>
+                    <button type="button" class="plan-mode-action plan-mode-submit primary">
+                        <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                        <span>Submit</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    mainContent.appendChild(block);
+
+    card = block.querySelector('.plan-mode-card');
+    card.querySelector('.plan-mode-edit')?.addEventListener('click', () => setPlanEditorMode(messageId, true));
+    card.querySelector('.plan-mode-cancel')?.addEventListener('click', () => cancelPlanRequest(messageId));
+    card.querySelector('.plan-mode-submit')?.addEventListener('click', () => submitApprovedPlan(messageId));
+    return card;
+}
+
+function renderPlanCard(messageId, { done = false } = {}) {
+    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
+
+    const card = ensurePlanCard(messageId);
+    if (!card) return;
+
+    const rendered = card.querySelector('.plan-mode-rendered');
+    const editor = card.querySelector('.plan-mode-editor');
+    const status = card.querySelector('.plan-mode-status');
+    const actions = card.querySelector('.plan-mode-actions');
+    const planText = activePlanRequest.planBuffer || 'Preparing your plan...';
+
+    if (rendered && !card.classList.contains('is-editing')) {
+        rendered.innerHTML = sanitizePlanHtml(planText);
+        messageFormatter.applyInlineEnhancements?.(rendered);
+    }
+    if (editor && !card.classList.contains('is-editing')) {
+        editor.value = activePlanRequest.planBuffer || '';
+    }
+    if (status) {
+        status.textContent = done ? 'Ready' : 'Planning';
+    }
+    card.classList.toggle('is-streaming', !done);
+    actions?.classList.toggle('hidden', !done);
+}
+
+function setPlanEditorMode(messageId, editing) {
+    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
+
+    const card = ensurePlanCard(messageId);
+    if (!card) return;
+
+    const rendered = card.querySelector('.plan-mode-rendered');
+    const editor = card.querySelector('.plan-mode-editor');
+    const editButton = card.querySelector('.plan-mode-edit span');
+    const isEditing = Boolean(editing);
+
+    if (editor && isEditing) {
+        editor.value = activePlanRequest.planBuffer || '';
+        requestAnimationFrame(() => editor.focus());
+    } else if (editor) {
+        activePlanRequest.planBuffer = editor.value.trim() || activePlanRequest.planBuffer;
+        renderPlanCard(messageId, { done: true });
+    }
+
+    card.classList.toggle('is-editing', isEditing);
+    rendered?.classList.toggle('hidden', isEditing);
+    editor?.classList.toggle('hidden', !isEditing);
+    if (editButton) {
+        editButton.textContent = isEditing ? 'Preview' : 'Edit';
+    }
+}
+
+function finishPlanRequest(messageId) {
+    const messageDiv = ongoingStreams.get(messageId);
+    if (messageDiv) {
+        const thinkingIndicator = messageDiv.querySelector('.thinking-indicator');
+        const summary = thinkingIndicator?.querySelector('.reasoning-summary');
+        thinkingIndicator?.classList.add('steps-done');
+        if (summary && messageDiv.querySelector('.log-block, .tool-log-entry, .reasoning-thought-block')) {
+            summary.classList.remove('hidden');
+        } else {
+            thinkingIndicator?.remove();
+        }
+        ongoingStreams.delete(messageId);
+    }
+    planGenerationActive = false;
+    updateSendButtonState();
+}
+
+function cancelPlanRequest(messageId) {
+    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
+
+    const messageDiv = getBotMessageElement(messageId);
+    messageDiv?.remove();
+    activePlanRequest = null;
+    planGenerationActive = false;
+    updateSendButtonState();
+    notificationService?.show('Plan discarded.', 'info', 2500);
+}
+
+async function submitApprovedPlan(messageId) {
+    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
+
+    const card = ensurePlanCard(messageId);
+    const editor = card?.querySelector('.plan-mode-editor');
+    const approvedPlan = (card?.classList.contains('is-editing') && editor)
+        ? editor.value.trim()
+        : (activePlanRequest.planBuffer || '').trim();
+
+    if (!approvedPlan) {
+        notificationService?.show('The plan is empty. Add details before submitting.', 'warning');
+        return;
+    }
+
+    const capturedFiles = cloneAttachedFiles(activePlanRequest.attachedFiles || []);
+    const capturedSessions = cloneSelectedSessions(activePlanRequest.selectedSessions || []);
+    activePlanRequest = null;
+    setPlanModeActive(false);
+
+    addUserMessage('Plan approved. Starting the improved request.', capturedFiles, capturedSessions);
+    await chatModule.handleSendMessage(undefined, undefined, {
+        messageOverride: approvedPlan,
+        attachedFilesOverride: capturedFiles,
+        selectedSessionsOverride: capturedSessions,
+        includeAttachedFiles: false,
+        includeSelectedSessions: false,
+        skipUserMessage: true,
+    });
+
+    fileAttachmentHandler?.clearAttachedFiles?.();
+    contextHandler?.clearSelectedContext?.();
+}
+
+async function startPlanRequest({ message, attachedFiles, selectedSessions }) {
+    if (planGenerationActive || sessionActive) {
+        notificationService?.show('Please wait for the current response to finish.', 'warning');
+        return;
+    }
+
+    if (!isSocketConnected) {
+        notificationService?.show('Plan Mode needs a server connection. Please wait or refresh.', 'warning');
+        return;
+    }
+
+    planGenerationActive = true;
+    updateSendButtonState();
+
+    addUserMessage(message || 'Attached context', attachedFiles, selectedSessions);
+
+    const input = document.getElementById('floating-input');
+    if (input) {
+        input.value = '';
+        requestAnimationFrame(() => {
+            input.style.height = 'auto';
+        });
+        input.focus();
+    }
+
+    const messageId = `plan_${Date.now()}`;
+    createBotMessagePlaceholder(messageId);
+
+    activePlanRequest = {
+        messageId,
+        conversationId: currentConversationId,
+        originalMessage: message,
+        attachedFiles: cloneAttachedFiles(attachedFiles),
+        selectedSessions: cloneSelectedSessions(selectedSessions),
+        planBuffer: '',
+    };
+    renderPlanCard(messageId);
+
+    const payload = {
+        id: messageId,
+        conversationId: currentConversationId,
+        message,
+        config: buildOutgoingAgentConfig(),
+        files: cloneAttachedFiles(attachedFiles),
+        selected_sessions: cloneSelectedSessions(selectedSessions),
+        context_session_ids: selectedSessions.map(session => session.session_id).filter(Boolean),
+    };
+
+    if (window.projectWorkspace?.isActive?.()) {
+        payload.agent_mode = 'coder';
+        payload.config.agent_mode = 'coder';
+        payload.workspace_context = window.projectWorkspace.getWorkspaceContextPayload?.() || window.projectContext || null;
+    }
+
+    try {
+        await socketService.sendPlanRequest(payload);
+    } catch (error) {
+        console.error('[PlanMode] Failed to send plan request:', error);
+        renderMessageFailure(messageId, null);
+        activePlanRequest = null;
+        planGenerationActive = false;
+        updateSendButtonState();
+        notificationService?.show(error.message || 'Plan Mode request failed.', 'error');
+    }
+}
+
+function handlePlanResponse(data = {}) {
+    const messageId = data.id || data.messageId || activePlanRequest?.messageId;
+    if (!messageId || !activePlanRequest || activePlanRequest.messageId !== messageId) return;
+
+    const eventType = String(data.type || data.event || '').toLowerCase();
+    const isReasoningEvent = eventType === 'reasoning' || Boolean(data.reasoning_content || data.step);
+    const isToolEvent = eventType === 'tool_start' || eventType === 'tool_end';
+
+    if (eventType === 'error' || data.status === 'error' || data.error) {
+        renderMessageFailure(messageId, null);
+        activePlanRequest = null;
+        planGenerationActive = false;
+        updateSendButtonState();
+        notificationService?.show(data.message || data.error || 'Plan Mode failed.', 'error');
+        return;
+    }
+
+    if (eventType === 'reasoning' || data.reasoning_content || data.step) {
+        appendReasoningContent({
+            id: messageId,
+            agent_name: data.agent_name || 'plan_agent',
+            reasoning_content: data.reasoning_content || data.content || data.step,
+        });
+    } else if (isToolEvent) {
+        handleAgentStep({
+            id: messageId,
+            type: eventType,
+            name: data.name || data.tool?.tool_name || data.tool?.name || 'tool',
+            agent_name: data.agent_name || 'plan_agent',
+            tool: data.tool,
+        });
+    }
+
+    if (!isReasoningEvent && !isToolEvent && (eventType === 'content' || data.content || data.chunk || data.delta || data.text)) {
+        const chunk = getPlanChunk(data);
+        if (chunk) {
+            activePlanRequest.planBuffer += String(chunk);
+            renderPlanCard(messageId);
+        }
+    }
+
+    if (eventType === 'done' || data.done || data.status === 'done' || data.status === 'complete') {
+        const finalText = getPlanDoneText(data);
+        if (finalText && finalText.length >= activePlanRequest.planBuffer.length) {
+            activePlanRequest.planBuffer = String(finalText);
+        }
+        renderPlanCard(messageId, { done: true });
+        finishPlanRequest(messageId);
+    }
 }
 
 // Helper to normalize content from backend (handles objects, strings, etc.)
@@ -1289,6 +1633,7 @@ function setupSocketListeners() {
     socketService.on('agent_step', handleAgentStep);
     socketService.on('reasoning_step', handleReasoningStep);
     socketService.on('status', handleStatusEvent);
+    socketService.on('plan_response', handlePlanResponse);
 
     // --- Queued-Run System Handlers ---
 
@@ -1772,6 +2117,7 @@ export const chatModule = {
 
         socketService.init();
         setupSocketListeners();
+        setupPlanModeControls();
 
         // Initialize BackgroundRunManager — lifecycle tracking + native notifications
         // Rendering is done exclusively inside the run_catchup socket handler above.
@@ -1896,8 +2242,10 @@ export const chatModule = {
         ongoingStreams.clear();
         pendingSendQueue.length = 0;
         activeRunRequest = null;
+        activePlanRequest = null;
         stopRequested = false;
         sessionActive = false;
+        planGenerationActive = false;
         shouldResendWithHistory = false;
         messageFormatter.pendingContent.clear();
         _renderedSheetsPreviews.clear();
@@ -1977,6 +2325,16 @@ export const chatModule = {
                 if (sessionActive && notificationService) {
                     notificationService.show('Please wait for the current response to finish.', 'warning');
                 }
+                return;
+            }
+
+            if (planGenerationActive) {
+                notificationService?.show('Plan Mode is already preparing a plan.', 'warning');
+                return;
+            }
+
+            if (planModeActive && !isProgrammaticSend && !skipUserMessage) {
+                await startPlanRequest({ message, attachedFiles, selectedSessions });
                 return;
             }
 

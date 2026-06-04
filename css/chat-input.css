@@ -274,11 +274,15 @@
 }
 
 .input-field #voice-input-btn {
-    order: 2;
+    order: 3;
 }
 
 .input-field #send-message {
-    order: 3;
+    order: 4;
+}
+
+.input-field #plan-mode-btn {
+    order: 2;
 }
 
 .input-field.with-attachments {
@@ -350,6 +354,43 @@
     margin-bottom: 0;
     position: relative;
     overflow: hidden;
+}
+
+.plan-mode-btn {
+    min-width: 72px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 14px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.plan-mode-btn:hover {
+    background: var(--hover-bg);
+    color: var(--accent-color);
+}
+
+.plan-mode-btn.active,
+.plan-mode-btn[aria-pressed="true"] {
+    background: rgba(var(--accent-color-rgb), 0.14);
+    border-color: rgba(var(--accent-color-rgb), 0.42);
+    color: var(--accent-color);
+}
+
+.plan-mode-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
 }
 
 #attach-file-btn {
@@ -809,7 +850,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
     /* 2. Style the inner input field to be the actual visible box */
     .input-field {
         display: grid !important;
-        grid-template-columns: auto auto 1fr auto auto !important;
+        grid-template-columns: auto auto 1fr auto auto auto !important;
         grid-template-rows: auto auto !important;
         gap: 0 !important;
         padding: 0 !important;
@@ -932,8 +973,23 @@ body:not(.dark-mode) .voice-input-btn:hover {
         display: inline !important;
     }
 
-    #voice-input-btn {
+    #plan-mode-btn {
         grid-column: 4 !important;
+        grid-row: 2 !important;
+        width: auto !important;
+        min-width: 72px !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 0 12px !important;
+        margin: 10px 6px 14px 0 !important;
+        border-radius: 999px !important;
+        align-self: center !important;
+        font-size: 0.82rem !important;
+        position: static !important;
+    }
+
+    #voice-input-btn {
+        grid-column: 5 !important;
         grid-row: 2 !important;
         background: transparent !important;
         border: none !important;
@@ -949,6 +1005,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         border-radius: 12px !important;
         transition: background 0.2s ease, color 0.2s ease !important;
         align-self: center !important;
+        position: static !important;
     }
 
     #voice-input-btn:hover {
@@ -957,7 +1014,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
     }
 
     #send-message {
-        grid-column: 5 !important;
+        grid-column: 6 !important;
         grid-row: 2 !important;
         width: 36px !important;
         height: 36px !important;
@@ -974,6 +1031,7 @@ body:not(.dark-mode) .voice-input-btn:hover {
         justify-content: center !important;
         transition: background-color 0.2s ease !important;
         align-self: center !important;
+        position: static !important;
     }
 
     body:not(.dark-mode) #send-message {

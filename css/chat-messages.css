@@ -125,6 +125,124 @@
     background: #bb3f31;
 }
 
+.plan-mode-content-block {
+    width: 100%;
+}
+
+.plan-mode-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(var(--accent-color-rgb), 0.24);
+    border-radius: 16px;
+    background: rgba(var(--accent-color-rgb), 0.06);
+    padding: 16px;
+}
+
+.plan-mode-card.is-streaming::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.08) 45%, transparent 70%);
+    transform: translateX(-100%);
+    animation: plan-card-shimmer 2.4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.plan-mode-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.plan-mode-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.plan-mode-status {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.plan-mode-rendered {
+    color: var(--text-color);
+}
+
+.plan-mode-rendered > :first-child {
+    margin-top: 0;
+}
+
+.plan-mode-rendered > :last-child {
+    margin-bottom: 0;
+}
+
+.plan-mode-editor {
+    width: 100%;
+    min-height: 260px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--text-color);
+    font: inherit;
+    line-height: 1.55;
+    padding: 12px;
+    resize: vertical;
+    outline: none;
+}
+
+.plan-mode-editor:focus {
+    border-color: rgba(var(--accent-color-rgb), 0.6);
+}
+
+.plan-mode-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.plan-mode-action {
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.plan-mode-action:hover {
+    background: var(--hover-bg);
+}
+
+.plan-mode-action.primary {
+    background: var(--text-color);
+    border-color: var(--text-color);
+    color: var(--bg-color);
+}
+
+@keyframes plan-card-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    60%, 100% {
+        transform: translateX(100%);
+    }
+}
+
 .message-bot .message-content h1,
 .message-bot .message-content h2,
 .message-bot .message-content h3 {
