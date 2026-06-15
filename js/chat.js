@@ -1106,7 +1106,10 @@ function populateBotMessage(data) {
                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'table', 'thead', 'tbody',
                 'tr', 'th', 'td', 'span', 'div', 'button'
             ],
-            ALLOWED_ATTR: ['href', 'class', 'id', 'target', 'rel', 'type', 'aria-label', 'title'],
+            ALLOWED_ATTR: [
+                'href', 'class', 'id', 'target', 'rel', 'type', 'title', 'role', 'tabindex',
+                'aria-label', 'aria-pressed', 'aria-expanded', 'aria-hidden'
+            ],
             ALLOW_DATA_ATTR: true
         });
 

@@ -2,7 +2,8 @@ import { artifactHandler } from './artifact-handler.js';
 
 const SANITIZE_TAGS = ['button', 'i', 'div', 'span', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
 const SANITIZE_ATTRS = [
-    'class', 'id', 'role', 'title', 'tabindex', 'aria-label', 'aria-pressed', 'aria-hidden',
+    'class', 'id', 'role', 'title', 'type', 'tabindex',
+    'aria-label', 'aria-pressed', 'aria-expanded', 'aria-hidden',
     'data-artifact-id', 'data-mermaid-source', 'data-code-id', 'data-toggle-target', 
     'data-content-id', 'data-code-content', 'data-view'
 ];
@@ -24,10 +25,11 @@ class MessageFormatter {
         if (this.hasMarked && this.hasDOMPurify) {
             this.configureMarked();
             this.inlineRenderer = this.buildInlineRenderer();
-            this.setupArtifactListeners();
         } else {
             console.warn('MessageFormatter: marked or DOMPurify unavailable; output will be minimally formatted.');
         }
+
+        this.setupArtifactListeners();
     }
 
     initializeMermaid() {
@@ -109,6 +111,38 @@ class MessageFormatter {
     }
 
     setupArtifactListeners() {
+        if (this.artifactListenersInitialized) return;
+        this.artifactListenersInitialized = true;
+
+        const toggleCodeBlock = (codeHeader) => {
+            if (!codeHeader) return;
+
+            const wrapper = codeHeader.closest('.collapsible-code-block');
+            const codeId = codeHeader.dataset.toggleTarget || wrapper?.dataset.codeId;
+            const contentDiv = wrapper?.querySelector('.code-block-content')
+                || document.querySelector(`[data-content-id="${codeId}"]`);
+            const chevron = codeHeader.querySelector('.code-block-chevron');
+
+            if (!contentDiv) return;
+
+            const willExpand = contentDiv.classList.contains('collapsed');
+            contentDiv.classList.toggle('collapsed', !willExpand);
+            contentDiv.classList.toggle('expanded', willExpand);
+            codeHeader.setAttribute('aria-expanded', String(willExpand));
+
+            if (chevron) {
+                chevron.style.transform = willExpand ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+
+            if (willExpand && typeof hljs !== 'undefined') {
+                const codeEl = contentDiv.querySelector('code');
+                if (codeEl && !codeEl.dataset.highlighted) {
+                    hljs.highlightElement(codeEl);
+                    codeEl.dataset.highlighted = 'true';
+                }
+            }
+        };
+
         // Use event delegation with proper priority
         document.addEventListener('click', (event) => {
             // PRIORITY 1: Copy button (check first to prevent header toggle)
@@ -196,33 +230,19 @@ class MessageFormatter {
                     return;
                 }
                 
-                console.log('[MessageFormatter] Code header clicked');
-                const codeId = codeHeader.dataset.toggleTarget;
-                const contentDiv = document.querySelector(`[data-content-id="${codeId}"]`);
-                const chevron = codeHeader.querySelector('.code-block-chevron');
-                
-                if (contentDiv) {
-                    const isCollapsed = contentDiv.classList.contains('collapsed');
-                    contentDiv.classList.toggle('collapsed');
-                    contentDiv.classList.toggle('expanded');
-                    
-                    console.log('[MessageFormatter] Code block toggled, now:', isCollapsed ? 'expanded' : 'collapsed');
-                    
-                    if (chevron) {
-                        chevron.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
-                    }
-                    
-                    // Apply syntax highlighting if expanding for first time
-                    if (isCollapsed && typeof hljs !== 'undefined') {
-                        const codeEl = contentDiv.querySelector('code');
-                        if (codeEl && !codeEl.dataset.highlighted) {
-                            hljs.highlightElement(codeEl);
-                            codeEl.dataset.highlighted = 'true';
-                        }
-                    }
-                }
+                toggleCodeBlock(codeHeader);
                 return;
             }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+
+            const codeHeader = event.target.closest?.('.code-block-header');
+            if (!codeHeader || event.target.closest('.code-copy-btn')) return;
+
+            event.preventDefault();
+            toggleCodeBlock(codeHeader);
         });
     }
 
@@ -363,7 +383,7 @@ class MessageFormatter {
         
         return `
             <div class="collapsible-code-block" data-code-id="${codeId}">
-                <div class="code-block-header" role="button" tabindex="0" data-toggle-target="${codeId}">
+                <div class="code-block-header" role="button" tabindex="0" aria-expanded="false" data-toggle-target="${codeId}">
                     <div class="code-block-info">
                         <i class="fas fa-code code-block-icon"></i>
                         <span class="code-block-language">${language || 'code'}</span>
