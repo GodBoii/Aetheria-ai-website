@@ -169,8 +169,8 @@ export class ProjectWorkspaceManager {
         window.chat?.startNewConversation?.({ preserveAgentType: true });
         this.showNotification(
             this.state.project?.project_name
-                ? `Project Workspace ready for ${this.state.project.project_name}.`
-                : 'Project Workspace ready.',
+                ? `Coder Workspace ready for ${this.state.project.project_name}.`
+                : 'Coder Workspace ready.',
             'success'
         );
     }
@@ -181,7 +181,7 @@ export class ProjectWorkspaceManager {
         this.closeSheets();
         this.updateUI();
         window.chat?.startNewConversation?.({ preserveAgentType: true });
-        this.showNotification('Exited Project Workspace.', 'info');
+        this.showNotification('Exited Coder Workspace.', 'info');
     }
 
     updateUI() {
@@ -192,7 +192,7 @@ export class ProjectWorkspaceManager {
         this.elements.actionsAnchor?.classList.toggle('hidden', !isActive);
 
         if (this.elements.menuLabel) {
-            this.elements.menuLabel.textContent = isActive ? 'Exit Project Workspace' : 'Project Workspace';
+            this.elements.menuLabel.textContent = isActive ? 'Exit Coder Workspace' : 'Coder Workspace';
         }
 
         this.elements.fileTabs?.forEach((tab) => {
