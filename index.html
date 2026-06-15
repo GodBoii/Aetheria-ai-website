@@ -119,7 +119,7 @@
           <path d="M13 18h8" />
         </svg>
       </button>
-      <button id="sidebar-project-btn" class="desktop-sidebar-icon" type="button" data-tooltip="Project Workspace" aria-label="Project Workspace">
+      <button id="sidebar-project-btn" class="desktop-sidebar-icon" type="button" data-tooltip="Coder Workspace" aria-label="Coder Workspace">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="16 18 22 12 16 6" />
           <polyline points="8 6 2 12 8 18" />
@@ -160,16 +160,11 @@
           </button>
           <button class="dropdown-item" data-dropdown-action="project-workspace" role="menuitem">
             <i class="fas fa-code-branch"></i>
-            <span id="project-workspace-menu-label">Project Workspace</span>
+            <span id="project-workspace-menu-label">Coder Workspace</span>
           </button>
         </div>
       </div>
-      <div class="top-bar-center-slot">
-        <div id="project-workspace-chip" class="project-workspace-chip hidden" aria-live="polite">
-          <i class="fas fa-laptop-code"></i>
-          <span>Project Workspace</span>
-        </div>
-      </div>
+      <div class="top-bar-center-slot"></div>
       <div class="top-bar-action">
         <button id="view-content-btn" class="top-bar-btn hidden" title="View session content">
           <i class="fi fi-tr-folder-open"></i>
@@ -182,6 +177,13 @@
           <img id="profile-photo" class="profile-photo hidden" alt="Profile" />
         </button>
         <div id="profile-dropdown" class="profile-dropdown hidden" role="menu"></div>
+      </div>
+    </div>
+
+    <div class="workspace-status-layer" aria-live="polite">
+      <div id="project-workspace-chip" class="project-workspace-chip hidden">
+        <i class="fas fa-laptop-code" aria-hidden="true"></i>
+        <span>Coder Workspace</span>
       </div>
     </div>
 

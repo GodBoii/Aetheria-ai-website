@@ -2,17 +2,12 @@
     position: relative;
 }
 
-.top-bar {
-    position: relative;
-}
-
-.top-bar-center-slot {
-    position: absolute;
-    left: 50%;
+.workspace-status-layer {
+    position: fixed;
+    left: calc(env(safe-area-inset-left) + 1rem);
     top: calc(max(env(safe-area-inset-top), 12px) + 6px);
-    transform: translateX(-50%);
     pointer-events: none;
-    z-index: 2;
+    z-index: 1200;
 }
 
 .project-workspace-chip {
@@ -29,7 +24,7 @@
     -webkit-backdrop-filter: var(--glass-blur);
     font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
     white-space: nowrap;
     pointer-events: auto;
     transition: all 0.2s ease;
@@ -59,6 +54,13 @@ body:not(.dark-mode) .project-workspace-chip {
     background: rgba(255, 255, 255, 0.8);
     border: 1px solid rgba(15, 23, 42, 0.1);
     color: #0f172a;
+}
+
+@media (min-width: 1024px) {
+    .workspace-status-layer {
+        left: 76px;
+        top: 18px;
+    }
 }
 
 .project-workspace-actions-anchor {
