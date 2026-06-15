@@ -73,6 +73,43 @@
     border-color: rgba(var(--accent-color-rgb), 0.3);
 }
 
+.message-attachment-rail {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 10px;
+    width: fit-content;
+    max-width: min(496px, 100%);
+    margin: 8px 0 4px auto;
+    padding: 2px 2px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.message-attachment-rail::-webkit-scrollbar {
+    height: 6px;
+}
+
+.message-attachment-rail::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.message-attachment-rail::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+}
+
+.message-attachment-card {
+    width: 112px;
+    height: 112px;
+    min-width: 112px;
+    max-width: 112px;
+    flex-basis: 112px;
+}
+
 .message-bot {
     background-color: transparent;
     color: var(--text-color);
@@ -123,6 +160,22 @@
 
 .message-error-retry:hover {
     background: #bb3f31;
+}
+
+@media (max-width: 768px) {
+    .message-attachment-rail {
+        max-width: min(292px, calc(100vw - 40px));
+        gap: 8px;
+        margin-top: 7px;
+    }
+
+    .message-attachment-card {
+        width: 88px;
+        height: 88px;
+        min-width: 88px;
+        max-width: 88px;
+        flex-basis: 88px;
+    }
 }
 
 .plan-mode-content-block {
