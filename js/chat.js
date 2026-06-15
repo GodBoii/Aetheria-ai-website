@@ -529,6 +529,53 @@ function updateReasoningSummary(messageId) {
     summary.classList.remove('hidden');
 }
 
+function createMessageAttachmentRail(files = []) {
+    const rail = document.createElement('div');
+    rail.className = 'message-attachment-rail';
+    rail.setAttribute('aria-label', 'Attached files');
+
+    files.forEach((file, index) => {
+        rail.appendChild(createMessageAttachmentCard(file, index));
+    });
+
+    return rail;
+}
+
+function createMessageAttachmentCard(file, index) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'file-preview-chip attachment-card message-attachment-card completed';
+    card.dataset.fileIndex = String(index);
+    card.title = file?.name || 'Attached file';
+
+    if (file?.type?.startsWith('image/') && file.previewUrl) {
+        card.classList.add('image-file');
+        const image = document.createElement('img');
+        image.className = 'attachment-card-thumb';
+        image.src = file.previewUrl;
+        image.alt = file.name || 'Image attachment';
+        card.appendChild(image);
+    } else {
+        const thumbnail = document.createElement('div');
+        thumbnail.className = 'file-thumbnail attachment-card-icon';
+        const icon = document.createElement('i');
+        icon.className = fileAttachmentHandler?.getFileIcon?.(file?.name || '', file?.type || '') || 'fas fa-file';
+        thumbnail.appendChild(icon);
+        card.appendChild(thumbnail);
+    }
+
+    const name = document.createElement('span');
+    name.className = 'file-name attachment-card-name';
+    name.textContent = file?.name || 'Untitled file';
+    card.appendChild(name);
+
+    card.addEventListener('click', () => {
+        fileAttachmentHandler?.showFilePreview?.(file);
+    });
+
+    return card;
+}
+
 function addUserMessage(message, files = [], sessions = []) {
     const messagesContainer = document.getElementById('chat-messages');
     if (!messagesContainer) return;
@@ -540,22 +587,22 @@ function addUserMessage(message, files = [], sessions = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user-message';
     const hasContext = files.length > 0 || sessions.length > 0;
-    const displayText = message || (hasContext ? '[Context Attached]' : '');
+    const displayText = message || (files.length > 0 ? 'Attached files' : (hasContext ? 'Context attached' : ''));
     messageDiv.dataset.rawMessage = displayText;
     messageDiv.innerHTML = messageFormatter.format(displayText);
 
     wrapperDiv.appendChild(messageDiv);
 
-    if (files.length > 0 || sessions.length > 0) {
+    if (files.length > 0) {
+        wrapperDiv.appendChild(createMessageAttachmentRail(files));
+    }
+
+    if (sessions.length > 0) {
         sentContexts.set(messageId, { files, sessions });
         const contextButton = document.createElement('button');
         contextButton.className = 'user-message-context-button';
-        const fileCount = files.length;
         const sessionCount = sessions.length;
-        let buttonText = 'Context';
-        if (sessionCount > 0 && fileCount > 0) buttonText = `Context: ${sessionCount} session(s) & ${fileCount} file(s)`;
-        else if (sessionCount > 0) buttonText = `Context: ${sessionCount} session(s)`;
-        else if (fileCount > 0) buttonText = `Context: ${fileCount} file(s)`;
+        const buttonText = `Context: ${sessionCount} session${sessionCount === 1 ? '' : 's'}`;
         contextButton.innerHTML = `<i class="fas fa-paperclip"></i> ${buttonText}`;
         contextButton.dataset.contextId = messageId;
         contextButton.addEventListener('click', () => {

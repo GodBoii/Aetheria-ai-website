@@ -55,6 +55,10 @@ class FileAttachmentHandler {
     this.previewsContainer = document.getElementById('file-previews-container');
     this.attachmentStrip = document.getElementById('attachment-strip');
     this.inputField = document.querySelector('#floating-input-container .input-field');
+    this.inputContainer = document.getElementById('floating-input-container');
+    this.textInput = document.getElementById('floating-input');
+    this.dragOverlay = document.getElementById('file-drop-overlay');
+    this.dragCounter = 0;
 
     this.previewModal = document.getElementById('file-preview-modal');
     this.previewContentArea = document.getElementById('preview-content-area');
@@ -70,6 +74,9 @@ class FileAttachmentHandler {
         this.hidePreview();
       }
     });
+
+    this.setupDragAndDrop();
+    this.setupClipboardPaste();
   }
 
   openFilePicker() {
@@ -114,7 +121,17 @@ class FileAttachmentHandler {
   }
 
   async handleFileSelection(event) {
-    const files = Array.from(event.target.files);
+    const files = Array.from(event.target.files || []);
+    await this.addFiles(files);
+    if (event.target) {
+      event.target.value = '';
+    }
+  }
+
+  async addFiles(files = []) {
+    files = Array.from(files).filter(Boolean);
+    if (!files.length) return;
+
     if (files.length + this.attachedFiles.length > 20) {
       chatModule.showNotification("You can attach a maximum of 20 files.", "warning");
       return;
@@ -214,7 +231,104 @@ class FileAttachmentHandler {
 
       this.renderPreviews();
     }
-    this.fileInput.value = '';
+  }
+
+  setupDragAndDrop() {
+    const dropTarget = document.body;
+    if (!dropTarget) return;
+
+    dropTarget.addEventListener('dragenter', (event) => {
+      if (!this.eventHasFiles(event)) return;
+      event.preventDefault();
+      this.dragCounter += 1;
+      this.setDragOverlayVisible(true);
+    });
+
+    dropTarget.addEventListener('dragover', (event) => {
+      if (!this.eventHasFiles(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      this.setDragOverlayVisible(true);
+    });
+
+    dropTarget.addEventListener('dragleave', (event) => {
+      if (!this.eventHasFiles(event)) return;
+      event.preventDefault();
+      this.dragCounter = Math.max(0, this.dragCounter - 1);
+      if (this.dragCounter === 0) {
+        this.setDragOverlayVisible(false);
+      }
+    });
+
+    dropTarget.addEventListener('drop', async (event) => {
+      if (!this.eventHasFiles(event)) return;
+      event.preventDefault();
+      this.dragCounter = 0;
+      this.setDragOverlayVisible(false);
+      await this.addFiles(event.dataTransfer.files);
+    });
+  }
+
+  setupClipboardPaste() {
+    const pasteTarget = this.textInput || document;
+    pasteTarget.addEventListener('paste', async (event) => {
+      const files = this.extractFilesFromClipboard(event.clipboardData);
+      if (!files.length) return;
+
+      event.preventDefault();
+      await this.addFiles(files);
+    });
+  }
+
+  eventHasFiles(event) {
+    return Array.from(event.dataTransfer?.types || []).includes('Files');
+  }
+
+  extractFilesFromClipboard(clipboardData) {
+    if (!clipboardData) return [];
+
+    const itemFiles = Array.from(clipboardData.items || [])
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+
+    if (itemFiles.length > 0) {
+      return itemFiles.map((file, index) => this.normalizePastedFile(file, index));
+    }
+
+    return Array.from(clipboardData.files || []).filter(Boolean);
+  }
+
+  normalizePastedFile(file, index) {
+    if (file.name) return file;
+
+    const extension = this.getExtensionFromMimeType(file.type) || 'bin';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return new File([file], `pasted-file-${timestamp}-${index + 1}.${extension}`, {
+      type: file.type || 'application/octet-stream',
+      lastModified: file.lastModified || Date.now()
+    });
+  }
+
+  getExtensionFromMimeType(type = '') {
+    const mimeMap = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/svg+xml': 'svg',
+      'application/pdf': 'pdf',
+      'text/plain': 'txt',
+      'text/markdown': 'md',
+      'text/csv': 'csv'
+    };
+    return mimeMap[type] || '';
+  }
+
+  setDragOverlayVisible(visible) {
+    this.dragOverlay?.classList.toggle('visible', visible);
+    this.inputContainer?.classList.toggle('drag-over', visible);
+    document.body.classList.toggle('file-drag-active', visible);
   }
 
   readFileAsText(file) {
@@ -252,8 +366,10 @@ class FileAttachmentHandler {
 
     this.attachedFiles.forEach((fileObject, index) => {
       const previewElement = document.createElement('div');
-      previewElement.className = `file-preview-chip ${fileObject.status}`;
+      previewElement.className = `file-preview-chip attachment-card ${fileObject.status}`;
       previewElement.setAttribute('role', 'listitem');
+      previewElement.dataset.fileIndex = index;
+      previewElement.title = fileObject.name;
 
       // Add image-file class for images
       if (fileObject.type.startsWith('image/')) {
@@ -267,6 +383,7 @@ class FileAttachmentHandler {
       // Show preview for images or icon for other files
       if (fileObject.type.startsWith('image/') && fileObject.previewUrl) {
         const img = document.createElement('img');
+        img.className = 'attachment-card-thumb';
         img.src = fileObject.previewUrl;
         img.alt = fileObject.name;
         thumbnailDiv.appendChild(img);
@@ -300,12 +417,12 @@ class FileAttachmentHandler {
 
       // Create file name label (shown for non-image files)
       const nameSpan = document.createElement('span');
-      nameSpan.className = 'file-name';
+      nameSpan.className = 'file-name attachment-card-name';
       nameSpan.textContent = fileObject.name;
 
       // Create remove button (X in top-left corner)
       const removeButton = document.createElement('button');
-      removeButton.className = 'remove-file-btn';
+      removeButton.className = 'remove-file-btn attachment-card-remove';
       removeButton.dataset.index = index;
       removeButton.title = 'Remove file';
       removeButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -321,14 +438,11 @@ class FileAttachmentHandler {
       });
 
       // Click on card to preview (if available)
-      if (fileObject.previewUrl && fileObject.status === 'completed') {
-        previewElement.style.cursor = 'pointer';
-        previewElement.addEventListener('click', (e) => {
-          if (!e.target.closest('.remove-file-btn')) {
-            this.showPreview(index);
-          }
-        });
-      }
+      previewElement.addEventListener('click', (e) => {
+        if (!e.target.closest('.remove-file-btn, .retry-file-btn')) {
+          this.showFilePreview(fileObject);
+        }
+      });
 
       previewElement.appendChild(thumbnailDiv);
       previewElement.appendChild(nameSpan);
@@ -365,24 +479,35 @@ class FileAttachmentHandler {
 
   showPreview(index) {
     const fileObject = this.attachedFiles[index];
-    if (!fileObject || !fileObject.previewUrl || !this.previewModal) return;
+    this.showFilePreview(fileObject);
+  }
+
+  showFilePreview(fileObject) {
+    if (!fileObject || !this.previewModal) return;
 
     let contentHTML = '';
     const safeName = this.escapeHtml(fileObject.name);
-    const safePreviewUrl = encodeURI(fileObject.previewUrl);
-    if (fileObject.type.startsWith('image/')) {
+    const safePreviewUrl = fileObject.previewUrl ? encodeURI(fileObject.previewUrl) : '';
+    if (fileObject.type?.startsWith('image/') && safePreviewUrl) {
       contentHTML = `
             <div class="preview-header">
               <h3 class="preview-title">${safeName}</h3>
             </div>
             <img src="${safePreviewUrl}" alt="Preview of ${safeName}">
           `;
-    } else if (fileObject.type.startsWith('video/')) {
+    } else if (fileObject.type?.startsWith('video/') && safePreviewUrl) {
       contentHTML = `<video src="${safePreviewUrl}" controls autoplay></video>`;
-    } else if (fileObject.type.startsWith('audio/')) {
+    } else if (fileObject.type?.startsWith('audio/') && safePreviewUrl) {
       contentHTML = `<audio src="${safePreviewUrl}" controls autoplay></audio>`;
-    } else if (fileObject.type === 'application/pdf') {
+    } else if (fileObject.type === 'application/pdf' && safePreviewUrl) {
       contentHTML = `<iframe class="pdf-preview" src="${safePreviewUrl}"></iframe>`;
+    } else if (fileObject.content) {
+      contentHTML = `
+            <div class="preview-header">
+              <h3 class="preview-title">${safeName}</h3>
+            </div>
+            <pre class="file-content-preview">${this.escapeHtml(fileObject.content)}</pre>
+          `;
     } else {
       contentHTML = `<p>Preview is not available for this file type.</p>`;
     }
@@ -446,6 +571,20 @@ class FileAttachmentHandler {
     const div = document.createElement('div');
     div.textContent = String(value ?? '');
     return div.innerHTML;
+  }
+
+  getFileIcon(fileName = '', type = '') {
+    const name = String(fileName || '').toLowerCase();
+    if (type === 'application/pdf' || name.endsWith('.pdf')) return 'fas fa-file-pdf';
+    if (type.startsWith('image/')) return 'fas fa-file-image';
+    if (type.startsWith('video/')) return 'fas fa-file-video';
+    if (type.startsWith('audio/')) return 'fas fa-file-audio';
+    if (type.includes('word') || type.includes('document') || name.match(/\.(doc|docx|odt|rtf)$/)) return 'fas fa-file-word';
+    if (type.includes('excel') || type.includes('spreadsheet') || name.match(/\.(xls|xlsx|csv|ods)$/)) return 'fas fa-file-excel';
+    if (type.includes('powerpoint') || type.includes('presentation') || name.match(/\.(ppt|pptx|odp)$/)) return 'fas fa-file-powerpoint';
+    if (type.includes('zip') || type.includes('archive') || name.match(/\.(zip|rar|7z|tar|gz)$/)) return 'fas fa-file-archive';
+    if (name.match(/\.(js|jsx|ts|tsx|py|java|cpp|c|h|cs|php|rb|go|rs|swift|kt|scala|html|css|json|xml|sql|sh|md|yaml|yml)$/)) return 'fas fa-file-code';
+    return 'fas fa-file';
   }
 
   removeScrollListeners() {
