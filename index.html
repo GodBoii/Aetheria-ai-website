@@ -42,9 +42,9 @@
   <link rel="stylesheet" href="css/skeleton.css" />
   <link rel="stylesheet" href="css/chat-variables.css?v=web-cleanup-4" />
   <link rel="stylesheet" href="css/chat-layout.css" />
-  <link rel="stylesheet" href="css/chat-messages.css?v=plan-mode-1" />
+  <link rel="stylesheet" href="css/chat-messages.css?v=attachments-1" />
   <link rel="stylesheet" href="css/chat-context.css" />
-  <link rel="stylesheet" href="css/chat-input.css?v=plan-mode-1" />
+  <link rel="stylesheet" href="css/chat-input.css?v=attachments-1" />
   <link rel="stylesheet" href="css/message-actions.css" />
   <link rel="stylesheet" href="css/notifications.css" />
   <link rel="stylesheet" href="css/welcome-message.css?v=web-cleanup-4" />
@@ -351,6 +351,13 @@
     </div>
   </div>
 
+  <div id="file-drop-overlay" class="file-drop-overlay" aria-hidden="true">
+    <div class="file-drop-overlay-card">
+      <i class="fas fa-cloud-arrow-up"></i>
+      <span>Drop files to attach</span>
+    </div>
+  </div>
+
   <!-- Context Viewer Modal -->
   <div id="context-viewer-modal" class="modal-overlay hidden">
     <div class="context-viewer-panel">
@@ -486,11 +493,11 @@
   <!-- Application Logic -->
   <script type="module">
     import { AIOS } from './js/aios.js';
-    import { chatModule } from './js/chat.js?v=plan-mode-1';
+    import { chatModule } from './js/chat.js?v=attachments-1';
     import { ProjectWorkspaceManager } from './js/project-workspace-manager.js';
     import { ToDoList } from './js/to-do-list.js';
     import ContextHandler from './js/context-handler.js';
-    import FileAttachmentHandler from './js/add-files.js';
+    import FileAttachmentHandler from './js/add-files.js?v=attachments-1';
     import VoiceInputHandler from './js/voice-input.js';
     import { messageFormatter } from './js/message-formatter.js';
     import skeletonLoader from './js/skeleton-loader.js';
