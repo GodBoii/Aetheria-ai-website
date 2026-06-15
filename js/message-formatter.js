@@ -143,6 +143,51 @@ class MessageFormatter {
             }
         };
 
+        const getCodeContentForCopy = (copyBtn) => {
+            const wrapper = copyBtn.closest('.collapsible-code-block')
+                || document.querySelector(`[data-code-id="${copyBtn.dataset.codeId}"]`);
+            const pre = wrapper?.querySelector('pre');
+            const codeEl = pre?.querySelector('code');
+
+            return pre?.dataset.codeContent || codeEl?.textContent || pre?.textContent || '';
+        };
+
+        const copyTextToClipboard = async (text) => {
+            const fallbackCopy = () => new Promise((resolve, reject) => {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.setAttribute('readonly', '');
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '0';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                textArea.setSelectionRange(0, textArea.value.length);
+
+                try {
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    successful ? resolve() : reject(new Error('execCommand failed'));
+                } catch (err) {
+                    document.body.removeChild(textArea);
+                    reject(err);
+                }
+            });
+
+            if (navigator.clipboard?.writeText && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return;
+                } catch (err) {
+                    console.warn('[MessageFormatter] navigator.clipboard failed; trying fallback.', err);
+                }
+            }
+
+            await fallbackCopy();
+        };
+
         // Use event delegation with proper priority
         document.addEventListener('click', (event) => {
             // PRIORITY 1: Copy button (check first to prevent header toggle)
@@ -151,63 +196,34 @@ class MessageFormatter {
                 console.log('[MessageFormatter] Copy button clicked');
                 event.preventDefault();
                 event.stopPropagation();
-                
-                const codeId = copyBtn.dataset.codeId;
-                const wrapper = document.querySelector(`[data-code-id="${codeId}"]`);
-                if (wrapper) {
-                    const pre = wrapper.querySelector('pre');
-                    const codeContent = pre?.dataset.codeContent || pre?.textContent || '';
-                    
-                    console.log('[MessageFormatter] Copying code, length:', codeContent.length);
-                    
-                    // Try modern clipboard API first, fallback to legacy method
-                    const copyToClipboard = (text) => {
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            return navigator.clipboard.writeText(text);
-                        } else {
-                            // Fallback for older browsers or insecure contexts
-                            return new Promise((resolve, reject) => {
-                                const textArea = document.createElement('textarea');
-                                textArea.value = text;
-                                textArea.style.position = 'fixed';
-                                textArea.style.left = '-999999px';
-                                textArea.style.top = '-999999px';
-                                document.body.appendChild(textArea);
-                                textArea.focus();
-                                textArea.select();
-                                
-                                try {
-                                    const successful = document.execCommand('copy');
-                                    document.body.removeChild(textArea);
-                                    if (successful) {
-                                        resolve();
-                                    } else {
-                                        reject(new Error('execCommand failed'));
-                                    }
-                                } catch (err) {
-                                    document.body.removeChild(textArea);
-                                    reject(err);
-                                }
-                            });
-                        }
-                    };
-                    
-                    copyToClipboard(codeContent).then(() => {
-                        console.log('[MessageFormatter] Code copied successfully');
-                        const icon = copyBtn.querySelector('i');
-                        const originalClass = icon.className;
-                        icon.className = 'fas fa-check';
-                        copyBtn.style.color = 'var(--success-500)';
-                        
-                        setTimeout(() => {
-                            icon.className = originalClass;
-                            copyBtn.style.color = '';
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('[MessageFormatter] Failed to copy code:', err);
-                        alert('Failed to copy code: ' + err.message);
-                    });
-                }
+
+                const codeContent = getCodeContentForCopy(copyBtn);
+
+                console.log('[MessageFormatter] Copying code, length:', codeContent.length);
+
+                copyTextToClipboard(codeContent).then(() => {
+                    console.log('[MessageFormatter] Code copied successfully');
+                    const icon = copyBtn.querySelector('i');
+                    const originalClass = icon?.className || '';
+                    if (icon) icon.className = 'fas fa-check';
+                    copyBtn.style.color = 'var(--success-500)';
+
+                    setTimeout(() => {
+                        if (icon) icon.className = originalClass;
+                        copyBtn.style.color = '';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('[MessageFormatter] Failed to copy code:', err);
+                    const icon = copyBtn.querySelector('i');
+                    const originalClass = icon?.className || '';
+                    if (icon) icon.className = 'fas fa-times';
+                    copyBtn.style.color = 'var(--error-500)';
+
+                    setTimeout(() => {
+                        if (icon) icon.className = originalClass;
+                        copyBtn.style.color = '';
+                    }, 2000);
+                });
                 return; // Stop here, don't check other handlers
             }
             
@@ -390,7 +406,7 @@ class MessageFormatter {
                         <span class="code-block-lines">${lineCount} line${lineCount !== 1 ? 's' : ''}</span>
                     </div>
                     <div class="code-block-actions">
-                        <button class="code-copy-btn" data-code-id="${codeId}" title="Copy code">
+                        <button type="button" class="code-copy-btn" data-code-id="${codeId}" title="Copy code" aria-label="Copy code">
                             <i class="fi fi-tr-copy"></i>
                         </button>
                         <i class="fas fa-chevron-down code-block-chevron"></i>
