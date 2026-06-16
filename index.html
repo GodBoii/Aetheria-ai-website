@@ -63,6 +63,7 @@
   <link rel="stylesheet" href="css/glassmorphism-panels.css" />
   <link rel="stylesheet" href="css/home-screen-cards.css" />
   <link rel="stylesheet" href="css/auth-gate.css?v=web-cleanup-4" />
+  <link rel="stylesheet" href="css/desktop-download-card.css?v=computer-use-1" />
   <!-- Desktop overrides MUST be loaded last to win the cascade on >=1024px -->
   <link rel="stylesheet" href="css/desktop.css?v=plan-mode-1" />
 
@@ -502,7 +503,10 @@
     import { messageFormatter } from './js/message-formatter.js';
     import skeletonLoader from './js/skeleton-loader.js';
     import { authGate } from './js/auth-gate.js';
+    import { desktopDownloadCard } from './js/desktop-download-card.js?v=computer-use-1';
     import './js/assist.js'; // Logic for Assistant Overlay
+
+    desktopDownloadCard.init();
 
     // Download button logic
     (function () {
