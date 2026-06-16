@@ -34,7 +34,7 @@ class DesktopDownloadCard {
           <i class="fas fa-times" aria-hidden="true"></i>
         </button>
         <div class="desktop-download-media" aria-hidden="true">
-          <img src="assets/stock5_sandbox.png" alt="">
+          <img src="assets/aetheria-computer-use-card.png" alt="">
         </div>
         <div class="desktop-download-content">
           <div class="desktop-download-kicker">Desktop power unlocked</div>
