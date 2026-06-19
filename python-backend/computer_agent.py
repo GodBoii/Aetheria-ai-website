@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from agno.agent import Agent
 from agno.db.postgres import PostgresDb
 from agno.models.groq import Groq
-from agno.models.openrouter import OpenRouter
+from openrouter_reasoning_model import get_openrouter_model
 from agno.tools import Toolkit
 
 from browser_tools import BrowserTools
@@ -14,7 +14,6 @@ from google_drive_tools import GoogleDriveTools
 from google_email_tools import GoogleEmailTools
 from google_sheets_tools import GoogleSheetsTools
 from database_config import get_sqlalchemy_database_url
-from mimo_model import get_mimo_model
 
 
 def _db_url_sqlalchemy() -> str:
@@ -86,7 +85,7 @@ def get_computer_agent(
 
     return Agent(
         name="Aetheria_Computer",
-        model=get_mimo_model("mimo-v2.5"),
+        model=get_openrouter_model("xiaomi/mimo-v2.5"),
         role=(
             "Dedicated computer control and browser automation agent. "
             "Executes local desktop actions and interactive browser tasks."
