@@ -568,7 +568,7 @@ export class ProjectWorkspaceManager {
         }
 
         const promptLines = [
-            `Clone the GitHub repository ${repoUrl} into the current project workspace sandbox.`,
+            `Clone the GitHub repository ${repoUrl} into the current Coder Workspace sandbox.`,
             branch ? `Use branch ${branch}.` : 'Use the repository default branch.',
             'After cloning, verify the workspace contents and summarize the result briefly.'
         ];
