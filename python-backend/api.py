@@ -1527,6 +1527,65 @@ def assistant_chat():
         }), 500
 
 
+@api_bp.route('/mic/transcribe', methods=['POST'])
+@limiter.limit('30 per minute')
+def mic_transcribe():
+    """
+    Authenticated cloud-only mic transcription endpoint.
+    Converts a short mic recording into text using the configured OpenRouter
+    multimodal mic model.
+    """
+    from mic_agent import MicAgentError, mic_agent
+
+    user, error = get_user_from_token(request)
+    if error:
+        return jsonify({"ok": False, "error": error[0]}), error[1]
+
+    try:
+        enforce_usage_limit(str(user.id))
+    except UsageLimitExceeded as exc:
+        return jsonify({
+            "ok": False,
+            "error": str(exc),
+            "code": "subscription_limit_exceeded",
+            "limit_info": exc.summary,
+        }), 429
+    except Exception as exc:
+        logger.error("Usage limit check failed for mic_transcribe user=%s: %s", user.id, exc, exc_info=True)
+
+    data = request.json or {}
+    audio_base64 = data.get("audio") or data.get("audio_base64") or ""
+    audio_format = data.get("format") or "wav"
+    language = data.get("language") or "en"
+
+    try:
+        result = mic_agent.transcribe(
+            audio_base64=audio_base64,
+            audio_format=audio_format,
+            language=language,
+        )
+        logger.info(
+            "Mic transcription complete user=%s model=%s text_len=%s",
+            user.id,
+            result.model,
+            len(result.text),
+        )
+        return jsonify({
+            "ok": True,
+            "text": result.text,
+            "raw_text": result.raw_text,
+            "backend": "openrouter_mic_agent",
+            "model": result.model,
+            "usage": result.usage,
+        }), 200
+    except MicAgentError as exc:
+        logger.warning("Mic transcription rejected user=%s: %s", user.id, exc)
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        logger.error("Mic transcription failed user=%s: %s", user.id, exc, exc_info=True)
+        return jsonify({"ok": False, "error": "mic transcription failed"}), 502
+
+
 def generate_fallback_response(query: str) -> str:
     """Generate smart fallback responses when AI is unavailable."""
     return "This is taking longer than expected. I'm still working on your request, so please wait a moment and try again if the answer doesn't appear."
@@ -2504,6 +2563,65 @@ def get_session_content(session_id):
                     pass
             return {}
 
+        def _normalize_value(value: Any) -> str:
+            return str(value or '').strip().lower()
+
+        def _normalize_path(value: Any) -> str:
+            return _normalize_value(value).replace('\\', '/')
+
+        def _content_dedupe_key(item: dict[str, Any]) -> str:
+            metadata = _normalize_metadata(item.get('metadata'))
+            file_id = _normalize_value(metadata.get('file_id'))
+            if file_id:
+                return f"file-id:{file_id}"
+
+            storage_path = _normalize_path(metadata.get('path') or metadata.get('supabasePath'))
+            if storage_path:
+                return f"path:{storage_path}"
+
+            relative_path = _normalize_path(metadata.get('relativePath') or metadata.get('relative_path'))
+            if relative_path:
+                return f"relative:{relative_path}"
+
+            if item.get('content_type') == 'artifact' and item.get('reference_id'):
+                return f"artifact:{_normalize_value(item.get('reference_id'))}"
+
+            filename = _normalize_value(metadata.get('filename') or metadata.get('name') or 'unknown')
+            size = _normalize_value(metadata.get('size') or 0)
+            mime_type = _normalize_value(metadata.get('mime_type') or metadata.get('type') or '')
+            return f"fallback:{filename}:{size}:{mime_type}"
+
+        def _content_quality_score(item: dict[str, Any]) -> int:
+            metadata = _normalize_metadata(item.get('metadata'))
+            score = 0
+            if metadata.get('relativePath') or metadata.get('relative_path'):
+                score += 6
+            if metadata.get('path') or metadata.get('supabasePath'):
+                score += 5
+            if metadata.get('size'):
+                score += 2
+            if metadata.get('mime_type') or metadata.get('type'):
+                score += 2
+            if item.get('source') == 'session_content':
+                score += 1
+            return score
+
+        def _dedupe_content_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            deduped: dict[str, dict[str, Any]] = {}
+            passthrough: list[dict[str, Any]] = []
+
+            for row in rows:
+                if row.get('content_type') not in {'artifact', 'upload'}:
+                    passthrough.append(row)
+                    continue
+
+                key = _content_dedupe_key(row)
+                current = deduped.get(key)
+                if current is None or _content_quality_score(row) > _content_quality_score(current):
+                    deduped[key] = row
+
+            return [*deduped.values(), *passthrough]
+
         # Get registry content for this session (artifacts/executions/uploads)
         content_rows = persistence_service.get_session_content(
             session_id=session_id,
@@ -2547,6 +2665,7 @@ def get_session_content(session_id):
             })
 
         # Preserve chronological playback
+        normalized_rows = _dedupe_content_rows(normalized_rows)
         normalized_rows.sort(key=lambda item: str(item.get('created_at') or ''))
 
         # Enrich content with fresh presigned URLs

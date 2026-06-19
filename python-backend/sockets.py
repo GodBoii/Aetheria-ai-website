@@ -26,10 +26,12 @@ from extensions import socketio
 from supabase_client import supabase_client
 from session_service import ConnectionManager
 from agent_runner import run_agent_and_stream
+from plan_agent import stream_plan
 from title_generator import generate_and_save_title
 from run_state_manager import RunStateManager
 from subscription_service import UsageLimitExceeded, enforce_usage_limit
 from cache_manager import CacheManager
+from utils import get_user_from_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +115,33 @@ def _sanitize_tool_config_for_user(config_data: Dict[str, Any], user_id: str) ->
     return sanitized
 
 
+def _sanitize_plan_config(config_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Plan Mode is read-only and must not touch integration/database state.
+
+    Keep only client-provided boolean capability hints so the plan agent can
+    reason about likely routing without querying user_integrations or loading
+    any database-backed toolkits.
+    """
+    allowed_flags = {
+        "internet_search",
+        "coding_assistant",
+        "enable_github",
+        "enable_vercel",
+        "enable_supabase",
+        "enable_google_email",
+        "enable_google_drive",
+        "enable_google_sheets",
+        "enable_composio_whatsapp",
+        "enable_computer_control",
+    }
+    return {
+        key: bool(value)
+        for key, value in (config_data or {}).items()
+        if key in allowed_flags and isinstance(value, bool)
+    }
+
+
 # FUNCTION DESCRIPTION:
 # Injects core database, session state, and execution state services from the Flask application factory.
 # UPSTREAM CALLER:
@@ -144,20 +173,28 @@ def listen_for_browser_screenshots():
         pubsub.psubscribe('browser-screenshot:*')
         logger.info("[Browser Screenshot] Listener started, subscribed to browser-screenshot:*")
 
-        for message in pubsub.listen():
-            if message['type'] == 'pmessage':
-                try:
-                    data = json.loads(message['data'])
-                    session_id = message['channel'].decode('utf-8').split(':')[1]
-                    logger.info(f"[Browser Screenshot] Received event for session {session_id}: {data.get('action')}")
-                    # Emit to conversation room so any reconnected client picks it up
-                    socketio.emit('browser_screenshot', data, room=f"conv:{session_id}")
-                    logger.info(f"[Browser Screenshot] Emitted to room conv:{session_id}: {data.get('action')}")
-                except Exception as e:
-                    logger.error(f"[Browser Screenshot] Error processing message: {e}")
+        while True:
+            try:
+                message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message and message.get('type') == 'pmessage':
+                    try:
+                        data = json.loads(message['data'])
+                        channel = message['channel']
+                        if isinstance(channel, bytes):
+                            channel = channel.decode('utf-8')
+                        session_id = channel.split(':')[1]
+                        logger.info(f"[Browser Screenshot] Received event for session {session_id}: {data.get('action')}")
+                        socketio.emit('browser_screenshot', data, room=f"conv:{session_id}")
+                    except Exception as e:
+                        logger.error(f"[Browser Screenshot] Error processing message payload: {e}")
+            except Exception as loop_e:
+                if "Timeout" not in str(type(loop_e)) and "Timeout" not in str(loop_e):
+                    logger.error(f"[Browser Screenshot] Error in listener loop: {loop_e}")
+
+            eventlet.sleep(0.01)
 
     except Exception as e:
-        logger.error(f"[Browser Screenshot] Listener error: {e}\n{traceback.format_exc()}")
+        logger.error(f"[Browser Screenshot] Listener fatal error: {e}\n{traceback.format_exc()}")
 
 
 # ==============================================================================
@@ -271,10 +308,10 @@ def handle_save_user_context(data: Dict[str, Any]):
             logger.error("Authentication token missing")
             return socketio.emit("user-context-saved", {"success": False, "error": "Authentication token missing"}, room=sid)
 
-        user = supabase_client.auth.get_user(jwt=access_token).user
-        if not user:
-            logger.error("User not authenticated")
-            return socketio.emit("user-context-saved", {"success": False, "error": "User not authenticated"}, room=sid)
+        user, auth_error = get_user_from_jwt(access_token)
+        if auth_error:
+            logger.error("User not authenticated: %s", auth_error[0])
+            return socketio.emit("user-context-saved", {"success": False, "error": auth_error[0]}, room=sid)
 
         context_data = data.get('context')
         if not context_data:
@@ -305,9 +342,9 @@ def handle_get_user_context(data: Dict[str, Any]):
         if not access_token:
             return socketio.emit("user-context-retrieved", {"success": False, "error": "Authentication token missing"}, room=sid)
 
-        user = supabase_client.auth.get_user(jwt=access_token).user
-        if not user:
-            return socketio.emit("user-context-retrieved", {"success": False, "error": "User not authenticated"}, room=sid)
+        user, auth_error = get_user_from_jwt(access_token)
+        if auth_error:
+            return socketio.emit("user-context-retrieved", {"success": False, "error": auth_error[0]}, room=sid)
 
         from user_context_tools import UserContextTools
         context_tools = UserContextTools(user_id=str(user.id))
@@ -427,6 +464,118 @@ def handle_mobile_command_result(data: Dict[str, Any]):
         logger.warning("Received mobile command result with no request_id.")
 
 
+@socketio.on("plan_request")
+def on_plan_request(data: str):
+    """Generate an editable plan-mode prompt without starting the main llm_os run."""
+    sid = request.sid
+    request_id = None
+    try:
+        if isinstance(data, str):
+            data = json.loads(data)
+        if not isinstance(data, dict):
+            data = {}
+
+        access_token = data.get("accessToken") or _socket_auth_tokens.get(sid)
+        request_id = data.get("requestId") or str(uuid.uuid4())
+        message_id = data.get("messageId")
+        conversation_id = data.get("conversationId")
+        raw_message = str(data.get("message") or "").strip()
+
+        if not access_token:
+            return socketio.emit(
+                "plan_response",
+                {"success": False, "requestId": request_id, "messageId": message_id, "error": "Authentication token is missing."},
+                room=sid,
+            )
+        if not raw_message and not data.get("files") and not data.get("selected_sessions"):
+            return socketio.emit(
+                "plan_response",
+                {"success": False, "requestId": request_id, "messageId": message_id, "error": "Plan mode needs a request, file, or selected context."},
+                room=sid,
+            )
+
+        user, auth_error = get_user_from_jwt(access_token)
+        if auth_error:
+            return socketio.emit(
+                "plan_response",
+                {"success": False, "requestId": request_id, "messageId": message_id, "error": auth_error[0]},
+                room=sid,
+            )
+
+        if conversation_id:
+            join_room(f"conv:{conversation_id}")
+
+        incoming_config = _sanitize_plan_config(dict(data.get("config", {}) or {}))
+
+        common_payload = {
+            "success": True,
+            "requestId": request_id,
+            "messageId": message_id,
+            "conversationId": conversation_id,
+            "model": "mimo-v2.5-pro",
+        }
+        for event in stream_plan(
+            message=raw_message,
+            config=incoming_config,
+            files=data.get("files", []),
+            selected_sessions=data.get("selected_sessions", []),
+            workspace_context=data.get("workspace_context", {}),
+            debug_mode=True,
+        ):
+            event_type = event.get("type")
+            if event_type == "content":
+                socketio.emit(
+                    "plan_response",
+                    {
+                        **common_payload,
+                        "streaming": True,
+                        "content": event.get("content", ""),
+                        "agent_name": event.get("agent_name", "plan_agent"),
+                    },
+                    room=sid,
+                )
+            elif event_type == "reasoning":
+                socketio.emit(
+                    "plan_response",
+                    {
+                        **common_payload,
+                        "streaming": True,
+                        "reasoning_content": event.get("content", ""),
+                        "agent_name": event.get("agent_name", "plan_agent"),
+                    },
+                    room=sid,
+                )
+            elif event_type in ("tool_start", "tool_end"):
+                socketio.emit(
+                    "plan_response",
+                    {
+                        **common_payload,
+                        "streaming": True,
+                        "step_type": event_type,
+                        "name": event.get("name"),
+                        "agent_name": event.get("agent_name", "plan_agent"),
+                        "tool": event.get("tool"),
+                    },
+                    room=sid,
+                )
+            elif event_type == "done":
+                socketio.emit(
+                    "plan_response",
+                    {
+                        **common_payload,
+                        "done": True,
+                        "plan": event.get("plan", ""),
+                    },
+                    room=sid,
+                )
+    except AuthApiError as e:
+        logger.error("Invalid token for plan request SID %s: %s", sid, e.message)
+        socketio.emit("plan_response", {"success": False, "requestId": request_id, "messageId": locals().get("message_id"), "error": "Your session has expired. Please log in again."}, room=sid)
+    except Exception as e:
+        logger.error("Error generating plan: %s\n%s", e, traceback.format_exc())
+        socketio.emit("plan_response", {"success": False, "requestId": request_id, "messageId": locals().get("message_id"), "error": "Plan generation failed. Please try again."}, room=sid)
+
+
 # FUNCTION DESCRIPTION:
 # Primary Socket.IO entry point for client messages. It verifies user auth tokens using Supabase Auth,
 # subscribes the connection socket to a conversation-specific WebSocket room `conv:{conversation_id}`,
@@ -460,9 +609,9 @@ def on_send_message(data: str):
         if not access_token:
             return socketio.emit("error", {"message": "Authentication token is missing.", "reset": True}, room=sid)
 
-        user = supabase_client.auth.get_user(jwt=access_token).user
-        if not user:
-            raise AuthApiError("User not found for token.", 401)
+        user, auth_error = get_user_from_jwt(access_token)
+        if auth_error:
+            return socketio.emit("error", {"message": auth_error[0], "reset": True}, room=sid)
 
         # --- ROOM JOIN: Subscribe current SID to this conversation's room ---
         room_name = f"conv:{conversation_id}"
@@ -560,7 +709,7 @@ def on_send_message(data: str):
                 persistence_service = get_persistence_service()
 
                 for file_data in files:
-                    if file_data.get('path'):
+                    if file_data.get('path') or file_data.get('relativePath'):
                         persistence_service.register_content(
                             session_id=conversation_id,
                             user_id=str(user.id),
@@ -570,8 +719,13 @@ def on_send_message(data: str):
                             metadata={
                                 'filename': file_data.get('name', 'unknown'),
                                 'mime_type': file_data.get('type', 'application/octet-stream'),
+                                'type': file_data.get('type', 'application/octet-stream'),
+                                'size': file_data.get('size', 0),
                                 'path': file_data.get('path'),
-                                'is_text': file_data.get('isText', False)
+                                'relativePath': file_data.get('relativePath'),
+                                'file_id': file_data.get('file_id'),
+                                'is_text': file_data.get('isText', False),
+                                'isMedia': file_data.get('isMedia', False)
                             }
                         )
                 logger.info(f"Registered {len(files)} user uploads for session {conversation_id}")
@@ -629,9 +783,9 @@ def on_assistant_message(data: str):
         if not access_token:
             return socketio.emit("assistant_error", {"message": "Authentication token is missing."}, room=sid)
 
-        user = supabase_client.auth.get_user(jwt=access_token).user
-        if not user:
-            raise AuthApiError("User not found for token.", 401)
+        user, auth_error = get_user_from_jwt(access_token)
+        if auth_error:
+            return socketio.emit("assistant_error", {"message": auth_error[0]}, room=sid)
 
         user_message = data.get("message", "")
         conversation_id = data.get("conversationId")
