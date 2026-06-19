@@ -42,6 +42,35 @@ const convertTimestampToSeconds = (timestampValue) => {
     return Math.floor(numericValue);
 };
 
+const getSessionWorkspaceInfo = (session = {}) => {
+    const agentId = String(session.agent_id || '').toLowerCase();
+
+    if (agentId === 'aetheria-coder') {
+        return {
+            type: 'coder',
+            label: 'Coder',
+            title: 'Coder Workspace chat',
+            icon: 'fa-code'
+        };
+    }
+
+    if (agentId === 'aetheria-computer') {
+        return {
+            type: 'computer',
+            label: 'Computer',
+            title: 'Computer Workspace chat',
+            icon: 'fa-desktop'
+        };
+    }
+
+    return {
+        type: 'normal',
+        label: '',
+        title: 'Normal chat',
+        icon: ''
+    };
+};
+
 class ContextHandler {
     constructor({ preloadDelay = 2500 } = {}) {
         this.loadedSessions = [];
@@ -306,7 +335,7 @@ class ContextHandler {
         const rangeEnd = offset + limit - 1;
         const { data: sessionRows, error: sessionsError, count } = await supabase
             .from('agno_sessions')
-            .select('session_id, created_at', { count: 'exact' })
+            .select('session_id, created_at, session_type, agent_id, team_id', { count: 'exact' })
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .range(offset, rangeEnd);
@@ -337,6 +366,9 @@ class ContextHandler {
             session_id: row.session_id,
             title: titlesMap.get(row.session_id) || null,
             created_at: convertTimestampToSeconds(row.created_at),
+            session_type: row.session_type || null,
+            agent_id: row.agent_id || null,
+            team_id: row.team_id || null,
             runs: []
         }));
 
@@ -811,6 +843,16 @@ class ContextHandler {
 
     getSessionItemHTML(session, sessionName, formattedDate) {
         const checkboxId = `session-check-${session.session_id}`;
+        const workspace = getSessionWorkspaceInfo(session);
+        const workspaceBadge = workspace.type === 'coder' || workspace.type === 'computer'
+            ? `
+                <span class="session-workspace-badge session-workspace-${workspace.type}" title="${workspace.title}">
+                    <i class="fas ${workspace.icon}"></i>
+                    <span>${workspace.label}</span>
+                </span>
+            `
+            : '';
+
         return `
             <div class="session-select">
                 <input type="checkbox" class="session-checkbox" id="${checkboxId}" />
@@ -818,7 +860,10 @@ class ContextHandler {
             </div>
             <div class="session-content">
                 <span class="session-title">${sessionName}</span>
-                <span class="session-date">${formattedDate}</span>
+                <span class="session-row-meta">
+                    <span class="session-date">${formattedDate}</span>
+                    ${workspaceBadge}
+                </span>
             </div>
             <i class="fas fa-chevron-right session-arrow"></i>
         `;
@@ -922,7 +967,7 @@ class ContextHandler {
             try {
                 const { data: sessionData, error: sessionError } = await supabase
                     .from('agno_sessions')
-                    .select('runs, session_data, metadata')
+                    .select('runs, session_data, metadata, session_type, agent_id, team_id')
                     .eq('session_id', sessionId)
                     .single();
 
@@ -934,6 +979,9 @@ class ContextHandler {
                 session.runs = sessionData?.runs || [];
                 session.session_data = sessionData?.session_data;
                 session.metadata = sessionData?.metadata;
+                session.session_type = sessionData?.session_type || session.session_type || null;
+                session.agent_id = sessionData?.agent_id || session.agent_id || null;
+                session.team_id = sessionData?.team_id || session.team_id || null;
 
                 console.log('[ContextHandler] Session updated with runs:', session.runs.length);
             } catch (err) {
