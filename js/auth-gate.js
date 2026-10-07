@@ -5,6 +5,7 @@ class AuthGate {
   constructor() {
     this.root = null;
     this.state = 'loading';
+    this.googlePending = false;
     this.completed = false;
     this.unsubscribeAuth = null;
   }
@@ -27,6 +28,15 @@ class AuthGate {
     }
 
     requestAnimationFrame(() => this.setMode('login'));
+    requestAnimationFrame(() => {
+      const parameters = new URLSearchParams(window.location.search);
+      const fragment = new URLSearchParams(window.location.hash.slice(1));
+      const callbackError = parameters.get('error_description') || fragment.get('error_description');
+      if (authService.lastError || callbackError) {
+        this.setText('#auth-error-msg', callbackError || authService.lastError.message || 'Sign-in failed. Please try again.');
+        if (callbackError) window.history.replaceState({}, '', window.location.pathname);
+      }
+    });
   }
 
   reinit() {
@@ -130,28 +140,21 @@ class AuthGate {
   }
 
   async handleGoogleLogin() {
+    if (this.googlePending) return;
+    this.googlePending = true;
     const errorMsg = this.root.querySelector('#auth-error-msg');
     const googleBtn = this.root.querySelector('#auth-google-btn');
     errorMsg.textContent = '';
     googleBtn.disabled = true;
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-      if (error) throw error;
+      await authService.signInWithGoogle();
     } catch (error) {
       console.error('[AuthGate] Google auth failed:', error);
-      errorMsg.textContent = `${error.message || 'Google login failed.'} Make sure your Supabase Authentication Redirect URLs include this production domain, for example https://<your-app>.vercel.app/**.`;
+      errorMsg.textContent = error.message || 'Google sign-in could not start. Please try again.';
     } finally {
       googleBtn.disabled = false;
+      this.googlePending = false;
     }
   }
 
