@@ -1,0 +1,698 @@
+/* =================================================================
+ * BROWSER SCREENSHOT VIEWER
+ * Premium floating button + full-screen screenshot slider viewer.
+ * Designed for mobile-first with touch swipe, glassmorphism, and
+ * smooth micro-animations.
+ * ================================================================= */
+
+/* ─── FLOATING TV BUTTON ─────────────────────────────────────── */
+
+.browser-view-btn {
+    position: fixed;
+    bottom: calc(var(--input-bottom-offset, 56px) + 70px);
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    z-index: calc(var(--z-input-container, 100) + 2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    
+    /* Light mode - Dark glassmorphic button */
+    background: rgba(50, 50, 50, 0.8);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(80, 80, 80, 0.4);
+    color: #fff;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.25),
+        0 1px 3px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+    /* Entrance / exit transition */
+    transition:
+        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.3s ease,
+        box-shadow 0.25s ease,
+        background 0.3s ease;
+    transform: scale(1);
+    opacity: 1;
+}
+
+.browser-view-btn.hidden {
+    transform: scale(0.4);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.browser-view-btn:hover {
+    transform: scale(1.08);
+    background: rgba(60, 60, 60, 0.9);
+    box-shadow:
+        0 6px 24px rgba(0, 0, 0, 0.35),
+        0 2px 6px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.browser-view-btn:active {
+    transform: scale(0.94);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode button styling - Cream white glassmorphism */
+.dark-mode .browser-view-btn {
+    background: rgba(245, 245, 220, 0.85);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 240, 0.4);
+    color: #1a1a1a;
+    box-shadow:
+        0 4px 16px rgba(245, 245, 220, 0.35),
+        0 1px 3px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.dark-mode .browser-view-btn:hover {
+    background: rgba(245, 245, 220, 0.95);
+    box-shadow:
+        0 6px 24px rgba(245, 245, 220, 0.45),
+        0 2px 6px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Pulse ring animation when a new screenshot arrives */
+.browser-view-btn::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(80, 80, 80, 0.6);
+    opacity: 0.5;
+    animation: pulseRing 2s ease-out infinite;
+    pointer-events: none;
+}
+
+.dark-mode .browser-view-btn::before {
+    border: 2px solid rgba(245, 245, 220, 0.7);
+}
+
+@keyframes pulseRing {
+    0%   { transform: scale(1);   opacity: 0.7; }
+    70%  { transform: scale(1.35); opacity: 0; }
+    100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* Count badge */
+.browser-view-btn .screenshot-count-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 11px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-color, #0f0f0f);
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+/* ─── VIEWER OVERLAY ─────────────────────────────────────────── */
+
+.browser-screenshot-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: flex-end;          /* bottom-sheet style on mobile */
+    justify-content: center;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.browser-screenshot-viewer.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Backdrop */
+.viewer-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+}
+
+.dark-mode .viewer-overlay {
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+}
+
+/* ─── VIEWER CONTAINER (the "card") ──────────────────────────── */
+
+.viewer-container {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    max-height: 60vh;
+    z-index: 1;
+
+    /* Enhanced glassmorphism card - Light Mode */
+    background: rgba(50, 50, 50, 0.8);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(80, 80, 80, 0.4);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow:
+        0 -8px 48px rgba(0, 0, 0, 0.5),
+        0 -2px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    /* Slide-up entrance */
+    animation: viewerSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Dark mode glassmorphism - Enhanced cream white glass */
+.dark-mode .viewer-container {
+    background: rgba(245, 245, 220, 0.88);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 240, 0.4);
+    border-bottom: none;
+    box-shadow:
+        0 -8px 48px rgba(245, 245, 220, 0.4),
+        0 -2px 16px rgba(245, 245, 220, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+}
+
+@keyframes viewerSlideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0.5;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ─── HEADER ─────────────────────────────────────────────────── */
+
+.viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    flex-shrink: 0;
+    /* No border - seamless integration */
+}
+
+.viewer-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.01em;
+}
+
+.viewer-title i {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Dark mode header text */
+.dark-mode .viewer-title {
+    color: rgba(30, 30, 30, 0.95);
+}
+
+.dark-mode .viewer-title i {
+    color: rgba(30, 30, 30, 0.7);
+}
+
+.viewer-close-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    
+    /* Enhanced glassmorphic close button */
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.viewer-close-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 1);
+    transform: scale(1.05);
+    box-shadow: 
+        0 4px 12px rgba(255, 255, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Dark mode close button */
+.dark-mode .viewer-close-btn {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    color: rgba(30, 30, 30, 0.9);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .viewer-close-btn:hover {
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(30, 30, 30, 1);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* ─── SLIDER AREA ────────────────────────────────────────────── */
+
+.screenshot-slider-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.screenshot-slider {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    gap: 0;
+    padding: 12px 20px;
+    -webkit-overflow-scrolling: touch;
+
+    /* Hide scrollbar for clean swipe UX */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.screenshot-slider::-webkit-scrollbar {
+    display: none;
+}
+
+/* ─── SCREENSHOT ITEM ────────────────────────────────────────── */
+
+.screenshot-item {
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 8px;
+    box-sizing: border-box;
+}
+
+.screenshot-item img {
+    max-width: 100%;
+    max-height: 50vh;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.screenshot-item img:hover {
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.dark-mode .screenshot-item img {
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .screenshot-item img:hover {
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+/* ─── SCREENSHOT FALLBACK (error state) ──────────────────────── */
+
+.screenshot-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 40px;
+    color: var(--text-secondary, #666);
+    font-size: 0.85rem;
+}
+
+.screenshot-fallback.hidden {
+    display: none;
+}
+
+.screenshot-fallback i {
+    font-size: 2rem;
+    opacity: 0.4;
+}
+
+/* ─── SCREENSHOT INFO CHIP WITH INLINE NAVIGATION ───────────── */
+
+.screenshot-info-with-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 85%;
+    justify-content: center;
+}
+
+.screenshot-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 18px;
+    flex: 1;
+    min-width: 0;
+    
+    /* Enhanced glassmorphic info box */
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Dark mode info box */
+.dark-mode .screenshot-info {
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.screenshot-action {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+}
+
+.dark-mode .screenshot-action {
+    color: rgba(30, 30, 30, 0.9);
+}
+
+.screenshot-url {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.dark-mode .screenshot-url {
+    color: rgba(30, 30, 30, 0.6);
+}
+
+/* Inline navigation buttons */
+.nav-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    flex-shrink: 0;
+    
+    /* Enhanced glassmorphic buttons */
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    
+    color: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: scale(1.05);
+    box-shadow: 
+        0 6px 16px rgba(255, 255, 255, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.nav-btn:active {
+    transform: scale(0.95);
+}
+
+/* Dark mode navigation buttons */
+.dark-mode .nav-btn {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    color: rgba(30, 30, 30, 0.9);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .nav-btn:hover {
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 
+        0 6px 16px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* ─── SLIDE INDICATOR (standalone, centered) ──────────────────── */
+
+.slide-indicator-container {
+    display: flex;
+    justify-content: center;
+    padding: 8px 20px 12px;
+    flex-shrink: 0;
+}
+
+.slide-indicator {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+    padding: 4px 12px;
+    border-radius: 12px;
+    
+    /* Enhanced glassmorphic background */
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.dark-mode .slide-indicator {
+    color: rgba(30, 30, 30, 0.8);
+    background: rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Old slider controls - REMOVED (navigation now inline) */
+.slider-controls {
+    display: none;
+}
+
+.slider-btn {
+    display: none;
+}
+
+/* ─── MOBILE RESPONSIVE ──────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .browser-view-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.1rem;
+        bottom: calc(var(--input-bottom-offset, 56px) + 60px);
+        right: 16px;
+    }
+
+    .viewer-container {
+        width: 100%;
+        max-height: 70vh;
+        border-radius: 18px 18px 0 0;
+    }
+
+    .viewer-header {
+        padding: 8px 14px;
+    }
+
+    .screenshot-item {
+        padding: 0 4px;
+        gap: 8px;
+    }
+
+    .screenshot-item img {
+        max-height: 45vh;
+    }
+
+    .screenshot-info-with-nav {
+        max-width: 92%;
+        gap: 6px;
+    }
+
+    .screenshot-info {
+        padding: 6px 14px;
+    }
+
+    .nav-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 0.8rem;
+    }
+
+    .slide-indicator-container {
+        padding: 6px 16px 10px;
+    }
+}
+
+/* ─── DESKTOP ────────────────────────────────────────────────── */
+
+@media (min-width: 769px) {
+    .browser-screenshot-viewer {
+        align-items: center;    /* Center on desktop, not bottom-sheet */
+    }
+
+    .viewer-container {
+        width: 85%;
+        max-width: 960px;
+        max-height: 65vh;
+        border-radius: 16px;
+        border: 1px solid rgba(80, 80, 80, 0.4);
+    }
+
+    .dark-mode .viewer-container {
+        border: 1px solid rgba(255, 255, 240, 0.4);
+    }
+
+    @keyframes viewerSlideUp {
+        from {
+            transform: translateY(30px) scale(0.97);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+    }
+}
+
+/* ─── TOUCH GESTURES ─────────────────────────────────────────── */
+
+@media (hover: none) and (pointer: coarse) {
+    .screenshot-slider {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .screenshot-item img {
+        touch-action: pan-x pinch-zoom;
+    }
+
+    /* Remove hover effects on touch devices */
+    .browser-view-btn:hover {
+        transform: scale(1);
+        box-shadow:
+            0 4px 16px rgba(99, 102, 241, 0.35),
+            0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .slider-btn:hover {
+        transform: scale(1);
+    }
+}
+
+/* ─── REDUCED MOTION ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .browser-view-btn,
+    .viewer-container,
+    .slider-btn,
+    .screenshot-item img {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+
+    .browser-view-btn::before {
+        animation: none;
+    }
+}
