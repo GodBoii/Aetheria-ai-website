@@ -1,3 +1,4 @@
+import { backendRequest, uploadReadUrl } from './backend-api.js';
 // js/context-handler.js (Corrected)
 
 import { supabase } from './supabase-client.js';
@@ -7,6 +8,7 @@ import skeletonLoader from './skeleton-loader.js';
 import { config } from './config.js';
 import { artifactHandler } from './artifact-handler.js';
 import { sessionContentViewer } from './session-content-viewer.js';
+import { getSessionWorkspaceInfo, shouldShowSessionWorkspaceBadge } from './session-workspace.js';
 
 const convertTimestampToSeconds = (timestampValue) => {
     if (timestampValue === null || timestampValue === undefined) {
@@ -42,35 +44,6 @@ const convertTimestampToSeconds = (timestampValue) => {
     return Math.floor(numericValue);
 };
 
-const getSessionWorkspaceInfo = (session = {}) => {
-    const agentId = String(session.agent_id || '').toLowerCase();
-
-    if (agentId === 'aetheria-coder') {
-        return {
-            type: 'coder',
-            label: 'Coder',
-            title: 'Coder Workspace chat',
-            icon: 'fa-code'
-        };
-    }
-
-    if (agentId === 'aetheria-computer') {
-        return {
-            type: 'computer',
-            label: 'Computer',
-            title: 'Computer Workspace chat',
-            icon: 'fa-desktop'
-        };
-    }
-
-    return {
-        type: 'normal',
-        label: '',
-        title: 'Normal chat',
-        icon: ''
-    };
-};
-
 class ContextHandler {
     constructor({ preloadDelay = 2500 } = {}) {
         this.loadedSessions = [];
@@ -95,7 +68,7 @@ class ContextHandler {
     }
 
     initializeElements() {
-        console.log('[ContextHandler] Initializing elements...');
+
         this.elements.contextWindow = document.getElementById('context-window');
 
         if (!this.elements.contextWindow) {
@@ -111,16 +84,6 @@ class ContextHandler {
         this.elements.detailView = document.getElementById('context-detail-view');
         this.elements.contextBtn = document.querySelector('[data-tool="context"]');
 
-        console.log('[ContextHandler] Elements initialized:', {
-            hasContextWindow: !!this.elements.contextWindow,
-            hasPanel: !!this.elements.panel,
-            hasCloseBtn: !!this.elements.closeContextBtn,
-            hasSyncBtn: !!this.elements.syncBtn,
-            hasSessionsContainer: !!this.elements.sessionsContainer,
-            hasListView: !!this.elements.listView,
-            hasDetailView: !!this.elements.detailView,
-            hasContextBtn: !!this.elements.contextBtn
-        });
     }
 
     bindEvents() {
@@ -156,7 +119,6 @@ class ContextHandler {
     }
 
     toggleWindow(show, buttonElement = null) {
-        console.log('[ContextHandler] toggleWindow called:', { show, hasElement: !!this.elements.contextWindow });
 
         if (!this.elements.contextWindow) {
             console.error('[ContextHandler] contextWindow element not found!');
@@ -164,7 +126,7 @@ class ContextHandler {
         }
 
         if (show) {
-            console.log('[ContextHandler] Opening window, loadingState:', this.loadingState);
+
             this.isWindowOpen = true;
             if (buttonElement) {
                 this.triggerButton = buttonElement;
@@ -172,20 +134,19 @@ class ContextHandler {
             }
 
             this.elements.contextWindow.classList.remove('hidden');
-            console.log('[ContextHandler] Window classList after remove hidden:', this.elements.contextWindow.classList.toString());
 
             this.renderCurrentState();
 
             if (this.loadingState === 'idle') {
-                console.log('[ContextHandler] Starting loadSessionsInBackground...');
+
                 this.loadSessionsInBackground().catch((err) => {
                     console.error('[ContextHandler] Context preload failed:', err);
                 });
             } else {
-                console.log('[ContextHandler] Skipping load, state is:', this.loadingState);
+
             }
         } else {
-            console.log('[ContextHandler] Closing window');
+
             this.isWindowOpen = false;
             this.elements.contextWindow.classList.add('hidden');
             if (this.triggerButton) {
@@ -213,19 +174,18 @@ class ContextHandler {
     }
 
     async loadSessionsInBackground({ force = false } = {}) {
-        console.log('[ContextHandler] loadSessionsInBackground called:', { force, loadingState: this.loadingState });
 
         if (!force) {
             if (this.loadingState === 'loading' && this.pendingLoadPromise) {
-                console.log('[ContextHandler] Already loading, returning existing promise');
+
                 return this.pendingLoadPromise;
             }
             if (this.loadingState === 'loaded' && this.loadedSessions.length > 0) {
-                console.log('[ContextHandler] Already loaded, returning cached sessions:', this.loadedSessions.length);
+
                 return Promise.resolve(this.loadedSessions);
             }
         } else if (this.pendingLoadPromise) {
-            console.log('[ContextHandler] Force refresh but already loading');
+
             return this.pendingLoadPromise;
         }
 
@@ -234,7 +194,6 @@ class ContextHandler {
             this.backgroundLoadTimer = null;
         }
 
-        console.log('[ContextHandler] Setting state to loading');
         this.loadingState = 'loading';
         this.loadError = null;
 
@@ -243,31 +202,28 @@ class ContextHandler {
         this.loadedSessions = [];
 
         if (this.isWindowOpen) {
-            console.log('[ContextHandler] Window is open, rendering loading state');
+
             this.renderLoadingState();
         }
 
         const loadPromise = (async () => {
             try {
-                console.log('[ContextHandler] Attempting Supabase session refresh...');
+
                 try {
                     await supabase.auth.refreshSession();
-                    console.log('[ContextHandler] Supabase session refresh successful');
+
                 } catch (refreshError) {
                     console.warn('[ContextHandler] Supabase session refresh failed:', refreshError);
                 }
 
-                console.log('[ContextHandler] Getting Supabase session...');
                 const { data: authData, error: authError } = await supabase.auth.getSession();
                 const session = authData?.session;
-                console.log('[ContextHandler] Session retrieved:', { hasSession: !!session, hasToken: !!session?.access_token, error: authError });
 
                 if (authError || !session?.access_token) {
                     throw new Error('Please log in to view chat history.');
                 }
 
                 const userId = session.user.id;
-                console.log('[ContextHandler] Fetching sessions with title fallback for user:', userId);
 
                 const { sessions, total } = await this.fetchSessionsBatch(userId, this.currentOffset, this.pageSize);
 
@@ -279,17 +235,16 @@ class ContextHandler {
                 this.loadingState = 'loaded';
                 this.loadError = null;
 
-                console.log('[ContextHandler] Sessions loaded successfully:', {
-                    count: this.loadedSessions.length,
-                    total: this.totalSessions,
-                    hasMore: this.hasMoreSessions
-                });
+                // Lets other modules (e.g. native launcher shortcuts) react to the newest list.
+                document.dispatchEvent(new CustomEvent('sessionsLoaded', {
+                    detail: { sessions: this.loadedSessions.slice(0, 10) }
+                }));
 
                 if (this.isWindowOpen) {
-                    console.log('[ContextHandler] Window is open, showing session list');
+
                     this.showSessionList(this.loadedSessions);
                 } else {
-                    console.log('[ContextHandler] Window is closed, not rendering');
+
                 }
 
                 return this.loadedSessions;
@@ -308,14 +263,13 @@ class ContextHandler {
                     this.loadError = err?.message || 'An unexpected error occurred while loading sessions.';
                 }
 
-                console.log('[ContextHandler] Setting error state:', this.loadError);
                 this.loadingState = 'error';
 
                 if (this.isWindowOpen) {
-                    console.log('[ContextHandler] Window is open, rendering error state');
+
                     this.renderErrorState();
                 } else {
-                    console.log('[ContextHandler] Window is closed, not rendering error');
+
                 }
                 throw err;
             } finally {
@@ -328,56 +282,13 @@ class ContextHandler {
     }
 
     async fetchSessionsBatch(userId, offset, limit) {
-        if (limit <= 0) {
-            return { sessions: [], total: 0 };
-        }
-
-        const rangeEnd = offset + limit - 1;
-        const { data: sessionRows, error: sessionsError, count } = await supabase
-            .from('agno_sessions')
-            .select('session_id, created_at, session_type, agent_id, team_id', { count: 'exact' })
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .range(offset, rangeEnd);
-
-        if (sessionsError) {
-            console.error('[ContextHandler] Error fetching sessions from agno_sessions:', sessionsError);
-            throw new Error(`Failed to load sessions: ${sessionsError.message}`);
-        }
-
-        const sessionIds = (sessionRows || []).map(row => row.session_id);
-        let titlesMap = new Map();
-
-        if (sessionIds.length > 0) {
-            const { data: titlesData, error: titlesError } = await supabase
-                .from('session_titles')
-                .select('session_id, tittle')
-                .eq('user_id', userId)
-                .in('session_id', sessionIds);
-
-            if (titlesError) {
-                console.warn('[ContextHandler] Unable to fetch titles for some sessions:', titlesError);
-            } else {
-                titlesMap = new Map((titlesData || []).map(title => [title.session_id, title.tittle]));
-            }
-        }
-
-        const sessions = (sessionRows || []).map(row => ({
-            session_id: row.session_id,
-            title: titlesMap.get(row.session_id) || null,
-            created_at: convertTimestampToSeconds(row.created_at),
-            session_type: row.session_type || null,
-            agent_id: row.agent_id || null,
-            team_id: row.team_id || null,
-            runs: []
+        if (limit <= 0) return { sessions: [], total: offset };
+        const rows = await backendRequest(`/sessions?limit=${limit + 1}&offset=${offset}`);
+        if (!Array.isArray(rows)) throw new Error('The server returned an invalid conversation list.');
+        const sessions = rows.slice(0, limit).map(row => ({
+            ...row, title: row.session_title, created_at: convertTimestampToSeconds(row.created_at), runs: []
         }));
-
-        await this.populateMissingTitles(userId, sessions);
-
-        return {
-            sessions,
-            total: typeof count === 'number' ? count : (sessionRows?.length || 0)
-        };
+        return { sessions, total: offset + rows.length };
     }
 
     async populateMissingTitles(userId, sessions) {
@@ -389,8 +300,6 @@ class ContextHandler {
         if (sessionsNeedingTitles.length === 0) {
             return;
         }
-
-        console.log('[ContextHandler] Deriving titles for sessions without titles:', sessionsNeedingTitles.length);
 
         for (const session of sessionsNeedingTitles) {
             try {
@@ -413,17 +322,7 @@ class ContextHandler {
 
     async deriveTitleFromSession(sessionId) {
         try {
-            const { data, error } = await supabase
-                .from('agno_sessions')
-                .select('runs, session_data')
-                .eq('session_id', sessionId)
-                .single();
-
-            if (error) {
-                throw error;
-            }
-
-            const sessionData = data || {};
+            const sessionData = await backendRequest(`/sessions/${encodeURIComponent(sessionId)}/history`);
             const turnContextMessage = sessionData?.session_data?.session_state?.turn_context?.user_message;
             const titleFromContext = this.buildTitleFromMessage(turnContextMessage);
             if (titleFromContext) {
@@ -451,14 +350,7 @@ class ContextHandler {
 
     async saveSessionTitle(userId, sessionId, title, sessionCreatedAtSeconds) {
         try {
-            await supabase
-                .from('session_titles')
-                .upsert({
-                    session_id: sessionId,
-                    user_id: userId,
-                    tittle: title,
-                    session_created_at: sessionCreatedAtSeconds
-                });
+            await backendRequest(`/sessions/${encodeURIComponent(sessionId)}/title`, {method: 'PUT', body: {title}});
         } catch (err) {
             console.warn('[ContextHandler] saveSessionTitle failed:', sessionId, err);
         }
@@ -506,7 +398,7 @@ class ContextHandler {
 
     async loadMoreSessions() {
         if (this.isLoadingMore || !this.hasMoreSessions) {
-            console.log('[ContextHandler] Skip loadMore:', { isLoadingMore: this.isLoadingMore, hasMore: this.hasMoreSessions });
+
             return;
         }
 
@@ -523,7 +415,6 @@ class ContextHandler {
             }
 
             const userId = session.user.id;
-            console.log('[ContextHandler] Loading more sessions, offset:', this.currentOffset);
 
             const { sessions: newSessions, total } = await this.fetchSessionsBatch(
                 userId,
@@ -532,8 +423,6 @@ class ContextHandler {
             );
 
             this.totalSessions = Number.isFinite(total) ? total : this.totalSessions;
-
-            console.log('[ContextHandler] Loaded more sessions:', newSessions.length);
 
             if (newSessions.length === 0) {
                 this.hasMoreSessions = false;
@@ -568,7 +457,7 @@ class ContextHandler {
         const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 
         if (distanceFromBottom < threshold && this.hasMoreSessions && !this.isLoadingMore) {
-            console.log('[ContextHandler] Scroll threshold reached, loading more sessions');
+
             this.loadMoreSessions();
         }
     }
@@ -595,31 +484,29 @@ class ContextHandler {
     appendSessionItems(sessions) {
         if (!this.elements.listView || !sessions || sessions.length === 0) return;
 
-        console.log('[ContextHandler] Appending', sessions.length, 'session items');
-
         sessions.forEach(session => {
             this.elements.listView.appendChild(this.createSessionItem(session));
         });
     }
 
     renderCurrentState() {
-        console.log('[ContextHandler] renderCurrentState called, state:', this.loadingState);
+
         switch (this.loadingState) {
             case 'loaded':
-                console.log('[ContextHandler] Rendering loaded state with', this.loadedSessions.length, 'sessions');
+                ;
                 this.showSessionList(this.loadedSessions);
                 break;
             case 'loading':
-                console.log('[ContextHandler] Rendering loading state');
+                ;
                 this.renderLoadingState();
                 break;
             case 'error':
-                console.log('[ContextHandler] Rendering error state:', this.loadError);
+                ;
                 this.renderErrorState();
                 break;
             case 'idle':
             default:
-                console.log('[ContextHandler] Rendering idle state');
+                ;
                 this.renderIdleState();
                 break;
         }
@@ -679,14 +566,6 @@ class ContextHandler {
     }
 
     showSessionList(sessions) {
-        console.log('═══════════════════════════════════════════════════════');
-        console.log('[ContextHandler] ✓ showSessionList CALLED');
-        console.log('[ContextHandler] Sessions count:', sessions?.length);
-        console.log('[ContextHandler] Elements check:', {
-            hasListView: !!this.elements.listView,
-            hasDetailView: !!this.elements.detailView,
-            hasContextWindow: !!this.elements.contextWindow
-        });
 
         if (!this.elements.listView || !this.elements.detailView) {
             console.error('[ContextHandler] ✗ Missing required elements for session list!');
@@ -695,21 +574,19 @@ class ContextHandler {
 
         // Show the header when returning to list view
         const contextHeader = this.elements.contextWindow?.querySelector('.context-header');
-        console.log('[ContextHandler] Context header found:', !!contextHeader);
+
         if (contextHeader) {
             contextHeader.classList.remove('hidden-for-detail');
-            console.log('[ContextHandler] ✓ Header shown (removed hidden-for-detail class)');
+
         }
 
-        console.log('[ContextHandler] Switching views - showing list, hiding detail');
         this.elements.listView.classList.remove('hidden');
         this.elements.detailView.classList.add('hidden');
         this.elements.detailView.innerHTML = ''; // Clear detail view content
         this.elements.listView.innerHTML = '';
-        console.log('[ContextHandler] ✓ Views switched successfully');
 
         if (!sessions || sessions.length === 0) {
-            console.log('[ContextHandler] No sessions to display, showing empty state');
+
             this.elements.listView.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-comments"></i>
@@ -719,12 +596,11 @@ class ContextHandler {
             return;
         }
 
-        console.log('[ContextHandler] Rendering', sessions.length, 'session items');
         this.addSelectionHeader();
         this.renderSessionItems(sessions);
         this.initializeSelectionControls();
         this.updateSelectionUI();
-        console.log('[ContextHandler] Session list rendered successfully');
+
     }
 
     addSelectionHeader() {
@@ -814,7 +690,7 @@ class ContextHandler {
         // Click the entire row to open session (except checkbox)
         sessionItem.addEventListener('click', (e) => {
             if (!e.target.closest('.session-select')) {
-                console.log('[ContextHandler] Session item clicked, ID:', session.session_id);
+
                 this.showSessionDetails(session.session_id);
             }
         });
@@ -843,30 +719,32 @@ class ContextHandler {
 
     getSessionItemHTML(session, sessionName, formattedDate) {
         const checkboxId = `session-check-${session.session_id}`;
-        const workspace = getSessionWorkspaceInfo(session);
-        const workspaceBadge = workspace.type === 'coder' || workspace.type === 'computer'
-            ? `
-                <span class="session-workspace-badge session-workspace-${workspace.type}" title="${workspace.title}">
-                    <i class="fas ${workspace.icon}"></i>
-                    <span>${workspace.label}</span>
-                </span>
-            `
-            : '';
-
+        const workspaceBadge = this.getSessionWorkspaceBadgeHTML(session);
         return `
             <div class="session-select">
                 <input type="checkbox" class="session-checkbox" id="${checkboxId}" />
                 <label for="${checkboxId}" class="custom-checkbox"></label>
             </div>
-            <div class="session-content">
-                <span class="session-title">${sessionName}</span>
-                <span class="session-row-meta">
-                    <span class="session-date">${formattedDate}</span>
-                    ${workspaceBadge}
-                </span>
-            </div>
+            <button type="button" class="session-content" aria-label="Open ${this.escapeHtml(sessionName)}">
+                <span class="session-title">${this.escapeHtml(sessionName)}</span>
+                <span class="session-date">${formattedDate}</span>
+                ${workspaceBadge}
+            </button>
             <i class="fas fa-chevron-right session-arrow"></i>
         `;
+    }
+
+    getSessionWorkspaceBadgeHTML(session) {
+        if (!shouldShowSessionWorkspaceBadge(session)) {
+            return '';
+        }
+
+        const workspace = getSessionWorkspaceInfo(session);
+        return `
+                <span class="session-workspace-badge session-workspace-${workspace.type}" title="${this.escapeHtml(workspace.title)}">
+                    <i class="${workspace.iconClass}"></i>
+                    <span>${this.escapeHtml(workspace.label)}</span>
+                </span>`;
     }
 
     initializeSelectionControls() {
@@ -912,12 +790,8 @@ class ContextHandler {
     }
 
     async showSessionDetails(sessionId) {
-        console.log('═══════════════════════════════════════════════════════');
-        console.log('[ContextHandler] ✓ showSessionDetails CALLED');
-        console.log('[ContextHandler] Session ID:', sessionId);
 
         const session = this.loadedSessions.find(s => s.session_id === sessionId);
-        console.log('[ContextHandler] Session found:', !!session);
 
         if (!session) {
             console.error('[ContextHandler] ✗ Cannot show session details - missing session');
@@ -939,20 +813,6 @@ class ContextHandler {
         const welcomeContainer = document.querySelector('.welcome-container');
         welcomeContainer?.classList.add('hidden');
 
-        // Hide pills and carousel (they are separate fixed elements)
-        const suggestionsWrapper = document.querySelector('.home-suggestions-wrapper');
-        const carousel = document.querySelector('.home-carousel');
-        suggestionsWrapper?.classList.add('hidden');
-        suggestionsWrapper?.classList.remove('visible');
-        carousel?.classList.add('hidden');
-
-        // Switch floating input to chat mode (bottom positioned)
-        const floatingInput = document.getElementById('floating-input-container');
-        if (floatingInput) {
-            floatingInput.classList.remove('welcome-mode', 'centered');
-            floatingInput.classList.add('chat-mode');
-        }
-
         // Clear current chat messages and show loading
         mainChatMessages.innerHTML = '<div class="session-item-loading" style="padding: 40px; text-align: center;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading conversation...</div>';
 
@@ -962,28 +822,13 @@ class ContextHandler {
 
         // Check if session already has runs data loaded
         if (!session.runs || session.runs.length === 0) {
-            console.log('[ContextHandler] Session runs not loaded, fetching from agno_sessions...');
 
             try {
-                const { data: sessionData, error: sessionError } = await supabase
-                    .from('agno_sessions')
-                    .select('runs, session_data, metadata, session_type, agent_id, team_id')
-                    .eq('session_id', sessionId)
-                    .single();
-
-                if (sessionError) {
-                    console.error('[ContextHandler] Error fetching session data:', sessionError);
-                    throw new Error(`Failed to load conversation: ${sessionError.message}`);
-                }
-
+                const sessionData = await backendRequest(`/sessions/${encodeURIComponent(sessionId)}/history`);
                 session.runs = sessionData?.runs || [];
                 session.session_data = sessionData?.session_data;
                 session.metadata = sessionData?.metadata;
-                session.session_type = sessionData?.session_type || session.session_type || null;
-                session.agent_id = sessionData?.agent_id || session.agent_id || null;
-                session.team_id = sessionData?.team_id || session.team_id || null;
 
-                console.log('[ContextHandler] Session updated with runs:', session.runs.length);
             } catch (err) {
                 console.error('[ContextHandler] Failed to load session details:', err);
                 mainChatMessages.innerHTML = `
@@ -1024,6 +869,37 @@ class ContextHandler {
             <span class="past-session-title">${this.escapeHtml(sessionName)}</span>
             <div class="past-session-actions"></div>
         `;
+        const actions = pastSessionHeader.querySelector('.past-session-actions');
+        for (const [label, action] of [
+            ['Continue chat', async () => window.chat.resumeConversation(sessionId, session)],
+            ['Rename', async () => {
+                const title = window.prompt('Chat title', session.title || '');
+                if (title === null || !title.trim()) return;
+                if (title.trim().length > 120) throw new Error('Use a title of up to 120 characters.');
+                await backendRequest(`/sessions/${encodeURIComponent(sessionId)}/title`, { method: 'PUT', body: { title: title.trim() } });
+                session.title = title.trim();
+                pastSessionHeader.querySelector('.past-session-title').textContent = session.title;
+                this.invalidateCache();
+            }],
+            ['Delete', async () => {
+                if (!window.confirm('Delete this chat and its saved history?')) return;
+                await backendRequest(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+                this.loadedSessions = this.loadedSessions.filter(item => item.session_id !== sessionId);
+                this.invalidateCache();
+                this.exitPastSessionView();
+            }],
+        ]) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = label;
+            button.addEventListener('click', async () => {
+                button.disabled = true;
+                try { await action(); }
+                catch (error) { this.notificationService.show(error.message, 'error'); }
+                finally { button.disabled = false; }
+            });
+            actions.appendChild(button);
+        }
 
         // Back button exits past session view
         pastSessionHeader.querySelector('.past-session-back-btn').addEventListener('click', () => {
@@ -1070,8 +946,10 @@ class ContextHandler {
                 // --- Build bot message with reasoning dropdown (matching live chat structure) ---
                 const hasEvents = events.length > 0;
 
-                // Extract reasoning steps and tool calls from events
-                const reasoningSteps = [];
+                // Historical runs persist streamed reasoning as many tiny events.
+                // Coalesce those chunks by owner so reopening a chat renders the
+                // same continuous reasoning block as the live-chat path.
+                const reasoningByAgent = new Map();
                 const toolCalls = [];
                 let hasFiles = false;
                 let hasTerminal = false;
@@ -1079,12 +957,29 @@ class ContextHandler {
                 events.forEach(evt => {
                     if (!evt || typeof evt !== 'object') return;
 
-                    // Collect reasoning content from TeamRunContent events
-                    if (evt.event === 'TeamRunContent' && evt.reasoning_content && evt.reasoning_content.trim()) {
-                        reasoningSteps.push({
-                            agent_name: evt.team_name || evt.agent_name || 'Assistant',
-                            step: evt.reasoning_content
-                        });
+                    const eventType = evt.type || evt.event;
+                    const rawReasoning = evt.reasoning_content
+                        || (eventType === 'reasoning_step' ? evt.step : '');
+                    const reasoningChunk = String(rawReasoning || '')
+                        .replace(/<\/?(?:reasoning|think)>/gi, '')
+                        .replace(/\r\n?/g, '\n');
+
+                    if (reasoningChunk.trim()) {
+                        const agentName = evt.agent_name
+                            || evt.delegated_agent
+                            || evt.team_name
+                            || 'Assistant';
+                        const existing = reasoningByAgent.get(agentName) || '';
+
+                        // Some providers store cumulative snapshots while others
+                        // store deltas. Handle both without duplicating text.
+                        if (!existing) {
+                            reasoningByAgent.set(agentName, reasoningChunk);
+                        } else if (reasoningChunk.startsWith(existing)) {
+                            reasoningByAgent.set(agentName, reasoningChunk);
+                        } else if (reasoningChunk !== existing) {
+                            reasoningByAgent.set(agentName, existing + reasoningChunk);
+                        }
                     }
 
                     // Collect tool calls
@@ -1128,7 +1023,7 @@ class ContextHandler {
                     }
                 });
 
-                const hasReasoningOrTools = reasoningSteps.length > 0 || toolCalls.length > 0;
+                const hasReasoningOrTools = reasoningByAgent.size > 0 || toolCalls.length > 0;
 
                 if (assistantOutput && assistantOutput.trim()) {
                     const messageId = `past-msg-${sessionId}-${runIndex}`;
@@ -1142,10 +1037,10 @@ class ContextHandler {
                         thinkingIndicator.className = 'thinking-indicator steps-done';
 
                         const parts = [];
-                        // Count unique agent reasoning blocks as thoughts
-                        const reasoningAgents = new Set(reasoningSteps.map(r => r.agent_name));
-                        if (reasoningAgents.size > 0) parts.push(`${reasoningAgents.size} thought${reasoningAgents.size > 1 ? 's' : ''}`);
                         if (toolCalls.length > 0) parts.push(`${toolCalls.length} tool${toolCalls.length > 1 ? 's' : ''}`);
+                        if (reasoningByAgent.size > 0) {
+                            parts.push(`${reasoningByAgent.size} thought${reasoningByAgent.size > 1 ? 's' : ''}`);
+                        }
                         const summaryText = parts.length > 0 ? `Reasoning: ${parts.join(', ')}` : 'Reasoning';
 
                         thinkingIndicator.innerHTML = `
@@ -1160,37 +1055,29 @@ class ContextHandler {
                         detailedLogs.className = 'detailed-logs';
                         detailedLogs.id = `logs-${messageId}`;
 
-                        // Group reasoning steps by agent name
-                        const reasoningByAgent = {};
-                        reasoningSteps.forEach(rs => {
-                            const agentKey = rs.agent_name.replace(/[^a-zA-Z0-9_-]/g, '-');
-                            if (!reasoningByAgent[agentKey]) {
-                                reasoningByAgent[agentKey] = {
-                                    name: rs.agent_name,
-                                    steps: []
-                                };
-                            }
-                            reasoningByAgent[agentKey].steps.push(rs.step);
-                        });
-
-                        // Add reasoning sections (matching live chat structure)
-                        Object.entries(reasoningByAgent).forEach(([agentKey, agentData]) => {
+                        // Add one continuous reasoning section per owner.
+                        reasoningByAgent.forEach((reasoningText, agentName) => {
+                            const agentKey = agentName.replace(/[^a-zA-Z0-9_-]/g, '-');
                             const section = document.createElement('div');
                             section.className = 'content-block log-block reasoning-thought-block';
                             section.id = `reasoning-log-${messageId}-${agentKey}`;
 
-                            section.innerHTML = `
-                                <div class="reasoning-thought-header">
-                                    <i class="fi fi-tr-brain reasoning-thought-icon"></i>
-                                    <span>Deep reasoning</span>
-                                </div>
-                                <div class="inner-content reasoning-thought-content"></div>
-                            `;
+                            const headerDiv = document.createElement('div');
+                            headerDiv.className = 'reasoning-thought-header';
+                            headerDiv.innerHTML = '<i class="fi fi-tr-brain reasoning-thought-icon"></i><span>Deep reasoning</span>';
+                            if (reasoningByAgent.size > 1) {
+                                const ownerLabel = document.createElement('span');
+                                ownerLabel.className = 'reasoning-thought-owner';
+                                ownerLabel.textContent = agentName.replace(/_/g, ' ');
+                                headerDiv.appendChild(ownerLabel);
+                            }
+                            section.appendChild(headerDiv);
 
-                            const innerContent = section.querySelector('.reasoning-thought-content');
-                            // Join all reasoning steps into a single continuous text block
-                            innerContent.textContent = agentData.steps.join('');
+                            const innerContent = document.createElement('div');
+                            innerContent.className = 'inner-content reasoning-thought-content';
+                            innerContent.textContent = reasoningText.trim();
 
+                            section.appendChild(innerContent);
                             detailedLogs.appendChild(section);
                         });
 
@@ -1258,8 +1145,6 @@ class ContextHandler {
         // Scroll to top
         mainChatMessages.scrollTop = 0;
 
-        console.log('[ContextHandler] Past session rendered full-screen');
-
         // Fetch and display session content (files, artifacts, executions)
         this.fetchAndDisplaySessionContentFullscreen(sessionId, mainChatMessages, pastSessionHeader);
     }
@@ -1276,7 +1161,6 @@ class ContextHandler {
             }
 
             const url = `${config.backend.url}/api/sessions/${sessionId}/content`;
-            console.log('[ContextHandler] Fetching session content from:', url);
 
             const response = await fetch(url, {
                 headers: {
@@ -1291,7 +1175,7 @@ class ContextHandler {
             }
 
             const data = await response.json();
-            console.log('[ContextHandler] Session content fetched:', data.count, 'items');
+
             return data.content || [];
         } catch (error) {
             console.error('[ContextHandler] Error fetching session content:', error);
@@ -1303,7 +1187,7 @@ class ContextHandler {
      * Exit past session view and return to welcome screen
      */
     exitPastSessionView() {
-        console.log('[ContextHandler] Exiting past session view');
+
         const mainChatMessages = document.getElementById('chat-messages');
         if (mainChatMessages) {
             delete mainChatMessages.dataset.viewingPastSession;
@@ -1314,22 +1198,6 @@ class ContextHandler {
         // Show welcome display again
         const welcomeContainer = document.querySelector('.welcome-container');
         welcomeContainer?.classList.remove('hidden');
-
-        // Restore pills and carousel on desktop
-        const suggestionsWrapper = document.querySelector('.home-suggestions-wrapper');
-        const carousel = document.querySelector('.home-carousel');
-        if (window.matchMedia('(min-width: 1024px)').matches) {
-            suggestionsWrapper?.classList.remove('hidden');
-            suggestionsWrapper?.classList.add('visible');
-            carousel?.classList.remove('hidden');
-        }
-
-        // Restore floating input to welcome mode
-        const floatingInput = document.getElementById('floating-input-container');
-        if (floatingInput) {
-            floatingInput.classList.remove('chat-mode');
-            floatingInput.classList.add('welcome-mode');
-        }
 
         // Hide content button
         const viewContentBtn = document.getElementById('view-content-btn');
@@ -1345,7 +1213,7 @@ class ContextHandler {
         const content = await this.fetchSessionContent(sessionId);
 
         if (content.length === 0) {
-            console.log('[ContextHandler] No session content to display');
+
             return;
         }
 
@@ -1353,12 +1221,6 @@ class ContextHandler {
         const artifacts = content.filter(item => item.content_type === 'artifact');
         const uploads = content.filter(item => item.content_type === 'upload');
         const executions = content.filter(item => item.content_type === 'execution');
-
-        console.log('[ContextHandler] Session content breakdown:', {
-            artifacts: artifacts.length,
-            uploads: uploads.length,
-            executions: executions.length
-        });
 
         const allFiles = [...artifacts, ...uploads];
         const hasContent = allFiles.length > 0 || executions.length > 0;
@@ -1525,7 +1387,7 @@ class ContextHandler {
         const filesSection = container.querySelector('.session-files-section');
         const header = container.querySelector('.past-session-header');
         const insertAfter = filesSection || header;
-        
+
         if (insertAfter && insertAfter.nextSibling) {
             container.insertBefore(execSection, insertAfter.nextSibling);
         } else {
@@ -1550,9 +1412,7 @@ class ContextHandler {
                     return;
                 }
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('media-uploads')
-                    .getPublicUrl(path);
+                const publicUrl = await uploadReadUrl(file);
 
                 if (mimeType.startsWith('image/')) {
                     artifactHandler.showArtifact(publicUrl, 'image', null, filename);
@@ -1718,7 +1578,7 @@ class ContextHandler {
      * This ensures fresh data on next open
      */
     invalidateCache() {
-        console.log('[ContextHandler] Cache invalidated');
+
         this.loadingState = 'idle';
         this.loadedSessions = [];
         this.loadError = null;
@@ -1745,6 +1605,9 @@ class ContextHandler {
         });
 
         this.updateContextFilesBarVisibility();
+        document.dispatchEvent(new CustomEvent('composerStateChanged', {
+            detail: { source: 'selected-context' }
+        }));
     }
 
     /**
