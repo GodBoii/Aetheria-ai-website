@@ -14,18 +14,15 @@ class AuthService {
             const { data } = await this.supabase.auth.getSession();
             if (data.session) {
                 this.user = data.session.user;
-                console.log('User from session:', this.user);
+
                 this._notifyListeners();
             }
 
             // Set up auth state change listener
             if (!this._authListenerBound) {
                 this.supabase.auth.onAuthStateChange((event, session) => {
-                    console.log('Auth state changed:', event);
+
                     this.user = session?.user || null;
-                    if (this.user) {
-                        console.log('User metadata:', this.user.user_metadata);
-                    }
                     this._notifyListeners();
                 });
                 this._authListenerBound = true;
@@ -71,18 +68,9 @@ class AuthService {
 
     // Sign up with email, password, name, and phone number
     async signUp(email, password, name, phoneNumber) {
-        console.log('Auth service received signup parameters:', {
-            email: email,
-            password: password ? '[REDACTED]' : undefined,
-            name: name,
-            nameType: typeof name,
-            phoneNumber: phoneNumber ? '[REDACTED]' : undefined
-        });
-
-        console.log('Signup call stack:', new Error().stack);
 
         const processedName = typeof name === 'string' ? name.trim() : '';
-        console.log('Processed name:', processedName);
+
         const normalizedPhoneNumber = this.normalizePhoneNumber(phoneNumber);
 
         if (!processedName || !email || !normalizedPhoneNumber || !password) {
@@ -110,12 +98,9 @@ class AuthService {
                 return { success: false, error: error.message };
             }
 
-            console.log('Signup response:', data);
-            console.log('User metadata after signup:', data.user?.user_metadata);
-
             if (data.user) {
                 if ((!data.user.user_metadata?.name || !data.user.user_metadata?.phone_number) && processedName) {
-                    console.log('Signup metadata incomplete, updating it manually');
+
                     try {
                         const { data: updateData, error: updateError } = await this.supabase.auth.updateUser({
                             data: {
@@ -127,7 +112,7 @@ class AuthService {
                         if (updateError) {
                             console.error('Error updating user metadata:', updateError);
                         } else {
-                            console.log('User metadata updated successfully:', updateData.user.user_metadata);
+
                             data.user.user_metadata = updateData.user.user_metadata;
                         }
                     } catch (updateError) {
@@ -149,7 +134,7 @@ class AuthService {
                     if (profileError) {
                         console.error('Error updating profile:', profileError);
                     } else {
-                        console.log('Profile updated successfully');
+
                     }
                 } catch (profileError) {
                     console.error('Failed to update profile:', profileError);
@@ -173,17 +158,14 @@ class AuthService {
 
             if (error) throw error;
 
-            console.log('Sign in response:', data);
-            console.log('User metadata after signin:', data.user?.user_metadata);
-
             if (data.user) {
                 if (data.user.user_metadata?.name) {
-                    console.log('Name found in user_metadata:', data.user.user_metadata.name);
+
                     this.user = data.user;
                     this._notifyListeners();
                 } else {
                     try {
-                        console.log('Name not found in user_metadata, fetching from profiles table');
+
                         const { data: profileData, error: profileError } = await this.supabase
                             .from('profiles')
                             .select('name')
@@ -193,13 +175,13 @@ class AuthService {
                         if (profileError) {
                             console.error('Error fetching profile:', profileError);
                         } else if (profileData && profileData.name) {
-                            console.log('Name found in profiles table:', profileData.name);
+
                             data.user.user_metadata = data.user.user_metadata || {};
                             data.user.user_metadata.name = profileData.name;
                             this.user = data.user;
                             this._notifyListeners();
                         } else {
-                            console.log('Name not found in profiles table either');
+
                         }
                     } catch (profileFetchError) {
                         console.error('Failed to fetch profile:', profileFetchError);
