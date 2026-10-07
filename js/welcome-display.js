@@ -15,7 +15,7 @@ import { getSessionWorkspaceInfo, shouldShowSessionWorkspaceBadge } from './sess
 const PILL_CONFIG = [
   { key: 'templates', icon: 'fa-solid fa-wand-magic-sparkles', label: 'Create slides' },
   { key: 'website', icon: 'fa-solid fa-window-maximize', label: 'Build website' },
-  { key: 'sessions', icon: 'fa-solid fa-clock-rotate-left', label: 'Past Chats' },
+  { key: 'sessions', icon: 'fa-solid fa-clock-rotate-left', label: 'Past chats' },
   { key: 'tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
   { key: 'design', icon: 'fa-solid fa-swatchbook', label: 'Design' }
 ];
@@ -66,6 +66,11 @@ class WelcomeDisplay {
     this.bindEvents();
 
     this.initialized = true;
+    supabase.auth.onAuthStateChange(event => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setTimeout(() => this.refreshUsername().catch(error => console.warn('[Profile] Name refresh failed:', error.message)), 0);
+      }
+    });
 
     void this.refreshUsername();
     requestAnimationFrame(() => this.updateDisplay());
@@ -118,7 +123,7 @@ class WelcomeDisplay {
 
     // Populate pills
     pillsContainer.innerHTML = PILL_CONFIG.map(pill => `
-      <button class="home-pill" data-pill-key="${pill.key}" aria-label="${pill.label}" title="${pill.label}">
+      <button class="home-pill" data-pill-key="${pill.key}" aria-expanded="false" aria-controls="home-shortcut-panel" aria-label="${pill.label}" title="${pill.label}">
         <i class="${pill.icon}"></i>
         <span>${pill.label}</span>
       </button>
@@ -127,6 +132,7 @@ class WelcomeDisplay {
     // Create expanded panel
     const contentPanel = document.createElement('div');
     contentPanel.className = 'home-pill-content-panel hidden';
+    contentPanel.id = 'home-shortcut-panel';
     contentPanel.innerHTML = `
       <div class="home-pill-content-header">
         <button class="close-pill-content-btn">
@@ -139,6 +145,12 @@ class WelcomeDisplay {
 
     this.element.appendChild(pillsContainer);
     this.element.appendChild(contentPanel);
+    contentPanel.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closeActivePill();
+      }
+    });
 
     // Bind click events on pills
     pillsContainer.querySelectorAll('.home-pill').forEach(btn => {
@@ -166,6 +178,7 @@ class WelcomeDisplay {
         templatesList.querySelectorAll('.ppt-template-card').forEach(card => {
           const isSelected = selected && card.dataset.templateId === selected.id;
           card.classList.toggle('selected', isSelected);
+          card.querySelector('.template-select-btn')?.setAttribute('aria-pressed', String(Boolean(isSelected)));
           const badge = card.querySelector('.selected-check-badge');
           if (badge) badge.style.display = isSelected ? 'flex' : 'none';
         });
@@ -203,6 +216,7 @@ class WelcomeDisplay {
     this.element.querySelectorAll('.home-pill').forEach(btn => {
       const isActive = btn.dataset.pillKey === key;
       btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-expanded', String(isActive));
     });
 
     // Render expanded contents
@@ -217,13 +231,20 @@ class WelcomeDisplay {
 
     // Hide welcome content and pills row using panel-active container class
     this.element.classList.add('panel-active');
+    panel?.querySelector('.close-pill-content-btn')?.focus();
   }
 
   closeActivePill() {
+    const previousKey = this.activePillKey;
+    const returnFocus = this.element.querySelector('.home-pill-content-panel')?.contains(document.activeElement);
     this.activePillKey = null;
+    this.shortcutEvents?.abort();
 
     // Clear active classes
-    this.element.querySelectorAll('.home-pill').forEach(btn => btn.classList.remove('active'));
+    this.element.querySelectorAll('.home-pill').forEach(btn => {
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+    });
 
     // Hide panel
     const panel = this.element.querySelector('.home-pill-content-panel');
@@ -234,9 +255,12 @@ class WelcomeDisplay {
 
     // Restore welcome content and pills row by removing panel-active class
     this.element.classList.remove('panel-active');
+    if (returnFocus) this.element.querySelector(`[data-pill-key="${previousKey}"]`)?.focus();
   }
 
   renderPillContent(key) {
+    this.shortcutEvents?.abort();
+    this.shortcutEvents = new AbortController();
     const panel = this.element.querySelector('.home-pill-content-panel');
     if (!panel) return;
     const titleSpan = panel.querySelector('.home-pill-content-title');
@@ -276,7 +300,7 @@ class WelcomeDisplay {
         </div>
         <div class="ppt-template-card-header">
           <span class="ppt-template-name">${tpl.name}</span>
-          <button class="template-preview-btn" title="Preview Slides">
+          <button class="template-preview-btn" aria-label="Preview ${tpl.name}" title="Preview slides">
             <i class="fas fa-eye"></i>
           </button>
         </div>
@@ -286,6 +310,7 @@ class WelcomeDisplay {
           <span class="color-dot" style="background: ${tpl.colors.accent2};" title="Accent 2"></span>
           <span class="color-dot" style="background: ${tpl.colors.accent3};" title="Accent 3"></span>
         </div>
+        <button type="button" class="template-select-btn" aria-pressed="${Boolean(selected && selected.id === tpl.id)}">Use ${tpl.name}</button>
       `;
 
       // Eyeball preview handler
@@ -295,7 +320,7 @@ class WelcomeDisplay {
       });
 
       // Card selection handler
-      card.addEventListener('click', () => {
+      card.querySelector('.template-select-btn').addEventListener('click', () => {
         if (card.classList.contains('selected')) {
           clearSelectedPresentationTemplate();
         } else {
@@ -315,10 +340,12 @@ class WelcomeDisplay {
   setupHorizontalScrollControls(scroller, container) {
     const prevBtn = document.createElement('button');
     prevBtn.className = 'scroller-arrow-btn scroller-arrow-left hidden';
+    prevBtn.setAttribute('aria-label', 'Previous slide templates');
     prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
 
     const nextBtn = document.createElement('button');
     nextBtn.className = 'scroller-arrow-btn scroller-arrow-right';
+    nextBtn.setAttribute('aria-label', 'Next slide templates');
     nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
 
     container.style.position = 'relative';
@@ -334,7 +361,7 @@ class WelcomeDisplay {
     };
 
     scroller.addEventListener('scroll', updateArrows);
-    window.addEventListener('resize', updateArrows);
+    window.addEventListener('resize', updateArrows, { signal: this.shortcutEvents.signal });
 
     prevBtn.addEventListener('click', () => {
       scroller.scrollBy({ left: -200, behavior: 'smooth' });
@@ -352,7 +379,8 @@ class WelcomeDisplay {
     grid.className = 'prompts-grid';
 
     prompts.forEach(p => {
-      const card = document.createElement('div');
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'prompt-starter-card';
       card.innerHTML = `
         <div class="prompt-starter-icon">
@@ -405,7 +433,8 @@ class WelcomeDisplay {
 
       sessions.forEach(session => {
         const workspaceBadge = this.getSessionWorkspaceBadgeHTML(session);
-        const item = document.createElement('div');
+        const item = document.createElement('button');
+        item.type = 'button';
         item.className = 'session-pill-item';
         item.innerHTML = `
           <i class="fa-solid fa-message"></i>
@@ -440,7 +469,13 @@ class WelcomeDisplay {
       container.appendChild(list);
     } catch (e) {
       console.error(e);
+      container.appendChild(loader);
       loader.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Failed to load chats</span>';
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.textContent = 'Try again';
+      retry.addEventListener('click', () => this.renderPillContent('sessions'));
+      loader.appendChild(retry);
     }
   }
 
@@ -520,7 +555,7 @@ class WelcomeDisplay {
         </div>
       `;
       // Check again after 1s
-      setTimeout(() => this.renderPillContent('tasks'), 1000);
+      setTimeout(() => { if (this.activePillKey === 'tasks') this.renderPillContent('tasks'); }, 1000);
       return;
     }
 
@@ -554,19 +589,19 @@ class WelcomeDisplay {
 
       item.innerHTML = `
         <div class="checkbox-wrapper">
-          <input type="checkbox" id="pill-task-${task.id}" ${isCompleted ? 'checked' : ''}>
-          <label class="checkmark" for="pill-task-${task.id}">
+          <input type="checkbox" id="pill-task-${this.escapeHtml(task.id)}" aria-label="Complete ${this.escapeHtml(task.text)}" ${isCompleted ? 'checked' : ''}>
+          <label class="checkmark" for="pill-task-${this.escapeHtml(task.id)}">
             <i class="fas fa-check"></i>
           </label>
         </div>
         <div class="task-pill-text-content">
-          <span class="task-pill-title-text">${task.text}</span>
-          ${task.description ? `<p class="task-pill-desc-text">${task.description}</p>` : ''}
+          <span class="task-pill-title-text">${this.escapeHtml(task.text)}</span>
+          ${task.description ? `<p class="task-pill-desc-text">${this.escapeHtml(task.description)}</p>` : ''}
         </div>
-        <i class="fas fa-chevron-down toggle-accordion-icon"></i>
+        <button type="button" class="task-details-toggle" aria-expanded="false" aria-label="Details for ${this.escapeHtml(task.text)}"><i class="fas fa-chevron-down toggle-accordion-icon" aria-hidden="true"></i></button>
         <div class="task-pill-details hidden">
           ${task.deadline ? `<span class="deadline"><i class="fas fa-clock"></i> ${new Date(task.deadline).toLocaleDateString()}</span>` : ''}
-          ${task.tags && task.tags.length > 0 ? `<div class="tags">${task.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
+          ${task.tags && task.tags.length > 0 ? `<div class="tags">${task.tags.map(t => `<span class="tag">${this.escapeHtml(t)}</span>`).join('')}</div>` : ''}
         </div>
       `;
 
@@ -579,13 +614,13 @@ class WelcomeDisplay {
       });
 
       // Accordion click
-      item.addEventListener('click', (e) => {
-        if (e.target.closest('.checkbox-wrapper')) return;
+      item.querySelector('.task-details-toggle').addEventListener('click', (e) => {
         const details = item.querySelector('.task-pill-details');
         const icon = item.querySelector('.toggle-accordion-icon');
         if (details) {
           const isHidden = details.classList.contains('hidden');
           details.classList.toggle('hidden', !isHidden);
+          e.currentTarget.setAttribute('aria-expanded', String(isHidden));
           icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
         }
       });
@@ -610,14 +645,15 @@ class WelcomeDisplay {
 
     let previewModal = document.getElementById('ppt-template-preview-modal');
     if (!previewModal) {
-      previewModal = document.createElement('div');
+      previewModal = document.createElement('dialog');
       previewModal.id = 'ppt-template-preview-modal';
-      previewModal.className = 'modal-overlay hidden';
+      previewModal.className = 'web-template-dialog';
+      previewModal.setAttribute('aria-labelledby', 'template-preview-title');
       previewModal.innerHTML = `
         <div class="ppt-preview-modal-panel">
           <div class="ppt-preview-modal-header">
-            <h3>Template Preview: ${template.name}</h3>
-            <button class="close-ppt-preview-btn">×</button>
+            <h3 id="template-preview-title">Template preview</h3>
+            <button class="close-ppt-preview-btn" aria-label="Close template preview">×</button>
           </div>
           <div class="ppt-preview-modal-body"></div>
         </div>
@@ -625,13 +661,14 @@ class WelcomeDisplay {
       document.body.appendChild(previewModal);
 
       previewModal.querySelector('.close-ppt-preview-btn').addEventListener('click', () => {
-        previewModal.classList.add('hidden');
+        previewModal.close();
       });
       previewModal.addEventListener('click', (e) => {
-        if (e.target === previewModal) previewModal.classList.add('hidden');
+        const bounds = previewModal.getBoundingClientRect();
+        if (e.target === previewModal && (e.clientX < bounds.left || e.clientX > bounds.right || e.clientY < bounds.top || e.clientY > bounds.bottom)) previewModal.close();
       });
     } else {
-      previewModal.querySelector('h3').textContent = `Template Preview: ${template.name}`;
+      previewModal.querySelector('h3').textContent = `Template preview: ${template.name}`;
     }
 
     const modalBody = previewModal.querySelector('.ppt-preview-modal-body');
@@ -745,7 +782,8 @@ class WelcomeDisplay {
       modalBody.appendChild(slideDiv);
     });
 
-    previewModal.classList.remove('hidden');
+    previewModal.querySelector('h3').textContent = `Template preview: ${template.name}`;
+    previewModal.showModal();
   }
 
   handleConversationCleared() {
@@ -798,6 +836,7 @@ class WelcomeDisplay {
   }
 
   destroy() {
+    this.shortcutEvents?.abort();
     document.removeEventListener('messageAdded', this.onMessageAdded);
     document.removeEventListener('conversationCleared', this.onConversationCleared);
     this.initialized = false;
