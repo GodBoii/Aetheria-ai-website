@@ -625,10 +625,10 @@
 
     /* Hide the account section content from the LEFT sidebar on desktop
        (it's shown on the right panel instead) */
-    .profile-dropdown .settings-section.account-section .auth-state,
-    .profile-dropdown .settings-section.account-section .profile-header-card,
-    .profile-dropdown .settings-section.account-section .account-subscription-card,
-    .profile-dropdown .settings-section.account-section .account-actions {
+    .profile-dropdown .profile-settings-panel .settings-section.account-section .auth-state,
+    .profile-dropdown .profile-settings-panel .settings-section.account-section .profile-header-card,
+    .profile-dropdown .profile-settings-panel .settings-section.account-section .account-subscription-card,
+    .profile-dropdown .profile-settings-panel .settings-section.account-section .account-actions {
         display: none !important;
     }
 }
