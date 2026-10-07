@@ -1,4 +1,4 @@
-import { supabaseSettings } from './runtime-config.js';
+import { supabaseSettings, backendUrl } from './runtime-config.js';
 
 /**
  * Configuration for the AI-OS application
@@ -7,7 +7,7 @@ export const config = {
     // Backend connection settings
     backend: {
         // URL for the Python backend - Production
-        url: 'https://api.aetheriaai.website',
+        url: backendUrl,
 
         // Maximum number of reconnection attempts
         maxReconnectAttempts: 50,
