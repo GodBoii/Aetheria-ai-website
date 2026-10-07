@@ -1,12 +1,28 @@
 // js/supabase-client.js
 
-const SUPABASE_URL = 'https://gugmnnmjhqdtjwriaywa.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1Z21ubm1qaHFkdGp3cmlheXdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MzEyOTksImV4cCI6MjA5NTMwNzI5OX0.uVHpeoyla5u-LMrj4_NXX6FzYnsK2oY9rT28TH0ATjY';
+import { config } from './config.js';
 
-export const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+function authFetch(resource, options = {}) {
+  const requestUrl = typeof resource === 'string' ? resource : resource instanceof URL ? resource.href : resource.url;
+  if (!requestUrl.startsWith(`${config.supabase.url}/auth/`)) return fetch(resource, options);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException('Authentication timed out. Please retry.', 'TimeoutError')), 15000);
+  const abort = () => controller.abort(options.signal.reason);
+  if (options.signal?.aborted) abort();
+  else options.signal?.addEventListener('abort', abort, { once: true });
+  return fetch(resource, { ...options, signal: controller.signal }).finally(() => {
+    clearTimeout(timer);
+    options.signal?.removeEventListener('abort', abort);
+  });
+}
+
+export const supabase = window.supabase.createClient(config.supabase.url, config.supabase.anonKey, {
+  global: { fetch: authFetch },
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     storage: window.localStorage,
+    flowType: 'pkce',
+    detectSessionInUrl: true,
   },
 });
