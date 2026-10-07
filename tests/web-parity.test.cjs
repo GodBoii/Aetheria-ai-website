@@ -12,6 +12,12 @@ let browser;
 let server;
 const screenshots = path.join(os.tmpdir(), 'aetheria-web-parity');
 
+async function assertInsideViewport(page, selector) {
+    const bounds = await page.locator(selector).boundingBox();
+    const viewport = page.viewportSize();
+    assert.ok(bounds && bounds.x >= -1 && bounds.y >= -1 && bounds.x + bounds.width <= viewport.width + 1 && bounds.y + bounds.height <= viewport.height + 1, `${selector}: ${JSON.stringify(bounds)}`);
+}
+
 before(async () => {
     fs.mkdirSync(screenshots, { recursive: true });
     if (!process.env.TEST_BASE_URL) {
@@ -25,7 +31,7 @@ before(async () => {
 });
 after(async () => { await browser?.close(); server?.kill(); });
 
-async function openApp(viewport, { signedOut = false } = {}) {
+async function openApp(viewport, { signedOut = false, realAuthSdk = false } = {}) {
     const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
     const page = await context.newPage();
     page.setDefaultTimeout(15000);
@@ -38,7 +44,7 @@ async function openApp(viewport, { signedOut = false } = {}) {
         errors.push(error.message);
     });
     await page.addInitScript(({ signedOut }) => { window.__signedOut = signedOut; }, { signedOut });
-    await page.route('**/assets/vendor/supabase.js', route => route.fulfill({ contentType: 'application/javascript', body: fixture }));
+    if (!realAuthSdk) await page.route('**/assets/vendor/supabase.js', route => route.fulfill({ contentType: 'application/javascript', body: fixture }));
     await page.route('**/assets/vendor/socket.io.min.js', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
     await page.route('https://checkout.razorpay.com/**', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
     await page.route('**/sw.js', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
@@ -70,7 +76,7 @@ async function openApp(viewport, { signedOut = false } = {}) {
     await page.goto(origin);
     if (!signedOut) {
         try { await page.waitForFunction(() => window.projectWorkspace && window.chat && window.contextHandler); }
-        catch (error) { throw new Error(`App did not initialize. ${errors.join('; ')}. ${error.message}`); }
+        catch (error) { throw new Error(`App did not initialize. ${errors.join('; ')}. ${await page.locator('.workspace-startup').textContent().catch(() => '')}. ${error.message}`); }
     }
     return { context, page, errors, requests };
 }
@@ -86,6 +92,12 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
             await page.keyboard.press('Escape');
             assert.equal(await page.locator('#attach-file-btn').getAttribute('aria-expanded'), 'false');
             await page.screenshot({ path: path.join(screenshots, `home-${viewport.width}.png`) });
+            await assertInsideViewport(page, '#floating-input-container');
+            const composer = await page.locator('#floating-input-container').boundingBox();
+            for (const pill of await page.locator('.home-pill').all()) {
+                const bounds = await pill.boundingBox();
+                assert.ok(bounds.y + bounds.height < composer.y, 'Home shortcuts overlap composer');
+            }
             await page.locator('#floating-input').fill('Explain the project');
             await page.locator('#attach-file-btn').click();
             await page.locator('#ultra-think-btn').click();
@@ -106,6 +118,123 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
         } finally { await context.close(); }
     });
 }
+
+test('short screens retain labelled shortcuts and keyboard-operable prompt starters', async () => {
+    const { context, page, errors } = await openApp({ width: 360, height: 640 });
+    try {
+        await page.getByRole('button', { name: 'Build website', exact: true }).focus();
+        await page.keyboard.press('Enter');
+        await page.locator('.prompt-starter-card').first().focus();
+        await page.keyboard.press('Enter');
+        assert.match(await page.locator('#floating-input').inputValue(), /SaaS landing page/);
+        assert.equal(await page.locator('#floating-input').evaluate(node => node === document.activeElement), true);
+        await page.getByRole('button', { name: 'Create slides', exact: true }).click();
+        await page.locator('.template-select-btn').first().focus();
+        await page.keyboard.press('Enter');
+        assert.equal(await page.locator('.template-select-btn').first().getAttribute('aria-pressed'), 'true');
+        await page.locator('.template-preview-btn').first().click();
+        await assertInsideViewport(page, '.web-template-dialog');
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('.template-preview-btn').first().evaluate(node => node === document.activeElement), true);
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('[data-pill-key="templates"]').evaluate(node => node === document.activeElement), true);
+        await page.setViewportSize({ width: 844, height: 390 });
+        await assertInsideViewport(page, '#floating-input-container');
+        await page.screenshot({ path: path.join(screenshots, 'home-landscape.png') });
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('composer and project menus support both arrow directions and close with Escape', async () => {
+    const { context, page, errors } = await openApp({ width: 390, height: 844 });
+    try {
+        await page.locator('#attach-file-btn').focus();
+        await page.keyboard.press('ArrowUp');
+        assert.equal(await page.locator('#ultra-think-btn').evaluate(node => node === document.activeElement), true);
+        await assertInsideViewport(page, '#input-action-menu');
+        await page.keyboard.press('Tab');
+        assert.equal(await page.locator('#attach-file-btn').getAttribute('aria-expanded'), 'false');
+        await page.locator('#attach-file-btn').click();
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#attach-file-btn').getAttribute('aria-expanded'), 'false');
+        await page.locator('#attach-file-btn').click();
+        await page.getByRole('menuitem', { name: 'Chats', exact: true }).click();
+        await page.locator('.close-context-btn').waitFor();
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#attach-file-btn').evaluate(node => node === document.activeElement), true);
+        await page.evaluate(() => window.projectWorkspace.activate(null, { source: 'menu' }));
+        await page.locator('#project-workspace-actions-btn').focus();
+        await page.keyboard.press('ArrowDown');
+        await assertInsideViewport(page, '#project-workspace-quick-menu');
+        await page.getByRole('menuitem', { name: 'Files', exact: true }).click();
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#project-workspace-actions-btn').evaluate(node => node === document.activeElement), true);
+        await page.evaluate(() => window.projectWorkspace.deactivate());
+        await page.locator('#new-chat-btn').click();
+        await page.getByRole('menuitem', { name: 'New task', exact: true }).click();
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#new-chat-btn').evaluate(node => node === document.activeElement), true);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+for (const width of [360, 768, 1440]) {
+    test(`tools dialog stays centered, scrolls and returns keyboard focus at ${width}px`, async () => {
+        const { context, page, errors } = await openApp({ width, height: 640 });
+        try {
+            await page.locator('#attach-file-btn').click();
+            await page.getByRole('menuitem', { name: 'Memory and tools' }).click();
+            await assertInsideViewport(page, '.web-tool-dialog');
+            const bounds = await page.locator('.web-tool-dialog').boundingBox();
+            assert.ok(Math.abs(bounds.x + bounds.width / 2 - width / 2) < 2);
+            await page.getByRole('button', { name: 'Done', exact: true }).scrollIntoViewIfNeeded();
+            await page.screenshot({ path: path.join(screenshots, `tools-${width}.png`) });
+            await page.keyboard.press('Escape');
+            assert.equal(await page.locator('.web-tool-dialog').count(), 0);
+            assert.equal(await page.locator('#attach-file-btn').evaluate(node => node === document.activeElement), true);
+            assert.deepEqual(errors, []);
+        } finally { await context.close(); }
+    });
+}
+
+test('settings switch one panel at a time and keep nested plan keyboard focus', async () => {
+    const { context, page, errors } = await openApp({ width: 1440, height: 900 });
+    try {
+        await page.locator('#sidebar-profile-btn').click();
+        await assertInsideViewport(page, '#profile-dropdown');
+        for (const section of ['integrations', 'deployments', 'files', 'usage', 'profile', 'theme', 'about', 'know-me', 'memory', 'support']) {
+            await page.locator(`.settings-menu-item[data-section="${section}"]`).click();
+            assert.equal(await page.locator('#profile-dropdown .settings-full-panel:not(.hidden)').count(), 1);
+            assert.equal(await page.locator(`.settings-menu-item[data-section="${section}"]`).getAttribute('aria-current'), 'page');
+        }
+        await page.locator('.settings-account-nav').click();
+        assert.equal(await page.locator('#profile-dropdown .settings-full-panel:not(.hidden)').count(), 0);
+        await page.locator('#account-manage-plans-btn').click();
+        assert.equal(await page.locator('#subscription-modal-close').evaluate(node => node === document.activeElement), true);
+        await page.keyboard.press('Tab');
+        assert.equal(await page.locator('#subscription-modal').evaluate(node => node.contains(document.activeElement)), true);
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#account-manage-plans-btn').evaluate(node => node === document.activeElement), true);
+        await page.screenshot({ path: path.join(screenshots, 'settings-improved-desktop.png') });
+        await page.locator('.settings-menu-item[data-section="support"]').click();
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#profile-dropdown').getAttribute('class').then(value => value.includes('hidden')), true);
+        assert.equal(await page.locator('#sidebar-profile-btn').evaluate(node => node === document.activeElement), true);
+        await page.setViewportSize({ width: 390, height: 844 });
+        assert.equal(await page.locator('.settings-full-panel:not(.hidden)').count(), 0, 'Closed desktop panels must stay closed after resizing');
+        await page.locator('#profile-menu-btn').click();
+        await page.locator('.settings-menu-item[data-section="theme"]').click();
+        await page.locator('.theme-option[data-theme="light"]').click();
+        assert.equal(await page.locator('.theme-option[data-theme="light"]').getAttribute('aria-pressed'), 'true');
+        await page.keyboard.press('Escape');
+        await page.screenshot({ path: path.join(screenshots, 'settings-improved-mobile.png') });
+        await page.getByRole('button', { name: 'Close settings', exact: true }).click();
+        await page.locator('#attach-file-btn').click();
+        await page.getByRole('menuitem', { name: 'Memory and tools' }).click();
+        await page.screenshot({ path: path.join(screenshots, 'tools-light-mobile.png') });
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
 
 test('vault uploads, filters, previews safely and deletes through the backend', async () => {
     const { context, page, errors, requests } = await openApp({ width: 390, height: 844 });
@@ -432,6 +561,143 @@ test('sign-out clears chat data and returns to the authentication gate', async (
         await page.locator('#auth-gate-root').waitFor();
         assert.equal(await page.locator('#chat-messages .message').count(), 0);
         assert.equal(await page.evaluate(() => window.__testSocket.connected), false);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('the Supabase client uses generated Vercel settings and PKCE', async () => {
+    const { context, page, errors } = await openApp({ width: 390, height: 844 }, { signedOut: true });
+    try {
+        await page.locator('#auth-google-btn').waitFor();
+        const result = await page.evaluate(async () => {
+            const { config } = await import('/js/config.js');
+            return { urlMatches: window.__testClientConfig.url === config.supabase.url,
+                keyMatches: window.__testClientConfig.key === config.supabase.anonKey,
+                options: window.__testClientConfig.options.auth };
+        });
+        assert.equal(result.urlMatches, true);
+        assert.equal(result.keyMatches, true);
+        assert.deepEqual(result.options, { flowType: 'pkce', detectSessionInUrl: true });
+        await page.locator('#auth-google-btn').click();
+        const oauth = await page.evaluate(() => window.__testOAuthRequest);
+        assert.equal(oauth.provider, 'google');
+        assert.equal(oauth.options.redirectTo, `${origin}/`);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('the real Supabase SDK sends Google authorization to the current project', async () => {
+    const { context, page, errors } = await openApp({ width: 1440, height: 900 }, { signedOut: true, realAuthSdk: true });
+    try {
+        await page.locator('#auth-google-btn').waitFor();
+        const configuredHost = await page.evaluate(async () => new URL((await import('/js/config.js')).config.supabase.url).hostname);
+        let authorization;
+        await page.route('https://*.supabase.co/auth/v1/authorize?*', route => {
+            authorization = new URL(route.request().url());
+            return route.fulfill({ contentType: 'text/html', body: '<h1>Google authorization reached</h1>' });
+        });
+        await page.locator('#auth-google-btn').click();
+        await page.getByRole('heading', { name: 'Google authorization reached' }).waitFor();
+        assert.equal(authorization.hostname, configuredHost);
+        assert.equal(authorization.searchParams.get('provider'), 'google');
+        assert.equal(authorization.searchParams.get('redirect_to'), `${origin}/`);
+        assert.equal(authorization.searchParams.get('code_challenge_method'), 's256');
+        assert.ok(authorization.searchParams.get('code_challenge').length > 20);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('sign-in loads only the auth shell, with no workspace or checkout requests', async () => {
+    const { context, page, errors } = await openApp({ width: 390, height: 844 }, { signedOut: true });
+    try {
+        await page.locator('#auth-google-btn').waitFor();
+        const urls = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => entry.name));
+        assert.equal(urls.some(url => /app-workspace|chat\.js|mermaid|razorpay|socket\.io/.test(url)), false);
+        assert.ok(urls.filter(url => new URL(url).pathname.endsWith('.js')).length <= 8);
+        assert.equal(await page.evaluate(() => window.chat), undefined);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('valid sessions need no refresh request and expired callers share one refresh', async () => {
+    const { context, page, errors } = await openApp({ width: 1440, height: 900 });
+    try {
+        const result = await page.evaluate(async () => {
+            const { getAuthenticatedSession } = await import('/js/session-auth.js');
+            window.__testRefreshes = 0;
+            await Promise.all([getAuthenticatedSession(), getAuthenticatedSession(), getAuthenticatedSession()]);
+            const validRefreshes = window.__testRefreshes;
+            window.__testExpiredSession = true;
+            await Promise.all([getAuthenticatedSession(), getAuthenticatedSession(), getAuthenticatedSession()]);
+            return { validRefreshes, expiredRefreshes: window.__testRefreshes };
+        });
+        assert.equal(result.validRefreshes, 0);
+        assert.equal(result.expiredRefreshes, 1);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('diagrams load their renderer on demand and produce visible SVG', async () => {
+    const { context, page, errors } = await openApp({ width: 1440, height: 900 });
+    try {
+        assert.equal(await page.evaluate(() => !!window.mermaid), false);
+        await page.evaluate(async () => {
+            const { messageFormatter } = await import('/js/message-formatter.js');
+            const root = document.createElement('div');
+            root.id = 'diagram-test';
+            root.innerHTML = messageFormatter.format('```mermaid\ngraph TD\n A[Start] --> B[End]\n```', { inlineArtifacts: true });
+            document.getElementById('chat-messages').appendChild(root);
+            messageFormatter.applyInlineEnhancements(root);
+        });
+        await page.locator('#diagram-test svg').waitFor();
+        const dimensions = await page.locator('#diagram-test svg').evaluate(element => ({ width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }));
+        assert.ok(dimensions.width > 0 && dimensions.height > 0);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('signup sends profile metadata once without writing the read-only profile table', async () => {
+    const { context, page, errors } = await openApp({ width: 390, height: 844 }, { signedOut: true });
+    try {
+        await page.locator('#auth-toggle-mode').click();
+        await page.locator('#auth-name').fill('Test person');
+        await page.locator('#auth-phone').fill('+919876543210');
+        await page.locator('#auth-email').fill('signup@example.test');
+        await page.locator('#auth-password').fill('test-only-password');
+        await page.locator('#auth-submit-btn').click();
+        await page.getByText('Signup successful. Please check your email, then sign in.', { exact: true }).waitFor();
+        const result = await page.evaluate(() => ({ metadata: window.__testSignupRequest.options.data, profileWrites: window.__testMutations.filter(item => item.table === 'profiles').length }));
+        assert.deepEqual(result.metadata, { name: 'Test person', phone_number: '+919876543210' });
+        assert.equal(result.profileWrites, 0);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('backend deadlines cancel stalled requests with a retryable error', async () => {
+    const { context, page, errors } = await openApp({ width: 1440, height: 900 });
+    try {
+        await page.route('**/api/timeout-check', async route => {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await route.fulfill({ contentType: 'application/json', body: '{"ok":true}' }).catch(() => {});
+        });
+        const result = await page.evaluate(async () => {
+            const { backendRequest } = await import('/js/backend-api.js');
+            try { await backendRequest('/timeout-check', { timeoutMs: 20 }); return null; }
+            catch (error) { return { name: error.name, message: error.message }; }
+        });
+        assert.equal(result.name, 'TimeoutError');
+        assert.match(result.message, /retry/);
+        assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+});
+
+test('a failed workspace dependency produces a visible retry action', async () => {
+    const { context, page, errors } = await openApp({ width: 390, height: 844 }, { signedOut: true });
+    try {
+        await page.route('**/marked.min.js', route => route.abort());
+        await page.evaluate(async () => { (await import('/js/auth-gate.js')).authGate.completeAuth(); });
+        await page.getByRole('button', { name: 'Retry loading', exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => document.querySelector('.app-container').inert), true);
         assert.deepEqual(errors, []);
     } finally { await context.close(); }
 });
