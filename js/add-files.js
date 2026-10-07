@@ -1,3 +1,4 @@
+import { getAuthenticatedSession } from './session-auth.js';
 // js/add-files.js (Corrected with Preview Fix)
 
 import { supabase } from './supabase-client.js';
@@ -128,11 +129,7 @@ class FileAttachmentHandler {
     const controller = new AbortController();
     fileObject.uploadController = controller;
 
-    await supabase.auth.refreshSession();
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      throw new Error("User not authenticated. Please log in again.");
-    }
+    const session = await getAuthenticatedSession();
 
     const response = await fetch(`${API_PROXY_URL}/api/generate-upload-url`, {
       method: 'POST',
