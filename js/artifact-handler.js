@@ -4,6 +4,15 @@ import NotificationService from './notification-service.js';
 import { artifactRenderer } from './artifact-renderer.js';
 import { isHtmlContent } from './deploy-api-service.js';
 import { ArtifactDeployManager } from './artifact-deploy-manager.js';
+import { PRESENTATION_TEMPLATES } from './presentation-templates.js';
+import { supabase } from './supabase-client.js';
+import { config } from './config.js';
+
+const escapeHtml = value => {
+    const element = document.createElement('span');
+    element.textContent = String(value ?? '');
+    return element.innerHTML;
+};
 
 class ArtifactHandler {
     constructor() {
@@ -104,7 +113,7 @@ class ArtifactHandler {
         let displayTitle = '';
         if (filename) {
             // Use filename if provided
-            displayTitle = `<i class="fas ${icon}"></i> ${filename}`;
+            displayTitle = `<i class="fas ${icon}"></i> ${escapeHtml(filename)}`;
         } else {
             // Fallback to type-based title
             switch (type) {
@@ -252,7 +261,6 @@ class ArtifactHandler {
         this.setupMermaidZoom(panContainer, controls);
 
         const runMermaid = async () => {
-            console.log('[ArtifactHandler] Starting Mermaid render in modal');
 
             if (typeof window === 'undefined' || !window.mermaid) {
                 console.error('[ArtifactHandler] Mermaid library not loaded');
@@ -263,9 +271,6 @@ class ArtifactHandler {
             try {
                 // Wait a bit for the modal to be fully visible and sized
                 await new Promise(resolve => setTimeout(resolve, 100));
-
-                console.log('[ArtifactHandler] Rendering Mermaid diagram');
-                console.log('[ArtifactHandler] Mermaid content:', content.substring(0, 100));
 
                 if (typeof window.mermaid.run === 'function') {
                     await window.mermaid.run({ nodes: [mermaidDiv] });
@@ -278,11 +283,6 @@ class ArtifactHandler {
                 // After rendering, ensure SVG is visible
                 const svg = mermaidDiv.querySelector('svg');
                 if (svg) {
-                    console.log('[ArtifactHandler] Mermaid SVG rendered, dimensions:', {
-                        width: svg.getAttribute('width'),
-                        height: svg.getAttribute('height'),
-                        viewBox: svg.getAttribute('viewBox')
-                    });
 
                     // Don't remove dimensions, just ensure it's visible
                     svg.style.display = 'block';
@@ -485,6 +485,198 @@ class ArtifactHandler {
             statusSpan.textContent = `\n--- Process finished with exit code ${exitCode} ---`;
             codeEl.appendChild(statusSpan);
         }
+    }
+
+    renderPresentation(container, metadata) {
+        if (!container || !metadata || typeof metadata !== 'object') return;
+        const existing = container.querySelector('.presentation-preview-block');
+        if (existing) existing.remove();
+
+        const block = document.createElement('div');
+        block.className = 'content-block presentation-preview-block';
+        block.dataset.artifactId = metadata.artifact_id;
+
+        const slides = Array.isArray(metadata.inline?.slides) ? metadata.inline.slides.filter(slide => slide && typeof slide === 'object').slice(0, 200) : [];
+        const templateId = Object.hasOwn(PRESENTATION_TEMPLATES, metadata.template) ? metadata.template : 'aetheria_modern';
+
+        // Find local template colors mapping
+        const tplColors = PRESENTATION_TEMPLATES[templateId]?.colors || {
+            bg: "#F5F6F0", surface: "#FFFFFF", ink: "#17202A", muted: "#5A6474", accent: "#1B5299", accent2: "#E8553D", accent3: "#1A936F"
+        };
+
+        const cssVars = `
+            --ppt-bg: ${tplColors.bg};
+            --ppt-surface: ${tplColors.surface};
+            --ppt-ink: ${tplColors.ink};
+            --ppt-muted: ${tplColors.muted};
+            --ppt-accent: ${tplColors.accent};
+            --ppt-accent2: ${tplColors.accent2};
+            --ppt-accent3: ${tplColors.accent3};
+        `;
+
+        block.innerHTML = `
+            <div class="presentation-hero-card" style="${cssVars}">
+                <div class="hero-left">
+                    <i class="fas fa-file-powerpoint icon"></i>
+                    <div class="details">
+                        <span class="title">${escapeHtml(metadata.title || 'Presentation')}</span>
+                        <span class="subtitle">${escapeHtml(metadata.summary || '')} (${templateId.replace(/_/g, ' ')})</span>
+                    </div>
+                </div>
+                <button class="ppt-download-btn" title="Download Presentation">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+            <div class="presentation-slides-grid">
+                ${slides.map((slide, idx) => this.renderPresentationSlideThumbnail(slide, idx, cssVars)).join('')}
+            </div>
+        `;
+
+        // Download button click handler
+        const downloadBtn = block.querySelector('.ppt-download-btn');
+        downloadBtn.addEventListener('click', async () => {
+            try {
+                this.showNotification('Preparing download...', 'info');
+
+                // Get auth token
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    throw new Error('Authentication required');
+                }
+
+                // Fetch signed download URL from backend sandbox artifacts
+                const response = await fetch(`${config.backend.url}/api/sandbox/artifacts/${encodeURIComponent(metadata.artifact_id)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch artifact details');
+                }
+
+                const result = await response.json();
+                const freshUrl = result.artifact?.download_url;
+
+                if (!freshUrl) {
+                    throw new Error('No download URL available');
+                }
+
+                // Save file via anchor tag
+                const a = document.createElement('a');
+                const downloadUrl = new URL(freshUrl, config.backend.url);
+                if (!['https:', 'http:'].includes(downloadUrl.protocol)) throw new Error('Invalid download URL.');
+                a.href = downloadUrl.href;
+                a.download = metadata.filename || 'presentation.pptx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                this.showNotification('Download started!', 'success');
+            } catch (err) {
+                console.error('[Presentation] Download failed:', err);
+                this.showNotification('Download failed: ' + err.message, 'error');
+            }
+        });
+
+        container.appendChild(block);
+    }
+
+    renderPresentationSlideThumbnail(slide, idx, cssVars) {
+        const type = String(slide.type || '').toLowerCase();
+
+        let slideBodyHtml = '';
+        if (type === 'title') {
+            slideBodyHtml = `
+              <div class="slide-thumb-cover">
+                <div class="accent-top" style="background: var(--ppt-accent);"></div>
+                <div class="cover-content">
+                  <div class="title-block" style="background: var(--ppt-ink); opacity: 0.8; height: 10px; width: 60%; border-radius: 2px; margin-bottom: 4px;"></div>
+                  <div class="subtitle-block" style="background: var(--ppt-muted); opacity: 0.6; height: 6px; width: 40%; border-radius: 1px;"></div>
+                </div>
+                <div class="cover-visual-block" style="border: 1px solid var(--ppt-accent); background: var(--ppt-surface);">
+                  <div style="background: var(--ppt-accent); width: 8px; height: 8px; border-radius: 50%; opacity: 0.3;"></div>
+                </div>
+              </div>
+            `;
+        } else if (type === 'two_column' || type === 'comparison') {
+            slideBodyHtml = `
+              <div class="slide-thumb-comparison">
+                <div class="accent-top" style="background: var(--ppt-accent);"></div>
+                <div class="slide-thumb-title" style="background: var(--ppt-ink); opacity: 0.8; height: 6px; width: 45%; border-radius: 1px; margin-bottom: 8px;"></div>
+                <div class="columns-grid">
+                  <div class="column-block" style="background: var(--ppt-surface); border: 1px solid rgba(0,0,0,0.1);">
+                    <div style="background: var(--ppt-accent); height: 4px; border-radius: 1px; margin-bottom: 4px;"></div>
+                    <div style="background: var(--ppt-muted); height: 2px; width: 80%; border-radius: 0.5px; margin-bottom: 2px;"></div>
+                    <div style="background: var(--ppt-muted); height: 2px; width: 60%; border-radius: 0.5px;"></div>
+                  </div>
+                  <div class="column-block" style="background: var(--ppt-surface); border: 1px solid rgba(0,0,0,0.1);">
+                    <div style="background: var(--ppt-accent2); height: 4px; border-radius: 1px; margin-bottom: 4px;"></div>
+                    <div style="background: var(--ppt-muted); height: 2px; width: 80%; border-radius: 0.5px; margin-bottom: 2px;"></div>
+                    <div style="background: var(--ppt-muted); height: 2px; width: 60%; border-radius: 0.5px;"></div>
+                  </div>
+                </div>
+              </div>
+            `;
+        } else if (type === 'chart' || type === 'evidence') {
+            slideBodyHtml = `
+              <div class="slide-thumb-chart">
+                <div class="accent-top" style="background: var(--ppt-accent);"></div>
+                <div class="slide-thumb-title" style="background: var(--ppt-ink); opacity: 0.8; height: 6px; width: 40%; border-radius: 1px; margin-bottom: 8px;"></div>
+                <div class="chart-bars">
+                  <div class="bar" style="background: var(--ppt-accent); height: 16px;"></div>
+                  <div class="bar" style="background: var(--ppt-accent2); height: 26px;"></div>
+                  <div class="bar" style="background: var(--ppt-accent3); height: 10px;"></div>
+                </div>
+              </div>
+            `;
+        } else if (type === 'table') {
+            slideBodyHtml = `
+              <div class="slide-thumb-table">
+                <div class="accent-top" style="background: var(--ppt-accent);"></div>
+                <div class="slide-thumb-title" style="background: var(--ppt-ink); opacity: 0.8; height: 6px; width: 35%; border-radius: 1px; margin-bottom: 8px;"></div>
+                <div class="table-rows">
+                  <div class="row header-row" style="background: var(--ppt-accent); height: 4px; border-radius: 1px; margin-bottom: 2px;"></div>
+                  <div class="row" style="background: var(--ppt-surface); border: 1px solid rgba(0,0,0,0.06); height: 4px; margin-bottom: 2px;"></div>
+                  <div class="row" style="background: var(--ppt-surface); border: 1px solid rgba(0,0,0,0.06); height: 4px;"></div>
+                </div>
+              </div>
+            `;
+        } else if (type === 'diagram' || type === 'process' || slide.nodes || slide.steps) {
+            slideBodyHtml = `
+              <div class="slide-thumb-diagram">
+                <div class="accent-top" style="background: var(--ppt-accent);"></div>
+                <div class="slide-thumb-title" style="background: var(--ppt-ink); opacity: 0.8; height: 6px; width: 50%; border-radius: 1px; margin-bottom: 8px;"></div>
+                <div class="diagram-nodes">
+                  <div class="node" style="background: var(--ppt-surface); border: 1px solid var(--ppt-accent); height: 12px; width: 22px; border-radius: 2px;"></div>
+                  <div class="node-arrow" style="background: var(--ppt-muted); height: 1px; width: 8px; opacity: 0.4;"></div>
+                  <div class="node" style="background: var(--ppt-surface); border: 1px solid var(--ppt-accent2); height: 12px; width: 22px; border-radius: 2px;"></div>
+                  <div class="node-arrow" style="background: var(--ppt-muted); height: 1px; width: 8px; opacity: 0.4;"></div>
+                  <div class="node" style="background: var(--ppt-surface); border: 1px solid var(--ppt-accent3); height: 12px; width: 22px; border-radius: 2px;"></div>
+                </div>
+              </div>
+            `;
+        } else {
+            slideBodyHtml = `
+              <div class="slide-thumb-content">
+                <div class="accent-top" style="background: var(--ppt-accent);"></div>
+                <div class="slide-thumb-title" style="background: var(--ppt-ink); opacity: 0.8; height: 6px; width: 50%; border-radius: 1px; margin-bottom: 8px;"></div>
+                <div class="bullets-container">
+                  <div class="bullet-row"><span style="background: var(--ppt-accent);"></span><div class="line" style="background: var(--ppt-ink); opacity: 0.7; width: 70%;"></div></div>
+                  <div class="bullet-row"><span style="background: var(--ppt-accent2);"></span><div class="line" style="background: var(--ppt-ink); opacity: 0.7; width: 60%;"></div></div>
+                  <div class="bullet-row"><span style="background: var(--ppt-accent3);"></span><div class="line" style="background: var(--ppt-ink); opacity: 0.7; width: 50%;"></div></div>
+                </div>
+              </div>
+            `;
+        }
+
+        return `
+          <div class="presentation-slide-thumbnail" style="${cssVars}">
+            <div class="slide-thumbnail-card-title">${escapeHtml(slide.title || `Slide ${idx + 1}`)}</div>
+            <div class="slide-thumbnail-body" style="background: var(--ppt-bg);">
+              ${slideBodyHtml}
+            </div>
+          </div>
+        `;
     }
 }
 
