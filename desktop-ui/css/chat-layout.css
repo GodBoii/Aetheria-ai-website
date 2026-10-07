@@ -1,0 +1,271 @@
+/* ================================================================= */
+/* CHAT LAYOUT & CORE CONTAINERS                                   */
+/* ================================================================= */
+
+/*
+ * This module handles the core structural layout of the chat interface.
+ * It defines the main containers and their positioning behavior.
+ * 
+ * Dependencies: chat-variables.css
+ * Used by: Main chat interface
+ * 
+ * Key Components:
+ * - .chat-container: Main chat interface wrapper
+ * - .chat-window: Structural container for messages
+ * - .chat-messages: Scrollable conversation area
+ * - .context-active-indicator: Context status display
+ */
+
+:root {
+    /* Improved layout variables */
+    --chat-container-width: 52%; /* Increased from 55% */
+    --chat-container-left: 50%; /* Centered from 52.5% */
+    --chat-max-width: 900px; /* Increased from 800px */
+    --message-max-width: 95%; /* Increased from 85% */
+    --input-container-max-width: 900px; /* Increased from 800px */
+}
+
+/* --- Main Chat Container --- */
+.chat-container {
+    position: fixed;
+    top: 5px;
+    left: var(--chat-container-left);
+    width: var(--chat-container-width);
+    transform: translateX(-50%) scale(1);
+    height: calc(100% - 100px);
+    padding: 10px;
+    z-index: var(--z-chat-container);
+    transition: opacity var(--anim-fast) var(--easing-standard), transform var(--anim-fast) var(--easing-standard), visibility 0s 0s;
+    opacity: 1;
+    visibility: visible;
+}
+
+.chat-container.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) scale(0.95);
+    transition: opacity var(--anim-fast) var(--easing-standard), transform var(--anim-fast) var(--easing-standard), visibility 0s var(--anim-fast);
+}
+
+/* --- Invisible Chat Window (Structural) --- */
+.chat-window {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+    position: relative;
+}
+
+/* Blur effect at the top so text doesn't cut off abruptly when scrolling */
+.chat-window::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    height: 80px;
+    z-index: 10;
+    pointer-events: none;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+/* --- Conversation Title Bar --- */
+.conversation-title-bar {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    pointer-events: auto;
+    text-align: center;
+    padding: 6px 18px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    max-width: 60%;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.conversation-title-bar.fade-in {
+    opacity: 1;
+}
+
+.conversation-title-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.active-workspace-pill {
+    position: fixed;
+    top: 54px;
+    left: 74px;
+    z-index: calc(var(--z-chat-container) + 20);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    max-width: min(280px, calc(100vw - 100px));
+    padding: 0 13px;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.20);
+    background: rgba(18, 18, 20, 0.78);
+    color: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 180ms ease, transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.active-workspace-pill.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+}
+
+.active-workspace-pill:hover {
+    background: rgba(27, 27, 30, 0.88);
+    border-color: rgba(255, 255, 255, 0.24);
+}
+
+.active-workspace-pill-icon {
+    font-size: 13px;
+    flex: 0 0 auto;
+}
+
+.active-workspace-pill span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.active-workspace-pill.workspace-pill-coder {
+    border-color: rgba(96, 165, 250, 0.30);
+    color: #dbeafe;
+    background: rgba(21, 32, 49, 0.82);
+}
+
+.active-workspace-pill.workspace-pill-coder .active-workspace-pill-icon {
+    color: #93c5fd;
+}
+
+.active-workspace-pill.workspace-pill-computer {
+    border-color: rgba(52, 211, 153, 0.30);
+    color: #d1fae5;
+    background: rgba(12, 36, 30, 0.82);
+}
+
+.active-workspace-pill.workspace-pill-computer .active-workspace-pill-icon {
+    color: #34d399;
+}
+
+body:not(.dark-mode) .active-workspace-pill {
+    background: rgba(255, 255, 255, 0.86);
+    color: rgba(17, 24, 39, 0.86);
+    border-color: rgba(15, 23, 42, 0.12);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.80);
+}
+
+body:not(.dark-mode) .active-workspace-pill.workspace-pill-coder {
+    color: #1d4ed8;
+    background: rgba(239, 246, 255, 0.92);
+    border-color: rgba(59, 130, 246, 0.24);
+}
+
+body:not(.dark-mode) .active-workspace-pill.workspace-pill-computer {
+    color: #047857;
+    background: rgba(236, 253, 245, 0.92);
+    border-color: rgba(16, 185, 129, 0.24);
+}
+
+/* --- Centered Conversation Area --- */
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    max-width: var(--chat-max-width);
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px 0;
+    pointer-events: auto;
+    /* Hide scrollbar */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.chat-messages::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
+}
+
+.conversation-thread {
+    width: 100%;
+}
+
+/* --- Context Active Indicator --- */
+.context-active-indicator {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0.4rem 0.8rem;
+    background-color: var(--accent-muted);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: var(--font-medium);
+    color: var(--accent-color);
+    margin-right: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.context-active-indicator.visible {
+    display: flex;
+}
+
+.context-active-indicator:hover {
+    background-color: var(--accent-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.context-active-indicator i {
+    font-size: 0.8rem;
+}
+
+.context-badge {
+    display: none;
+    background-color: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 0.7rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.context-badge.visible {
+    display: flex;
+}
