@@ -1,3 +1,4 @@
+import { getAuthenticatedSession } from './session-auth.js';
 // js/socket-service.js (Updated)
 
 // This service manages the WebSocket connection to the backend.
@@ -12,6 +13,8 @@ const BACKEND_URL = config.backend.url;
 let socket = null;
 let socketAuthToken = null;
 let authListenerBound = false;
+let initialization = null;
+let generation = 0;
 
 // Store callbacks for different events.
 
@@ -74,6 +77,8 @@ function setupSocketHandlers() {
         emitEvent('connect');
 
     });
+
+    socket.on('connect_error', () => emitEvent('disconnect', { reason: 'connection_error' }));
 
     socket.on('disconnect', () => {
 
@@ -199,40 +204,31 @@ export const socketService = {
             });
         }
 
-        // Prevent creating a new socket if one already exists or is connecting.
-
-        if (socket) {
-
-            return;
-
-        }
-
-        try {
-            await supabase.auth.refreshSession();
-            const { data: { session } } = await supabase.auth.getSession();
-            socketAuthToken = session?.access_token || null;
-        } catch (error) {
-            console.warn('[Socket] Unable to prepare auth token for socket handshake:', error);
-            socketAuthToken = null;
-        }
-
-        // The 'io' function is available globally from the script in index.html
-
-        socket = io(BACKEND_URL, {
-
-            transports: ['websocket'],
-
-            auth: socketAuthToken ? { token: socketAuthToken } : undefined,
-
-            reconnection: true,
-
-            reconnectionDelay: 2000,
-
-            reconnectionAttempts: 5
-
-        });
-
-        setupSocketHandlers();
+        if (socket) return;
+        if (initialization) return initialization;
+        const currentGeneration = generation;
+        const pending = (async () => {
+            const { data, error } = await supabase.auth.getSession();
+            if (error) throw error;
+            if (!data?.session?.access_token) return;
+            const session = await getAuthenticatedSession();
+            if (currentGeneration !== generation || socket) return;
+            socketAuthToken = session.access_token;
+            socket = io(BACKEND_URL, {
+                transports: ['websocket', 'polling'],
+                tryAllTransports: true,
+                auth: { token: socketAuthToken },
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 10000,
+                reconnectionAttempts: config.backend.maxReconnectAttempts,
+                timeout: config.backend.connectionTimeout,
+            });
+            setupSocketHandlers();
+        })();
+        initialization = pending;
+        try { await pending; }
+        finally { if (initialization === pending) initialization = null; }
 
     },
 
@@ -260,9 +256,7 @@ export const socketService = {
 
         // Verify the user is still authenticated before sending.
 
-        await supabase.auth.refreshSession(); // Ensure the token is fresh
-
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await getAuthenticatedSession();
 
         if (!session) {
 
@@ -321,9 +315,7 @@ export const socketService = {
             console.error('Socket not connected. Cannot send plan request.');
             throw new Error('Not connected to the server. Please wait or refresh.');
         }
-
-        await supabase.auth.refreshSession();
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await getAuthenticatedSession();
 
         if (!session) {
             console.error('User is not authenticated.');
@@ -372,6 +364,8 @@ export const socketService = {
      */
 
     disconnect: () => {
+        generation += 1;
+        socketAuthToken = null;
 
         if (socket) {
 
