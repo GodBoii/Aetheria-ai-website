@@ -1,0 +1,854 @@
+/* Artifact Viewer - Comprehensive Styling */
+
+/* ========================================
+   OVERLAY & MODAL CONTAINER
+   ======================================== */
+
+.artifact-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    padding: 40px 20px;
+}
+
+.artifact-container.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* ========================================
+   MODAL WINDOW
+   ======================================== */
+
+.artifact-window {
+    width: 100%;
+    max-width: 90vw;
+    height: 80vh;
+    max-height: 80vh;
+    background: var(--window-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ========================================
+   HEADER
+   ======================================== */
+
+.artifact-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--card-bg);
+    flex-shrink: 0;
+}
+
+.artifact-title {
+    font-weight: var(--font-semibold);
+    font-size: var(--text-lg);
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.artifact-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.artifact-dropdown-container {
+    position: relative;
+    display: flex;
+}
+
+.artifact-menu-btn,
+.close-artifact-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.artifact-menu-btn:hover {
+    background-color: var(--hover-bg);
+    color: var(--accent-color);
+}
+
+.artifact-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: var(--window-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-xl);
+    z-index: 2500;
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.artifact-dropdown-menu.hidden {
+    display: none;
+}
+
+.artifact-dropdown-menu .dropdown-item {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    width: 100%;
+    text-align: left;
+}
+
+.artifact-dropdown-menu .dropdown-item:hover {
+    background: var(--hover-bg);
+}
+
+.artifact-dropdown-menu .dropdown-item i {
+    font-size: 16px;
+    color: var(--text-secondary);
+    width: 20px;
+    text-align: center;
+}
+
+.close-artifact-btn:hover {
+    background-color: var(--error-50);
+    color: var(--error-500);
+}
+
+.dark-mode .close-artifact-btn:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+}
+
+/* ========================================
+   CONTENT AREA
+   ======================================== */
+
+.artifact-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px;
+    background: var(--elevated-bg);
+    position: relative;
+}
+
+/* Smooth scrolling */
+.artifact-content {
+    scroll-behavior: smooth;
+    overflow-anchor: auto;
+}
+
+/* Custom scrollbar */
+.artifact-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.artifact-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.artifact-content::-webkit-scrollbar-thumb {
+    background: var(--neutral-300);
+    border-radius: 5px;
+}
+
+.artifact-content::-webkit-scrollbar-thumb:hover {
+    background: var(--neutral-400);
+}
+
+.dark-mode .artifact-content::-webkit-scrollbar-thumb {
+    background: var(--neutral-700);
+}
+
+.dark-mode .artifact-content::-webkit-scrollbar-thumb:hover {
+    background: var(--neutral-600);
+}
+
+/* ========================================
+   CODE DISPLAY
+   ======================================== */
+
+.artifact-content pre {
+    margin: 0;
+    border-radius: 8px;
+    background: var(--code-bg);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--code-border);
+}
+
+.artifact-content pre code {
+    display: block;
+    padding: 20px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--code-text);
+    overflow-x: auto;
+    overflow-y: visible;
+    white-space: pre;
+    word-wrap: normal;
+    word-break: normal;
+}
+
+/* Prevent horizontal scroll on small code */
+.artifact-content pre code {
+    max-width: 100%;
+}
+
+/* For very long lines, allow horizontal scroll within code block */
+.artifact-content pre code::-webkit-scrollbar {
+    height: 8px;
+}
+
+.artifact-content pre code::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.artifact-content pre code::-webkit-scrollbar-thumb {
+    background: var(--neutral-400);
+    border-radius: 4px;
+}
+
+.dark-mode .artifact-content pre code::-webkit-scrollbar-thumb {
+    background: var(--neutral-600);
+}
+
+/* ========================================
+   MARKDOWN RENDERING
+   ======================================== */
+
+.artifact-markdown-content {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.7;
+    color: var(--text-color);
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.artifact-markdown-content h1,
+.artifact-markdown-content h2,
+.artifact-markdown-content h3,
+.artifact-markdown-content h4,
+.artifact-markdown-content h5,
+.artifact-markdown-content h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: var(--font-semibold);
+    line-height: 1.3;
+    color: var(--text-color);
+}
+
+.artifact-markdown-content h1 {
+    font-size: var(--text-3xl);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.artifact-markdown-content h2 {
+    font-size: var(--text-2xl);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+}
+
+.artifact-markdown-content h3 {
+    font-size: var(--text-xl);
+}
+
+.artifact-markdown-content h4 {
+    font-size: var(--text-lg);
+}
+
+.artifact-markdown-content h5,
+.artifact-markdown-content h6 {
+    font-size: var(--text-base);
+}
+
+.artifact-markdown-content p {
+    margin-bottom: 16px;
+    line-height: 1.7;
+}
+
+.artifact-markdown-content ul,
+.artifact-markdown-content ol {
+    margin-bottom: 16px;
+    padding-left: 28px;
+}
+
+.artifact-markdown-content li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.artifact-markdown-content blockquote {
+    margin: 16px 0;
+    padding: 12px 20px;
+    border-left: 4px solid var(--accent-color);
+    background: var(--card-bg);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.artifact-markdown-content code {
+    background: var(--code-bg);
+    color: var(--accent-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+.artifact-markdown-content pre {
+    margin: 16px 0;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.artifact-markdown-content pre code {
+    background: transparent;
+    color: var(--code-text);
+    padding: 16px;
+    display: block;
+    overflow-x: auto;
+}
+
+.artifact-markdown-content a {
+    color: var(--accent-color);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.artifact-markdown-content a:hover {
+    border-bottom-color: var(--accent-color);
+}
+
+.artifact-markdown-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 16px 0;
+    display: block;
+}
+
+.artifact-markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    overflow-x: auto;
+    display: block;
+}
+
+.artifact-markdown-content th,
+.artifact-markdown-content td {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.artifact-markdown-content th {
+    background: var(--card-bg);
+    font-weight: var(--font-semibold);
+}
+
+.artifact-markdown-content hr {
+    border: none;
+    border-top: 2px solid var(--border-color);
+    margin: 24px 0;
+}
+
+/* ========================================
+   IMAGE DISPLAY
+   ======================================== */
+
+.artifact-image-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 20px;
+}
+
+.artifact-image {
+    max-width: 100%;
+    max-height: calc(90vh - 200px);
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    object-fit: contain;
+}
+
+/* ========================================
+   MERMAID DIAGRAM
+   ======================================== */
+
+.mermaid-artifact-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+}
+
+.mermaid-pan-container {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    background: var(--elevated-bg);
+    padding: 20px;
+    cursor: grab;
+    user-select: none;
+}
+
+.mermaid-pan-container:active {
+    cursor: grabbing;
+}
+
+.mermaid-pan-container .mermaid {
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    display: inline-block;
+}
+
+.mermaid-pan-container .mermaid svg {
+    max-width: none;
+    display: block;
+}
+
+.mermaid-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background: var(--window-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+}
+
+.zoom-in-btn,
+.zoom-out-btn,
+.zoom-reset-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.zoom-in-btn:hover,
+.zoom-out-btn:hover,
+.zoom-reset-btn:hover {
+    background-color: var(--hover-bg);
+    color: var(--accent-color);
+}
+
+/* ========================================
+   TERMINAL OUTPUT
+   ======================================== */
+
+.terminal-output {
+    background-color: var(--code-bg);
+    color: var(--text-color);
+    padding: 20px;
+    border-radius: 8px;
+    height: 100%;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.terminal-output pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.terminal-output code {
+    background: transparent;
+    padding: 0;
+    font-family: var(--font-mono);
+}
+
+.log-line {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.log-command {
+    color: var(--accent-color);
+    font-weight: var(--font-semibold);
+}
+
+.log-stdout {
+    color: var(--text-color);
+}
+
+.log-error {
+    color: var(--error-500);
+}
+
+.log-status {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.terminal-spinner::after {
+    content: '...';
+    display: inline-block;
+    animation: terminalSpin 1s linear infinite;
+}
+
+@keyframes terminalSpin {
+    0% {
+        content: '.';
+    }
+
+    33% {
+        content: '..';
+    }
+
+    66% {
+        content: '...';
+    }
+
+    100% {
+        content: '.';
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .artifact-container {
+        padding: 20px 10px;
+    }
+
+    .artifact-window {
+        max-width: 100%;
+        max-height: 85vh;
+        height: 85vh;
+        border-radius: 12px;
+    }
+
+    .artifact-header {
+        padding: 12px 16px;
+    }
+
+    .artifact-title {
+        font-size: var(--text-base);
+    }
+
+    .artifact-content {
+        padding: 16px;
+    }
+
+    .artifact-content pre code {
+        font-size: 13px;
+        padding: 16px;
+    }
+
+    .artifact-markdown-content {
+        font-size: var(--text-sm);
+    }
+
+    .artifact-markdown-content h1 {
+        font-size: var(--text-2xl);
+    }
+
+    .artifact-markdown-content h2 {
+        font-size: var(--text-xl);
+    }
+
+    .artifact-markdown-content h3 {
+        font-size: var(--text-lg);
+    }
+
+    .mermaid-controls {
+        bottom: 12px;
+        right: 12px;
+    }
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+
+.artifact-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--text-secondary);
+}
+
+.artifact-loading i {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ========================================
+   ERROR STATE
+   ======================================== */
+
+.artifact-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--error-500);
+    text-align: center;
+    padding: 20px;
+}
+
+.artifact-error i {
+    font-size: 2rem;
+    margin-bottom: 12px;
+}
+
+.artifact-error p {
+    margin: 0;
+    font-size: var(--text-base);
+}
+
+
+/* ========================================
+   HTML PREVIEW TABS
+   ======================================== */
+
+.artifact-html-preview {
+    width: 100%;
+}
+
+.artifact-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 16px;
+}
+
+.artifact-tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+}
+
+.artifact-tab:hover {
+    color: var(--text-color);
+    background: var(--hover-bg);
+}
+
+.artifact-tab.active {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+}
+
+.artifact-tab-pane {
+    display: none;
+}
+
+.artifact-tab-pane.active {
+    display: block;
+}
+
+/* ========================================
+   CSV TABLE
+   ======================================== */
+
+.artifact-csv-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    font-size: var(--text-sm);
+}
+
+.artifact-csv-table th {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    text-align: left;
+    font-weight: var(--font-semibold);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.artifact-csv-table td {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.artifact-csv-table tr:hover {
+    background: var(--hover-bg);
+}
+
+
+/* ========================================
+   TERMINAL ARTIFACT BUTTON
+   ======================================== */
+
+.terminal-artifact-button {
+    margin: 8px 0;
+    padding: 12px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Courier New', monospace;
+}
+
+.terminal-artifact-button:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.terminal-artifact-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.terminal-artifact-icon {
+    color: var(--accent-color);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.terminal-artifact-command {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.terminal-artifact-exit-code {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.terminal-artifact-exit-code.success {
+    background: var(--success-100);
+    color: var(--success-700);
+}
+
+.terminal-artifact-exit-code.error {
+    background: var(--error-100);
+    color: var(--error-700);
+}
+
+/* Dark mode adjustments */
+body.dark-mode .terminal-artifact-exit-code.success {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--success-400);
+}
+
+body.dark-mode .terminal-artifact-exit-code.error {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--error-400);
+}
