@@ -53,10 +53,10 @@
 </div>
 
 <!-- Enhanced Task Creation Modal -->
-<div id="new-task-modal" class="modal-overlay hidden">
+<dialog id="new-task-modal" class="modal-overlay hidden" aria-labelledby="new-task-title">
   <div class="modal task-create-modal">
     <div class="modal-header">
-      <h3>New Task</h3>
+      <h3 id="new-task-title">New Task</h3>
     </div>
     <div class="modal-content">
       <div class="form-group">
@@ -175,7 +175,7 @@
       <button class="btn btn-primary" id="save-task-btn">Create Task</button>
     </div>
   </div>
-</div>
+</dialog>
 
 <!-- Output Viewer Panel -->
 <div id="task-output-backdrop" class="task-output-backdrop hidden"></div>
