@@ -11,6 +11,7 @@ const TOOLS = [
 export function openToolSettings(chat) {
     if (document.querySelector('.web-tool-dialog')) return;
     const dialog = document.createElement('dialog');
+    const trigger = document.getElementById('attach-file-btn');
     dialog.className = 'web-tool-dialog';
     dialog.setAttribute('aria-label', 'Agent tools');
     const heading = document.createElement('h2');
@@ -39,7 +40,14 @@ export function openToolSettings(chat) {
     close.textContent = 'Done';
     close.addEventListener('click', () => dialog.close());
     dialog.append(heading, description, memory, controls, close);
-    dialog.addEventListener('close', () => dialog.remove());
+    dialog.addEventListener('click', event => {
+        const bounds = dialog.getBoundingClientRect();
+        if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
+    });
+    dialog.addEventListener('close', () => {
+        dialog.remove();
+        trigger?.focus();
+    });
     document.body.appendChild(dialog);
     dialog.showModal();
 }
