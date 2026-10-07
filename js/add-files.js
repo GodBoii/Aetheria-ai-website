@@ -6,6 +6,17 @@ import { chatModule } from './chat.js';
 // Backend URL for file upload API - Production (Cloudflare Tunnel)
 const API_PROXY_URL = 'https://api.aetheriaai.website';
 
+const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'avi', 'mov', 'mkv']);
+
+export function isVideoAttachment(file = {}) {
+  const mimeType = String(file.type || file.backendMimeType || '').trim().toLowerCase();
+  if (mimeType.startsWith('video/')) return true;
+
+  const fileName = String(file.name || file.fileName || file.filename || '').trim().toLowerCase();
+  const extension = fileName.includes('.') ? fileName.split('.').pop() : '';
+  return VIDEO_EXTENSIONS.has(extension);
+}
+
 class FileAttachmentHandler {
   constructor() {
     this.supportedFileTypes = {
@@ -43,6 +54,7 @@ class FileAttachmentHandler {
     };
     this.maxFileSize = 10 * 1024 * 1024; // 10MB
     this.attachedFiles = [];
+    this.attachmentValidator = null;
     this.initialize();
     if (typeof window !== 'undefined') {
       window.fileAttachmentHandler = this;
@@ -81,6 +93,34 @@ class FileAttachmentHandler {
 
   openFilePicker() {
     this.fileInput?.click();
+  }
+
+  setAttachmentValidator(validator = null) {
+    this.attachmentValidator = typeof validator === 'function' ? validator : null;
+  }
+
+  async validateAttachment(file) {
+    if (!this.attachmentValidator) return { valid: true };
+
+    try {
+      const result = await this.attachmentValidator(file);
+      if (result === false) {
+        return { valid: false, message: 'This file cannot be attached in the current mode.' };
+      }
+      if (typeof result === 'string') {
+        return { valid: false, message: result };
+      }
+      if (result && typeof result === 'object') {
+        return {
+          valid: result.valid !== false,
+          message: String(result.message || ''),
+        };
+      }
+      return { valid: true };
+    } catch (error) {
+      console.error('[Attachments] Validation failed:', error);
+      return { valid: false, message: 'This file could not be validated.' };
+    }
   }
 
   async uploadFileToSupabase(fileObject) {
@@ -138,6 +178,11 @@ class FileAttachmentHandler {
     }
 
     for (const file of files) {
+      const validation = await this.validateAttachment(file);
+      if (!validation.valid) {
+        chatModule.showNotification(validation.message, "warning", 5000);
+        continue;
+      }
       if (file.size > this.maxFileSize) {
         chatModule.showNotification(`File too large: ${file.name}`, "warning");
         continue;
@@ -350,7 +395,12 @@ class FileAttachmentHandler {
     });
   }
 
+  hasAttachedVideo() {
+    return this.attachedFiles.some(isVideoAttachment);
+  }
+
   renderPreviews() {
+    document.dispatchEvent(new CustomEvent("composerStateChanged"));
     if (!this.previewsContainer) return;
     this.previewsContainer.innerHTML = '';
 
