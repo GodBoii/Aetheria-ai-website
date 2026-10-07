@@ -91,3 +91,8 @@ Thumbs.db
 
 # Well-known (keep this for verification)
 # .well-known/
+
+# Browser SDKs are generated from the locked npm dependencies.
+assets/vendor/
+*.ctl
+*.sock
