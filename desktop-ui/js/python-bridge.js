@@ -1,0 +1,457 @@
+const { ipcMain } = require('electron');
+const io = require('socket.io-client');
+const config = require('./config');
+
+class PythonBridge {
+    constructor(mainWindow, eventEmitter) {
+        this.mainWindow = mainWindow;
+        this.eventEmitter = eventEmitter;
+        this.browserController = null; // <-- FIX: To hold a reference to the browser controller
+        this.computerController = null; // NEW: To hold a reference to the computer control handler
+        this.localCoderController = null; // NEW: local workspace/coder controller
+        this.socket = null;
+        this.initialized = false;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = config.backend.maxReconnectAttempts;
+        this.reconnectDelay = config.backend.reconnectDelay;
+        this.ongoingStreams = {};
+        this.serverUrl = config.backend.url;
+        this.isShuttingDown = false;
+    }
+
+    _canSendToRenderer() {
+        if (this.isShuttingDown) return false;
+        if (!this.mainWindow || typeof this.mainWindow.isDestroyed !== 'function') return false;
+        if (this.mainWindow.isDestroyed()) return false;
+        const wc = this.mainWindow.webContents;
+        if (!wc || typeof wc.isDestroyed !== 'function') return false;
+        return !wc.isDestroyed();
+    }
+
+    _sendToRenderer(channel, payload) {
+        if (!this._canSendToRenderer()) return false;
+        try {
+            this.mainWindow.webContents.send(channel, payload);
+            return true;
+        } catch (error) {
+            const message = String(error?.message || '').toLowerCase();
+            if (!this.isShuttingDown && !message.includes('object has been destroyed')) {
+                console.warn(`[PythonBridge] Failed to emit '${channel}':`, error.message);
+            }
+            return false;
+        }
+    }
+
+    /**
+     * FIX: Adds the missing function to allow main.js to link the modules.
+     * @param {BrowserController} controller - The instance of the browser controller.
+     */
+    setBrowserController(controller) {
+        this.browserController = controller;
+    }
+
+    /**
+     * NEW: Adds the function to link the computer control handler.
+     * @param {ComputerControlHandler} controller - The instance of the computer control handler.
+     */
+    setComputerController(controller) {
+        this.computerController = controller;
+    }
+
+    /**
+     * NEW: Adds the function to link the local coder handler.
+     * @param {LocalCoderHandler} controller - The instance of the local coder handler.
+     */
+    setLocalCoderController(controller) {
+        this.localCoderController = controller;
+    }
+
+    async start() {
+        this.isShuttingDown = false;
+        console.log(`Connecting to backend server at ${this.serverUrl}...`);
+        this.setupIpcHandlers();
+        await this.connectWebSocket();
+    }
+
+    setupIpcHandlers() {
+        // This method is unchanged and correctly handles communication from the renderer.
+        ipcMain.on('send-message', (event, data) => {
+            this.sendMessage(data);
+        });
+
+        ipcMain.on('plan-request', (event, data) => {
+            this.sendPlanRequest(data);
+        });
+
+        ipcMain.on('terminate-session', (event, data) => {
+            this.sendMessage({
+                type: 'terminate_session',
+                message: 'terminate',
+                accessToken: data ? data.accessToken : null,
+                conversationId: data.conversationId
+            });
+        });
+
+        ipcMain.on('check-connection-status', () => {
+            if (this.socket && this.socket.connected) {
+                this._sendToRenderer('socket-connection-status', { connected: true });
+            } else {
+                this._sendToRenderer('socket-connection-status', { connected: false });
+            }
+        });
+
+        ipcMain.on('restart-python-bridge', () => {
+            console.log('Received restart request from renderer');
+            this.stop();
+            setTimeout(() => this.start(), 1000);
+        });
+
+        // Listen for browser command results from the BrowserHandler
+        this.eventEmitter.on('browser-command-result', (resultPayload) => {
+            console.log('PythonBridge: Received browser-command-result from BrowserHandler:', resultPayload.request_id);
+            this.sendBrowserResult(resultPayload);
+        });
+
+        // NEW: Listen for computer control command results
+        this.eventEmitter.on('computer-command-result', (resultPayload) => {
+            console.log('PythonBridge: Received computer-command-result from ComputerControlHandler:', resultPayload.request_id);
+            this.sendComputerResult(resultPayload);
+        });
+
+        // NEW: Listen for local coder command results
+        this.eventEmitter.on('local-coder-command-result', (resultPayload) => {
+            console.log('PythonBridge: Received local-coder-command-result from LocalCoderHandler:', resultPayload.request_id);
+            this.sendLocalCoderResult(resultPayload);
+        });
+    }
+
+    async connectWebSocket() {
+        // This method is unchanged.
+        return new Promise((resolve, reject) => {
+            if (this.reconnectAttempts <= 1) {
+                console.log(`Connecting to Socket.IO server at ${this.serverUrl}...`);
+            }
+            this.socket = io(this.serverUrl, {
+                transports: ['websocket'],
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: config.backend.connectionTimeout,
+                maxHttpBufferSize: 10 * 1024 * 1024  // 10MB limit to match server
+            });
+            const connectionTimeout = setTimeout(() => {
+                console.error('Socket.IO connection timeout');
+                this.socket.disconnect();
+                reject(new Error('Socket.IO connection timeout'));
+            }, config.backend.connectionTimeout);
+            this.socket.on('connect', () => {
+                clearTimeout(connectionTimeout);
+                console.log(`Connected to Socket.IO server at ${this.serverUrl}`);
+                this.initialized = true;
+                this.reconnectAttempts = 0;
+                this._sendToRenderer('socket-connection-status', { connected: true });
+                resolve();
+            });
+            this.socket.on('connect_error', (error) => {
+                clearTimeout(connectionTimeout);
+                if (this.isShuttingDown) {
+                    reject(error);
+                    return;
+                }
+                if (this.reconnectAttempts <= 1) {
+                    console.error('Socket.IO connect error:', error.message);
+                }
+                this._sendToRenderer('socket-connection-status', {
+                    connected: false,
+                    error: error.message
+                });
+                reject(error);
+            });
+            this.setupSocketHandlers();
+        });
+    }
+
+    setupSocketHandlers() {
+        // This method is mostly unchanged, but the 'browser-command' handler is now functional.
+        this.socket.on('response', (data) => {
+            this._sendToRenderer('chat-response', data);
+        });
+        this.socket.on('agent_step', (data) => {
+            this._sendToRenderer('agent-step', data);
+        });
+        this.socket.on('reasoning_step', (data) => {
+            this._sendToRenderer('reasoning-step', data);
+        });
+        this.socket.on('error', (error) => {
+            console.error('Socket.IO error:', error.message || error);
+            this._sendToRenderer('socket-error', error);
+        });
+        this.socket.on('status', (data) => {
+            this._sendToRenderer('socket-status', data);
+        });
+        this.socket.on('disconnect', () => {
+            if (this.isShuttingDown) {
+                this.initialized = false;
+                return;
+            }
+            if (this.initialized) {
+                console.log('Socket.IO disconnected');
+            }
+            this.initialized = false;
+            this._sendToRenderer('socket-connection-status', { connected: false });
+            this.handleReconnection();
+        });
+
+        this.socket.on('image_generated', (data) => {
+            this._sendToRenderer('image_generated', data);
+        });
+
+        this.socket.on('media_generated', (data) => {
+            this._sendToRenderer('media_generated', data);
+        });
+
+        this.socket.on('presentation_generated', (data) => {
+            this._sendToRenderer('presentation_generated', data);
+        });
+
+        this.socket.on('task_execution_status', (data) => {
+            console.log('PythonBridge: Received task_execution_status:', data);
+            this._sendToRenderer('task_execution_status', data);
+        });
+
+        this.socket.on('conversation_title', (data) => {
+            this._sendToRenderer('conversation_title', data);
+        });
+
+        this.socket.on('sandbox-command-started', (data) => {
+            this._sendToRenderer('sandbox-command-started', data);
+        });
+
+        this.socket.on('sandbox-command-finished', (data) => {
+            this._sendToRenderer('sandbox-command-finished', data);
+        });
+
+        this.socket.on('sandbox-artifacts-created', (data) => {
+            this._sendToRenderer('sandbox-artifacts-created', data);
+        });
+
+        this.socket.on('local-command-started', (data) => {
+            this._sendToRenderer('local-command-started', data);
+        });
+
+        this.socket.on('local-command-finished', (data) => {
+            this._sendToRenderer('local-command-finished', data);
+        });
+
+        // FIX: This handler now correctly forwards the command to the browserController instance.
+        this.socket.on('browser-command', (commandPayload) => {
+            console.log('PythonBridge: Received browser-command from server:', commandPayload.action);
+            if (this.browserController) {
+                // Use the event emitter pattern for better decoupling
+                console.log('PythonBridge: Emitting execute-browser-command to BrowserHandler');
+                this.eventEmitter.emit('execute-browser-command', commandPayload);
+            } else {
+                console.error('PythonBridge: BrowserController is not linked. Cannot handle browser command.');
+            }
+        });
+
+        // NEW: Handler for computer control commands
+        this.socket.on('computer-command', (commandPayload) => {
+            console.log('PythonBridge: Received computer-command from server:', commandPayload.action);
+            if (this.computerController) {
+                console.log('PythonBridge: Emitting execute-computer-command to ComputerControlHandler');
+                this.eventEmitter.emit('execute-computer-command', commandPayload);
+            } else {
+                console.error('PythonBridge: ComputerController is not linked. Cannot handle computer command.');
+            }
+        });
+
+        // NEW: Handler for local coder commands
+        this.socket.on('local-coder-command', (commandPayload) => {
+            console.log('PythonBridge: Received local-coder-command from server:', commandPayload.action);
+            if (this.localCoderController) {
+                console.log('PythonBridge: Emitting execute-local-coder-command to LocalCoderHandler');
+                this.eventEmitter.emit('execute-local-coder-command', commandPayload);
+            } else {
+                console.error('PythonBridge: LocalCoderController is not linked. Cannot handle local coder command.');
+            }
+        });
+
+        // NEW: Handler for computer tool notifications
+        this.socket.on('computer-tool-notification', (data) => {
+            console.log('PythonBridge: Received computer-tool-notification:', data.message);
+            this.eventEmitter.emit('computer-tool-notification', data);
+        });
+
+        this.socket.on('computer_tool_result_preview', (data) => {
+            console.log('PythonBridge: Received computer_tool_result_preview:', {
+                tool: data?.tool_name || null,
+                messageId: data?.id || null,
+                outputId: data?.metadata?.output_id || null,
+                previewType: data?.metadata?.preview_type || null
+            });
+            this._sendToRenderer('computer-tool-result-preview', data);
+        });
+
+        // Handler for agent run completion — triggers native OS notification
+        this.socket.on('run_completed', (data) => {
+            console.log('PythonBridge: Received run_completed:', {
+                conversationId: data?.conversationId || null,
+                messageId: data?.messageId || null,
+                title: data?.title || null,
+            });
+            // Emit to main process for native notification (focus-check happens there)
+            this.eventEmitter.emit('run-completed', data);
+            // Also forward to renderer for optional in-app handling
+            this._sendToRenderer('run-completed', data);
+        });
+
+        this.socket.on('plan_response', (data) => {
+            this._sendToRenderer('plan-response', data);
+        });
+    }
+
+    /**
+     * FIX: This new method is called by the BrowserController to send results back to the server.
+     * @param {object} resultPayload - The payload containing the request_id and result.
+     */
+    sendBrowserResult(resultPayload) {
+        if (this.socket && this.socket.connected) {
+            console.log('PythonBridge: Relaying browser command result to server:', resultPayload.request_id);
+            this.socket.emit('browser-command-result', resultPayload);
+        } else {
+            console.error('PythonBridge: Cannot send browser result, socket not connected.');
+        }
+    }
+
+    /**
+     * NEW: This method is called by the ComputerControlHandler to send results back to the server.
+     * @param {object} resultPayload - The payload containing the request_id and result.
+     */
+    sendComputerResult(resultPayload) {
+        if (this.socket && this.socket.connected) {
+            console.log('PythonBridge: Relaying computer command result to server:', resultPayload.request_id);
+            this.socket.emit('computer-command-result', resultPayload);
+        } else {
+            console.error('PythonBridge: Cannot send computer result, socket not connected.');
+        }
+    }
+
+    /**
+     * NEW: Relay local coder command result to backend.
+     * @param {object} resultPayload
+     */
+    sendLocalCoderResult(resultPayload) {
+        if (this.socket && this.socket.connected) {
+            console.log('PythonBridge: Relaying local coder command result to server:', resultPayload.request_id);
+            this.socket.emit('local-coder-command-result', resultPayload);
+        } else {
+            console.error('PythonBridge: Cannot send local coder result, socket not connected.');
+        }
+    }
+
+    async handleReconnection() {
+        // This method is unchanged.
+        if (this.isShuttingDown) return;
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('Max reconnection attempts reached');
+            this._sendToRenderer('socket-connection-status', {
+                connected: false,
+                error: 'Max reconnection attempts reached'
+            });
+            this.cleanup();
+            return;
+        }
+        this.reconnectAttempts++;
+        if (this.reconnectAttempts % 5 === 1 || this.reconnectAttempts === this.maxReconnectAttempts) {
+            console.log(`Reconnecting: attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+        }
+        this._sendToRenderer('socket-connection-status', {
+            connected: false,
+            reconnecting: true,
+            attempt: this.reconnectAttempts,
+            maxAttempts: this.maxReconnectAttempts
+        });
+        try {
+            await new Promise(resolve => setTimeout(resolve, this.reconnectDelay));
+            await this.connectWebSocket();
+        } catch (error) {
+            if (this.reconnectAttempts === 1 || this.reconnectAttempts % 5 === 0) {
+                console.error('Reconnection failed:', error.message);
+            }
+            this.handleReconnection();
+        }
+    }
+
+    sendMessage(message) {
+        // This method is unchanged.
+        if (!this.socket || !this.socket.connected) {
+            console.error('Socket not connected');
+            this._sendToRenderer('socket-error', {
+                message: 'Cannot send message, socket not connected'
+            });
+            return;
+        }
+        try {
+            // Inject device type for Electron app to identify as desktop/computer
+            if (typeof message === 'object' && message !== null) {
+                message.deviceType = 'desktop';
+            }
+            this.socket.emit('send_message', JSON.stringify(message));
+        } catch (error) {
+            console.error('Error sending message:', error);
+            this._sendToRenderer('socket-error', {
+                message: 'Error sending message: ' + error.message
+            });
+        }
+    }
+
+    sendPlanRequest(payload) {
+        if (!this.socket || !this.socket.connected) {
+            console.error('Socket not connected');
+            this._sendToRenderer('plan-response', {
+                success: false,
+                requestId: payload?.requestId,
+                error: 'Cannot generate plan, socket is not connected'
+            });
+            return;
+        }
+        try {
+            if (typeof payload === 'object' && payload !== null) {
+                payload.deviceType = 'desktop';
+            }
+            this.socket.emit('plan_request', JSON.stringify(payload || {}));
+        } catch (error) {
+            console.error('Error sending plan request:', error);
+            this._sendToRenderer('plan-response', {
+                success: false,
+                requestId: payload?.requestId,
+                error: 'Error sending plan request: ' + error.message
+            });
+        }
+    }
+
+    cleanup() {
+        // This method is unchanged.
+        this.isShuttingDown = true;
+        if (this.socket) {
+            try {
+                this.socket.removeAllListeners();
+            } catch (_error) {
+                // no-op
+            }
+            this.socket.close();
+            this.socket = null;
+        }
+        this.initialized = false;
+        this.ongoingStreams = {};
+    }
+
+    stop() {
+        this.isShuttingDown = true;
+        this.cleanup();
+    }
+}
+
+module.exports = PythonBridge;
