@@ -5,21 +5,21 @@ import { authService } from './auth-service.js';
 import { AIOSUsageRenderer } from './aios-usage.js';
 import NotificationService from './notification-service.js';
 import skeletonLoader from './skeleton-loader.js';
-import { ScreenAnalysisManager } from './screen-analysis.js';
+import { UsageHistory } from './usage-history.js';
+import { config } from './config.js';
 import { DeploySettingsManager } from './deploy-settings-manager.js';
-import { OfflineModelManager } from './offline-model-manager.js';
+
 import { authGate } from './auth-gate.js';
 import { IdempotencyKeyGenerator } from './security-utils.js';
 
 // Backend URL for OAuth integrations - Production (Cloudflare Tunnel)
-const OAUTH_BACKEND_URL = 'https://api.aetheriaai.website';
+const OAUTH_BACKEND_URL = config.backend.url;
 // Backend URL for API calls - Production (Cloudflare Tunnel)
-const API_BACKEND_URL = 'https://api.aetheriaai.website';
+const API_BACKEND_URL = config.backend.url;
 const COMPOSIO_PROVIDERS = {
-    'composio-googlesheets': {
-        toolkit: 'GOOGLESHEETS',
-        label: 'Google Sheets',
-    },
+    'composio-facebook': { toolkit: 'FACEBOOK', label: 'Facebook' },
+    'composio-instagram': { toolkit: 'INSTAGRAM', label: 'Instagram' },
+    'composio-youtube': { toolkit: 'YOUTUBE', label: 'YouTube' },
     'composio-whatsapp': {
         toolkit: 'WHATSAPP',
         label: 'WhatsApp',
@@ -44,9 +44,6 @@ export class AIOS {
         this.isSubscriptionLoading = false;
         this.isCheckoutInProgress = false;
         this.checkoutTimeoutId = null;
-        this.nativeAuthSessionPlugin = null;
-        this.nativeAssistantNotesPlugin = null;
-        this.nativeMindspacePlugin = null;
 
         // Memory state
         this.memoriesCache = [];
@@ -58,21 +55,26 @@ export class AIOS {
         if (this.initialized) return;
 
         this.cacheElements();
+        this.accountSection = document.querySelector('.settings-section.account-section');
+        window.matchMedia('(min-width: 1024px)').addEventListener('change', event => {
+            const visiblePanel = Array.from(this.elements.settingsPanels).find(panel => !panel.classList.contains('hidden'));
+            if (!event.matches) {
+                this.elements.settingsView.prepend(this.accountSection);
+                this.elements.settingsPanels.forEach(panel => document.getElementById('aios-root').appendChild(panel));
+                document.getElementById('desktop-account-right-panel')?.classList.add('hidden');
+                if (visiblePanel) this.closeProfileMenu();
+            } else if (visiblePanel) {
+                this.openPanel(visiblePanel.id.replace(/-panel$/, ''));
+            } else if (!this.elements.profileDropdown.classList.contains('hidden')) {
+                this.openDesktopAccountPanel();
+            }
+        });
         this.setupEventListeners();
         await this.authService.init();
         this.usageRenderer = new AIOSUsageRenderer();
 
-        // Initialize Screen Analysis
-        this.screenAnalysis = new ScreenAnalysisManager(this);
-        // Initialize Offline Model
-        this.offlineModelManager = new OfflineModelManager(this.notificationService);
-
-        // Handler called from native Android with: analysisId, text, imageBase64, timestamp
-        window.handleScreenAnalysisResult = (analysisId, text, imageData, timestamp) => {
-            this.screenAnalysis.handleResult(analysisId, text, imageData, timestamp);
-        };
-        this.flushPendingMindspaceResults();
-
+        this.usageHistory = new UsageHistory();
+        this.usageHistory.init();
         // Load saved theme preference
         this.loadThemePreference();
         this.updateThemeUI();
@@ -102,7 +104,7 @@ export class AIOS {
         this.elements.signupError.textContent = '';
 
         try {
-            console.log('Running on web - using Supabase OAuth Redirect');
+
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
@@ -209,7 +211,6 @@ export class AIOS {
 
             // Handle OAuth callback message
             if (event.data && event.data.type === 'oauth-callback') {
-                console.log('Received OAuth callback message from popup:', event.data);
 
                 if (event.data.success) {
                     this.showNotification(`Successfully connected to ${event.data.provider}!`, 'success');
@@ -224,7 +225,6 @@ export class AIOS {
             }
 
             if (event.data && event.data.type === 'composio-callback') {
-                console.log('Received Composio callback message from popup:', event.data);
 
                 if (event.data.success) {
                     const toolkitLabel = this.getComposioLabelByToolkit(event.data.toolkit);
@@ -289,7 +289,9 @@ export class AIOS {
 
         this.elements.githubConnectBtn?.addEventListener('click', (e) => this.handleIntegrationClick(e));
         this.elements.googleConnectBtn?.addEventListener('click', (e) => this.handleIntegrationClick(e));
-        this.elements.googleSheetsConnectBtn?.addEventListener('click', (e) => this.handleIntegrationClick(e));
+        for (const provider of ['facebook', 'instagram', 'youtube']) {
+            document.getElementById(`connect-${provider.replace('composio-', '')}-btn`)?.addEventListener('click', event => this.handleIntegrationClick(event));
+        }
         this.elements.whatsappConnectBtn?.addEventListener('click', (e) => this.handleIntegrationClick(e));
         this.elements.vercelConnectBtn?.addEventListener('click', (e) => this.handleIntegrationClick(e));
         this.elements.supabaseConnectBtn?.addEventListener('click', (e) => this.handleIntegrationClick(e));
@@ -319,126 +321,10 @@ export class AIOS {
         document.addEventListener('subscriptionLimitExceeded', async ({ detail }) => {
             await this.handleSubscriptionLimitExceeded(detail || {});
         });
-        window.addEventListener('nativeAuthRequired', async (event) => {
-            await this.handleNativeAuthRequired(event?.detail?.reason);
-        });
-
-        if (window.__nativeAuthRequiredPayload?.reason) {
-            this.handleNativeAuthRequired(window.__nativeAuthRequiredPayload.reason);
-            window.__nativeAuthRequiredPayload = null;
-        }
-
         supabase.auth.onAuthStateChange((_event, session) => {
             this.updateAuthUI(session?.user);
             this.loadUsageData();
-            this.syncNativeAuthSession(session);
         });
-    }
-
-    async initNativeAuthSessionBridge() {
-        this.nativeAuthSessionPlugin = null;
-    }
-
-    async initNativeAssistantNotesBridge() {
-        this.nativeAssistantNotesPlugin = null;
-    }
-
-    async initNativeMindspaceBridge() {
-        this.nativeMindspacePlugin = null;
-    }
-
-    async hydrateMindspaceFromNative() {
-        if (!this.nativeMindspacePlugin || !this.screenAnalysis) {
-            return;
-        }
-
-        try {
-            const result = await this.nativeMindspacePlugin.listAnalyses({ limit: 50 });
-            const analyses = Array.isArray(result?.analyses) ? result.analyses : [];
-            if (analyses.length > 0) {
-                this.screenAnalysis.mergeNativeAnalyses(analyses);
-            }
-        } catch (error) {
-            console.warn('[AIOS] Failed to hydrate Mindspace from native store:', error);
-        }
-    }
-
-    flushPendingMindspaceResults() {
-        try {
-            const queue = Array.isArray(window.__pendingMindspaceResults)
-                ? window.__pendingMindspaceResults
-                : [];
-
-            if (queue.length === 0) {
-                return;
-            }
-
-            queue.forEach((payload) => {
-                if (!payload) return;
-                this.screenAnalysis.handleResult(
-                    payload.id,
-                    payload.text,
-                    payload.imageData,
-                    payload.timestamp
-                );
-            });
-            window.__pendingMindspaceResults = [];
-        } catch (error) {
-            console.warn('[AIOS] Failed flushing pending Mindspace results:', error);
-        }
-    }
-
-    async syncNativeAuthSession(sessionOverride = null) {
-        if (!this.nativeAuthSessionPlugin) return;
-
-        try {
-            let session = sessionOverride;
-            if (!session) {
-                const { data } = await supabase.auth.getSession();
-                session = data?.session || null;
-            }
-
-            if (!session?.access_token) {
-                await this.nativeAuthSessionPlugin.clearSession();
-                return;
-            }
-
-            await this.nativeAuthSessionPlugin.syncSession({
-                accessToken: session.access_token,
-                refreshToken: session.refresh_token || '',
-                expiresAt: session.expires_at || null,
-                userId: session.user?.id || '',
-            });
-        } catch (error) {
-            console.warn('[AIOS] Failed to sync native auth session:', error);
-        }
-    }
-
-    async handleNativeAuthRequired(reason) {
-        const message = (typeof reason === 'string' && reason.trim())
-            ? reason.trim()
-            : 'Please sign in to continue.';
-
-        try {
-            const { data } = await supabase.auth.getSession();
-            if (data?.session?.access_token) {
-                await this.syncNativeAuthSession(data.session);
-                this.showNotification('Session restored for native features. Please try again.', 'info');
-                return;
-            }
-        } catch (error) {
-            console.warn('[AIOS] Failed to re-check auth session after native auth request:', error);
-        }
-
-        this.showNotification(message, 'warning');
-        this.elements.settingsPanels?.forEach(panel => panel.classList.add('hidden'));
-        this.openProfileMenu();
-        this.switchAuthTab('login');
-
-        const emailInput = this.elements.loginForm?.querySelector('#loginEmail');
-        if (emailInput) {
-            setTimeout(() => emailInput.focus(), 50);
-        }
     }
 
     setTheme(theme) {
@@ -500,6 +386,7 @@ export class AIOS {
             // On desktop (>=1024px), keep the profile dropdown open and show panel inside it
             const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
             if (isDesktop) {
+                this.elements.profileDropdown?.classList.remove('hidden');
                 // Move panel into the profile dropdown for split-layout display
                 const dropdown = this.elements.profileDropdown;
                 if (dropdown && !dropdown.contains(panel)) {
@@ -517,12 +404,11 @@ export class AIOS {
                 this.updateIntegrationStatus();
             } else if (section === 'usage') {
                 this.loadUsageData();
-            } else if (section === 'mindspace') {
-                this.screenAnalysis.renderMindspace('mindspace-list');
+                this.usageHistory.load();
+
             } else if (section === 'memory') {
                 this.loadMemories();
-            } else if (section === 'notes') {
-                this.loadAssistantNotes();
+
             } else if (section === 'deployments') {
                 this.deploySettingsManager.loadDeployments();
             } else if (section === 'files') {
@@ -530,8 +416,7 @@ export class AIOS {
             } else if (section === 'database') {
                 // Backward-compatibility for older menu entries.
                 this.deploySettingsManager.loadFiles();
-            } else if (section === 'offline-mode') {
-                if (this.offlineModelManager) this.offlineModelManager.refreshStatus();
+
             }
         }
     }
@@ -576,7 +461,7 @@ export class AIOS {
         }
 
         // Clone the account section content into the right panel
-        const accountSection = dropdown.querySelector('.settings-section.account-section');
+        const accountSection = this.accountSection;
         if (accountSection) {
             // Only refresh if the content has changed
             const accountHTML = accountSection.innerHTML;
@@ -592,10 +477,7 @@ export class AIOS {
             // Mirror the live content (account-logged-in or account-logged-out)
             const rightContent = accountPanel.querySelector('.desktop-account-right-content');
             if (rightContent) {
-                rightContent.innerHTML = accountSection.innerHTML;
-                // Remove the "Account" heading from the right panel clone (it's in the header)
-                const headingClone = rightContent.querySelector('.section-heading');
-                if (headingClone) headingClone.remove();
+                if (accountSection.parentElement !== rightContent) rightContent.replaceChildren(accountSection);
             }
         }
 
@@ -670,7 +552,10 @@ export class AIOS {
 
     async handleLogout() {
         if (confirm('Are you sure you want to log out?')) {
-            await supabase.auth.signOut();
+            const { error } = await supabase.auth.signOut();
+            if (error) { this.showNotification(error.message, 'error'); return; }
+            window.chat?.resetForSignOut();
+            if (window.todo) { window.todo.tasks = []; window.todo.renderTasks(); }
             this.showNotification('Logged out successfully.', 'success');
             this.closeProfileMenu();
             authGate.reinit();
@@ -1315,7 +1200,7 @@ export class AIOS {
                     // Check if popup was closed
                     if (authWindow.closed) {
                         clearInterval(checkInterval);
-                        console.log('OAuth popup closed');
+
                     }
                 } catch (e) {
                     // Cross-origin errors are expected
@@ -1471,7 +1356,7 @@ export class AIOS {
             // Clear all integration buttons when not logged in
             this.updateButtonUI(this.elements.githubConnectBtn, false);
             this.updateButtonUI(this.elements.googleConnectBtn, false);
-            this.updateButtonUI(this.elements.googleSheetsConnectBtn, false);
+            for (const provider of Object.keys(COMPOSIO_PROVIDERS)) this.updateButtonUI(document.getElementById(`connect-${provider.replace('composio-', '')}-btn`), false);
             this.updateButtonUI(this.elements.whatsappConnectBtn, false);
             this.updateButtonUI(this.elements.vercelConnectBtn, false);
             this.updateButtonUI(this.elements.supabaseConnectBtn, false);
@@ -1506,15 +1391,14 @@ export class AIOS {
     async updateComposioStatus(token = null) {
         const accessToken = token || await this._getAccessToken();
         if (!accessToken) {
-            this.updateButtonUI(this.elements.googleSheetsConnectBtn, false);
+            for (const provider of Object.keys(COMPOSIO_PROVIDERS)) this.updateButtonUI(document.getElementById(`connect-${provider.replace('composio-', '')}-btn`), false);
             this.updateButtonUI(this.elements.whatsappConnectBtn, false);
             return;
         }
 
-        const composioButtons = [
-            { provider: 'composio-googlesheets', button: this.elements.googleSheetsConnectBtn },
-            { provider: 'composio-whatsapp', button: this.elements.whatsappConnectBtn }
-        ];
+        const composioButtons = Object.keys(COMPOSIO_PROVIDERS).map(provider => ({
+            provider, button: document.getElementById(`connect-${provider.replace('composio-', '')}-btn`)
+        }));
 
         await Promise.all(composioButtons.map(async ({ provider, button }) => {
             const composioConfig = this.getComposioConfig(provider);
@@ -1607,7 +1491,7 @@ export class AIOS {
                     console.error('Error getting session after OAuth:', sessionError);
                     this.showNotification('Failed to complete sign-in. Please try again.', 'error');
                 } else if (data.session) {
-                    console.log('OAuth callback successful, user signed in:', data.session.user);
+
                     this.showNotification('Successfully signed in with Google!', 'success');
 
                     // Close the profile menu after successful login
@@ -1639,7 +1523,6 @@ export class AIOS {
         if (authSuccess === 'true' || authError === 'true') {
             // If we're in a popup (opened by window.open), notify the parent and close
             if (window.opener && !window.opener.closed) {
-                console.log('OAuth callback detected in popup, notifying parent window');
 
                 // Send message to parent window
                 window.opener.postMessage({
@@ -1700,115 +1583,13 @@ export class AIOS {
     // NOTES SECTION
     // =========================================================
 
-    async loadAssistantNotes() {
-        this._notesSetState('loading');
-
-        const storageEl = this.elements.notesStorageMeta || document.getElementById('notes-storage-meta');
-        if (storageEl) {
-            storageEl.textContent = 'Storage: loading...';
-        }
-
-        if (!this.nativeAssistantNotesPlugin) {
-            this.assistantNotesCache = [];
-            this._notesSetState('error');
-            if (storageEl) {
-                storageEl.textContent = 'Storage: native notes are only available in the Android app.';
-            }
-            return;
-        }
-
-        try {
-            const payload = await this.nativeAssistantNotesPlugin.getNotes();
-            const notes = Array.isArray(payload?.notes) ? payload.notes : [];
-            const storage = payload?.storage || {};
-            const count = Number.isFinite(payload?.count) ? payload.count : notes.length;
-
-            this.assistantNotesCache = notes;
-            this._renderAssistantNotes();
-
-            if (storageEl) {
-                const storageType = storage?.storage_type || 'unknown';
-                const relativePath = storage?.relative_path || '';
-                storageEl.textContent = `Storage: ${storageType}\nPath: ${relativePath}\nCount: ${count}`;
-            }
-        } catch (err) {
-            console.error('[Notes] loadAssistantNotes failed:', err);
-            this.assistantNotesCache = [];
-            this._notesSetState('error');
-            if (storageEl) {
-                storageEl.textContent = `Storage: failed to load (${err?.message || 'unknown error'})`;
-            }
-        }
-    }
-
-    _notesSetState(state) {
-        const loading = document.getElementById('notes-loading');
-        const empty = document.getElementById('notes-empty');
-        const error = document.getElementById('notes-error');
-        const list = this.elements.notesList || document.getElementById('notes-list');
-
-        [loading, empty, error].forEach(el => el?.classList.add('hidden'));
-        if (list) list.innerHTML = '';
-
-        if (state === 'loading') loading?.classList.remove('hidden');
-        else if (state === 'empty') empty?.classList.remove('hidden');
-        else if (state === 'error') error?.classList.remove('hidden');
-    }
-
-    _renderAssistantNotes() {
-        const list = this.elements.notesList || document.getElementById('notes-list');
-        if (!list) return;
-
-        if (!Array.isArray(this.assistantNotesCache) || this.assistantNotesCache.length === 0) {
-            this._notesSetState('empty');
-            return;
-        }
-
-        this._notesSetState('list');
-        list.innerHTML = '';
-
-        const notesDesc = [...this.assistantNotesCache].sort((a, b) => {
-            const ta = Number(a?.updated_at || a?.created_at || 0);
-            const tb = Number(b?.updated_at || b?.created_at || 0);
-            return tb - ta;
-        });
-
-        notesDesc.forEach(note => {
-            const card = this._buildAssistantNoteCard(note);
-            list.appendChild(card);
-        });
-    }
-
-    _buildAssistantNoteCard(note) {
-        const wrap = document.createElement('div');
-        wrap.className = 'notes-card';
-
-        const title = (note?.title || '').trim() || 'Untitled';
-        const content = (note?.content || '').trim();
-        const updatedAt = Number(note?.updated_at || note?.created_at || 0);
-        const relativeTime = updatedAt > 0 ? this._timeAgo(updatedAt) : '';
-        const absoluteTime = updatedAt > 0 ? new Date(updatedAt).toLocaleString() : '';
-        const timeText = relativeTime && absoluteTime ? `${relativeTime} (${absoluteTime})` : (relativeTime || absoluteTime || 'Unknown time');
-
-        wrap.innerHTML = `
-            <h3 class="notes-card-title">${this._esc(title)}</h3>
-            <div class="notes-card-time">${this._esc(timeText)}</div>
-            <div class="notes-card-content">${this._esc(content || 'No content')}</div>
-        `;
-        return wrap;
-    }
-
-    // ✦ MEMORY SECTION
-    // =========================================================
-
-    /** Return current session access token, or null if not logged in */
-    async _getAccessToken() {
-        await supabase.auth.refreshSession();
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.access_token || null;
-    }
-
     /** Load memories from GET /api/memories and render cards */
+    async _getAccessToken() {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        return data?.session?.access_token || null;
+    }
+
     async loadMemories() {
         const token = await this._getAccessToken();
         if (!token) return;
