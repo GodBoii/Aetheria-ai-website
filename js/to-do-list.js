@@ -105,6 +105,10 @@ export class ToDoList {
         this.elements.newTaskModal?.addEventListener('click', (e) => {
             if (e.target === this.elements.newTaskModal) this.closeNewTaskModal();
         });
+        this.elements.newTaskModal?.addEventListener('cancel', event => {
+            event.preventDefault();
+            this.closeNewTaskModal();
+        });
 
         // Repeat → custom interval toggle
         this.elements.taskRepeat?.addEventListener('change', (e) => {
@@ -186,10 +190,12 @@ export class ToDoList {
 
     openNewTaskModal() {
         this.elements.newTaskModal?.classList.remove('hidden');
+        this.elements.newTaskModal?.showModal();
         this.elements.taskNameInput?.focus();
     }
 
     closeNewTaskModal() {
+        this.elements.newTaskModal?.close();
         this.elements.newTaskModal?.classList.add('hidden');
         // Reset form
         if (this.elements.taskNameInput) this.elements.taskNameInput.value = '';
@@ -213,6 +219,9 @@ export class ToDoList {
             this.showNotification('Task name is required.', 'warning');
             return;
         }
+
+        if (this.elements.saveTaskBtn?.disabled) return;
+        this.elements.saveTaskBtn.disabled = true;
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -299,6 +308,8 @@ export class ToDoList {
         } catch (err) {
             console.error('Error creating task:', err);
             this.showNotification('Failed to create task: ' + err.message, 'error');
+        } finally {
+            this.elements.saveTaskBtn.disabled = false;
         }
     }
 
