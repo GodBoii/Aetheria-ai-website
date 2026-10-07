@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
   <!-- Primary SEO Metadata -->
   <title>Aetheria AI - Advanced AI-Powered Workspace & Operating System</title>
   <meta name="description" content="Aetheria AI is a premium, secure, and advanced AI-powered progressive web application operating system designed for streamlined task automation and intelligent workspace interactions." />
@@ -66,6 +66,7 @@
   <link rel="stylesheet" href="css/desktop-download-card.css?v=computer-use-1" />
   <!-- Desktop overrides MUST be loaded last to win the cascade on >=1024px -->
   <link rel="stylesheet" href="css/desktop.css?v=plan-mode-1" />
+  <link rel="stylesheet" href="css/web-parity.css" />
 
   <!-- Icon Libraries -->
   <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-thin-rounded/css/uicons-thin-rounded.css'>
@@ -80,12 +81,12 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
   <!-- JS Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/vendor/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="assets/vendor/socket.io.min.js"></script>
   <script defer src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 
@@ -147,7 +148,7 @@
     <!-- Top Bar (Simplified) -->
     <div class="top-bar">
       <div class="top-bar-action">
-        <button id="new-chat-btn" class="top-bar-btn" aria-haspopup="true" aria-expanded="false">
+        <button id="new-chat-btn" aria-label="Chat actions" class="top-bar-btn" aria-haspopup="true" aria-expanded="false">
           <i class="fi fi-tr-comment-medical"></i>
         </button>
         <div id="new-chat-menu" class="top-bar-dropdown hidden" role="menu">
@@ -159,6 +160,7 @@
             <i class="fi fi-tr-mail-plus-circle"></i>
             <span>New task</span>
           </button>
+          <button class="dropdown-item" data-dropdown-action="export-pdf" role="menuitem"><i class="fas fa-file-pdf" aria-hidden="true"></i><span>Export chat as PDF</span></button>
           <button class="dropdown-item" data-dropdown-action="project-workspace" role="menuitem">
             <i class="fas fa-code-branch"></i>
             <span id="project-workspace-menu-label">Coder Workspace</span>
@@ -212,6 +214,9 @@
               <i class="fas fa-rotate"></i>
               <span>Sync</span>
             </button>
+            <button type="button" class="project-workspace-quick-item" data-workspace-action="preview" role="menuitem"><i class="fas fa-eye" aria-hidden="true"></i><span>Preview project</span></button>
+            <button type="button" class="project-workspace-quick-item" data-workspace-action="deployment-status" role="menuitem"><i class="fas fa-code-compare" aria-hidden="true"></i><span>Compare with deployment</span></button>
+            <button type="button" class="project-workspace-quick-item" data-workspace-action="redeploy" role="menuitem"><i class="fas fa-cloud-arrow-up" aria-hidden="true"></i><span>Redeploy project</span></button>
             <button type="button" class="project-workspace-quick-item" data-workspace-action="github" role="menuitem">
               <i class="fab fa-github"></i>
               <span>GitHub</span>
@@ -224,9 +229,10 @@
         <div id="floating-input-container" class="floating-input-container">
           <div id="attachment-strip" class="attachment-strip hidden" aria-live="polite">
             <div id="file-previews-container" class="attachments-scroll" role="list"></div>
+
           </div>
           <div class="input-field">
-            <button id="attach-file-btn" class="input-action-btn circular-btn" aria-haspopup="true"
+            <button id="attach-file-btn" aria-label="Compose tools" class="input-action-btn circular-btn" aria-haspopup="true"
               aria-expanded="false"><i class="fa-regular fa-plus"></i></button>
             <div id="input-action-menu" class="input-action-menu hidden" role="menu" aria-label="Compose tools">
               <button type="button" class="input-action-menu-item" data-menu-action="new-chat" role="menuitem">
@@ -237,48 +243,19 @@
                 <i class="fas fa-paperclip"></i>
                 <span>Attach file</span>
               </button>
-              <!-- Shuffle dropdown: Memory + Tools -->
-              <div class="input-action-menu-item shuffle-btn-wrapper" data-menu-action="shuffle" role="menuitem">
-                <i class="fas fa-sliders-h"></i>
-                <span>Configure</span>
-                <div class="shuffle-menu" role="menu" aria-label="Memory and tools options">
-                  <!-- Memory Item with Toggle -->
-                  <div class="shuffle-item" data-action="memory" role="menuitem" tabindex="-1" aria-label="Toggle memory">
-                    <div class="shuffle-item-content">
-                      <i class="fa-solid fa-brain" aria-hidden="true"></i>
-                      <span class="shuffle-item-label">Memory</span>
-                    </div>
-                    <div class="toggle-switch" data-toggle="memory" role="switch" aria-checked="true">
-                      <div class="toggle-slider"></div>
-                    </div>
-                  </div>
-                  <!-- Tools Item (Navigation) -->
-                  <div class="shuffle-item shuffle-item-nav" data-action="tools" role="menuitem" tabindex="-1" aria-label="Open tools submenu" aria-haspopup="true">
-                    <div class="shuffle-item-content">
-                      <i class="fas fa-wrench" aria-hidden="true"></i>
-                      <span class="shuffle-item-label">Tools</span>
-                    </div>
-                    <i class="fas fa-chevron-right submenu-indicator" aria-hidden="true"></i>
-                    <!-- Tools Submenu -->
-                    <div class="tools-menu" role="menu" aria-label="Connected tools">
-                      <div class="tools-menu-header">
-                        <span class="tools-menu-title">CONNECTED TOOLS</span>
-                      </div>
-                      <div class="tool-items-list" data-role="integration-tools-list"></div>
-                      <div class="tool-item tool-empty-state" data-role="integration-tools-empty" aria-live="polite">
-                        <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
-                        <span>No connected tools</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <button type="button" class="input-action-menu-item" data-menu-action="tools" role="menuitem"><i class="fas fa-sliders-h" aria-hidden="true"></i><span>Memory and tools</span></button>
               <button type="button" class="input-action-menu-item" data-menu-action="sessions" role="menuitem">
                 <i class="fi fi-tr-rectangle-vertical-history"></i>
                 <span>Chats</span>
               </button>
+            <button id="ultra-think-btn" type="button" class="input-action-menu-item mode-menu-item"
+              data-menu-action="ultra-think" role="menuitem" aria-pressed="false" aria-disabled="false">
+              <i class="fas fa-bolt" aria-hidden="true"></i>
+              <span>Ultra Think</span>
+              <i class="fas fa-lock mode-lock-indicator" aria-hidden="true"></i>
+            </button>
             </div>
-            <textarea id="floating-input" class="floating-input" placeholder="Ask anything..." rows="1"></textarea>
+            <textarea id="floating-input" aria-label="Message" class="floating-input" placeholder="Ask anything..." rows="1"></textarea>
             <button id="plan-mode-btn" class="input-action-btn plan-mode-btn" type="button" aria-pressed="false"
               title="Plan Mode">
               <i class="fas fa-route" aria-hidden="true"></i>
@@ -294,32 +271,35 @@
                 <div class="waveform-bar"></div>
               </div>
             </button>
-            <button id="send-message" class="input-action-btn circular-btn"><i class="fas fa-arrow-up"></i></button>
+            <button id="send-message" class="input-action-btn circular-btn smart-voice-ready"
+              title="Start intelligent voice" aria-label="Start intelligent voice" data-action="smart-voice">
+              <span class="smart-voice-icon" aria-hidden="true">
+                <svg class="intelligent-bars-icon" viewBox="0 0 28 28" focusable="false">
+                  <g class="intelligent-voice-bars">
+                    <rect class="intelligent-voice-bar" x="5" y="10.5" width="2.4" height="8" rx="1.2"></rect>
+                    <rect class="intelligent-voice-bar" x="8.8" y="7.5" width="2.4" height="14" rx="1.2"></rect>
+                    <rect class="intelligent-voice-bar" x="12.6" y="5.5" width="2.8" height="18" rx="1.4"></rect>
+                    <rect class="intelligent-voice-bar" x="16.8" y="8.5" width="2.4" height="12" rx="1.2"></rect>
+                    <rect class="intelligent-voice-bar" x="20.6" y="11" width="2.4" height="7" rx="1.2"></rect>
+                  </g>
+                  <path class="intelligent-voice-star"
+                    d="M22.8 2.8c.35 1.2 1.05 1.9 2.25 2.25-1.2.35-1.9 1.05-2.25 2.25-.35-1.2-1.05-1.9-2.25-2.25 1.2-.35 1.9-1.05 2.25-2.25Z"></path>
+                </svg>
+              </span>
+              <i class="fas fa-paper-plane send-icon"></i>
+              <i class="fas fa-stop stop-icon"></i>
+              <i class="fas fa-spinner fa-spin processing-icon"></i>
+              <span class="smart-voice-state-swap t-icon-swap" data-state="a" aria-hidden="true">
+                <span class="smart-composing-orb t-icon" data-icon="a" data-theme="light"></span>
+                <span class="smart-processing-indicator t-icon" data-icon="b">
+                  <span class="smart-processing-ring"></span>
+                  <span class="smart-processing-core"></span>
+                </span>
+              </span>
+            </button>
           </div>
         </div>
         <input type="file" id="file-input" style="display: none;" multiple />
-      </div>
-    </div>
-  </div>
-
-  <!-- Assistant Overlay -->
-  <div id="assist-overlay" class="assist-overlay hidden">
-    <div class="assist-backdrop"></div>
-    <div class="assist-sheet">
-      <div class="assist-handle"></div>
-      <button id="assist-expand-btn"
-        style="position: absolute; top: 15px; right: 20px; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 1.2rem; cursor: pointer;">
-        <i class="fi fi-tr-expand"></i>
-      </button>
-      <div class="assist-content"
-        style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px;">
-        <div class="assist-response" id="assist-response-text">
-          Hi, I'm listening
-        </div>
-        <div class="assist-input-area">
-          <div class="assist-glow-orb"></div>
-        </div>
-        <div class="assist-status" id="assist-status-text">Listening...</div>
       </div>
     </div>
   </div>
@@ -490,11 +470,11 @@
     </div>
   </div>
 
-
   <!-- Application Logic -->
   <script type="module">
     import { AIOS } from './js/aios.js';
-    import { chatModule } from './js/chat.js?v=attachments-1';
+    import { chatModule } from './js/chat.js';
+    import { pdfExportService } from './js/pdf-export-service.js';
     import { ProjectWorkspaceManager } from './js/project-workspace-manager.js';
     import { ToDoList } from './js/to-do-list.js';
     import ContextHandler from './js/context-handler.js';
@@ -503,10 +483,7 @@
     import { messageFormatter } from './js/message-formatter.js';
     import skeletonLoader from './js/skeleton-loader.js';
     import { authGate } from './js/auth-gate.js';
-    import { desktopDownloadCard } from './js/desktop-download-card.js?v=computer-use-1';
-    import './js/assist.js'; // Logic for Assistant Overlay
-
-    desktopDownloadCard.init();
+    import { openToolSettings } from './js/web-tool-settings.js';
 
     // Download button logic
     (function () {
@@ -1012,6 +989,14 @@
       window.voiceInputHandler = voiceInputHandler;
       console.log('[Init] Initializing chat module...');
       window.chat.init(contextHandler, fileAttachmentHandler, window.contextViewer);
+      const composer = document.getElementById('floating-input-container');
+      const updateComposerClearance = () => {
+        const gap = window.matchMedia('(min-width: 1024px)').matches ? 48 : 24;
+        document.documentElement.style.setProperty('--web-composer-clearance', `${Math.ceil(composer.getBoundingClientRect().height) + gap}px`);
+      };
+      const composerObserver = new ResizeObserver(updateComposerClearance);
+      composerObserver.observe(composer);
+      updateComposerClearance();
       console.log('[Init] Chat module initialized');
       window.projectWorkspace = new ProjectWorkspaceManager();
       bindUIEvents();
@@ -1065,6 +1050,34 @@
         closeDropdowns();
       }
 
+      document.addEventListener('keydown', event => {
+        if (document.querySelector('dialog[open]')) return;
+        const focused = document.activeElement;
+        let menu = focused?.closest('[role="menu"]');
+        if (event.key === 'ArrowDown' && (focused === newChatBtn || focused === attachMenuTrigger)) {
+          const target = focused === newChatBtn ? newChatMenu : inputActionMenu;
+          if (target.classList.contains('hidden')) focused.click();
+          menu = target;
+          menu.querySelector('button[role="menuitem"]')?.focus();
+          event.preventDefault();
+          return;
+        }
+        if (!menu) return;
+        const items = Array.from(menu.querySelectorAll('button[role="menuitem"]:not(:disabled)'));
+        if (event.key === 'Escape') {
+          const trigger = menu === newChatMenu ? newChatBtn : menu === inputActionMenu ? attachMenuTrigger : document.getElementById('project-workspace-actions-btn');
+          closeDropdowns();
+          trigger?.focus();
+          event.preventDefault();
+        } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) && items.length) {
+          const index = items.indexOf(focused);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+            : (index + (event.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length;
+          items[next].focus();
+          event.preventDefault();
+        }
+      });
+
       // Profile menu button handler is now in aios.js
 
       newChatBtn?.addEventListener('click', (event) => {
@@ -1089,6 +1102,8 @@
         } else if (action === 'new-task') {
           closeFloatingWindows();
           window.todo?.toggleWindow(true);
+        } else if (action === 'export-pdf') {
+          pdfExportService.exportEntireConversationPdf().catch(error => window.chat?.showNotification(error.message, 'error'));
         } else if (action === 'project-workspace') {
           window.projectWorkspace?.toggleFromMenu?.();
         }
@@ -1118,6 +1133,16 @@
         if (!item) return;
 
         const action = item.dataset.menuAction;
+        if (action === 'tools') {
+          closeDropdowns();
+          openToolSettings(window.chat);
+          return;
+        }
+        if (action === 'ultra-think') {
+          window.chat?.toggleUltraThinkMode?.();
+          closeDropdowns();
+          return;
+        }
         console.log('[UI] Input action menu clicked:', action);
 
         if (action === 'new-chat') {
@@ -1151,7 +1176,17 @@
         }
       });
 
+      document.getElementById('plan-mode-btn')?.addEventListener('click', () => {
+        window.chat?.togglePlanMode?.();
+      });
+
       sendBtn?.addEventListener('click', () => {
+        const action = sendBtn.dataset.action;
+        if (action === 'smart-voice' || action === 'stop-smart-voice') {
+          window.voiceInputHandler?.toggleIntelligentListening();
+          return;
+        }
+        if (action === 'none') return;
         if (window.chat?.isSessionActive?.()) {
           window.chat.stopCurrentResponse?.();
           return;
@@ -1259,8 +1294,6 @@
       setTimeout(updateAvatar, 4000);
     }
 
-
-
     // Register Service Worker for PWA functionality
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -1357,76 +1390,7 @@
   </script>
 
   <!-- Shuffle Menu Controller (Memory + Tools Dropdown) -->
-  <script>
-    (function() {
-      const shuffleWrapper = document.querySelector('.shuffle-btn-wrapper');
-      if (!shuffleWrapper) return;
 
-      const shuffleMenu = shuffleWrapper.querySelector('.shuffle-menu');
-      const memoryToggle = shuffleMenu?.querySelector('.toggle-switch[data-toggle="memory"]');
-      const toolsNav = shuffleMenu?.querySelector('.shuffle-item-nav[data-action="tools"]');
-      const toolsMenu = shuffleMenu?.querySelector('.tools-menu');
-
-      // Set memory on by default
-      if (memoryToggle) {
-        memoryToggle.setAttribute('aria-checked', 'true');
-      }
-
-      // Toggle shuffle menu visibility on click
-      shuffleWrapper.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (shuffleMenu) {
-          shuffleMenu.classList.toggle('visible');
-        }
-      });
-
-      // Memory toggle
-      if (memoryToggle) {
-        memoryToggle.addEventListener('click', function(e) {
-          e.stopPropagation();
-          const isChecked = memoryToggle.getAttribute('aria-checked') === 'true';
-          const next = !isChecked;
-          memoryToggle.setAttribute('aria-checked', String(next));
-          // Dispatch to chatModule
-          if (window.chat && typeof window.chat.setMemoryEnabled === 'function') {
-            window.chat.setMemoryEnabled(next);
-          } else {
-            // Try dispatching a custom event for chatModule to pick up
-            document.dispatchEvent(new CustomEvent('shuffleMemoryToggle', { detail: { enabled: next } }));
-          }
-        });
-      }
-
-      // Tools submenu hover/click
-      if (toolsNav && toolsMenu) {
-        toolsNav.addEventListener('mouseenter', function() {
-          toolsMenu.classList.add('visible');
-        });
-        toolsNav.addEventListener('mouseleave', function() {
-          toolsMenu.classList.remove('visible');
-        });
-        toolsNav.addEventListener('click', function(e) {
-          e.stopPropagation();
-          toolsMenu.classList.toggle('visible');
-        });
-      }
-
-      // Close menus when clicking outside
-      document.addEventListener('click', function(e) {
-        if (!shuffleWrapper.contains(e.target)) {
-          shuffleMenu?.classList.remove('visible');
-          toolsMenu?.classList.remove('visible');
-        }
-      });
-
-      // Listen for custom event from chatModule to update toggle state
-      document.addEventListener('shuffleMemoryToggle', function(e) {
-        if (memoryToggle && e.detail) {
-          memoryToggle.setAttribute('aria-checked', String(!!e.detail.enabled));
-        }
-      });
-    })();
-  </script>
 </body>
 
 </html>
