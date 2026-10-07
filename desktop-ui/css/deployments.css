@@ -1,0 +1,1128 @@
+/* ================================================================= */
+/* DEPLOYMENTS TAB STYLES                                            */
+/* Styles for the Deployments section in Account Settings           */
+/* ================================================================= */
+
+/* ── Deployment Card ─────────────────────────────────────────────── */
+.deployment-card {
+    position: relative;
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 0;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.25s ease;
+
+    /* Light mode */
+    background: var(--elevated-bg);
+    border: 1px solid var(--border-primary);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Shimmer sweep on hover */
+.deployment-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(105deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.06) 50%,
+        transparent 80%);
+    pointer-events: none;
+    transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+}
+
+/* Left accent bar */
+.deployment-card::after {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: 0;
+    width: 3px;
+    height: 60%;
+    border-radius: 0 3px 3px 0;
+    background: transparent;
+    transition: background 0.25s ease, height 0.3s ease, top 0.3s ease;
+}
+
+.deployment-card:hover::before { left: 120%; }
+
+.deployment-card:hover::after {
+    background: linear-gradient(180deg, #a78bfa, #7c3aed);
+    top: 10%;
+    height: 80%;
+}
+
+.deployment-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(167, 139, 250, 0.35);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.10),
+        0 2px 8px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Dark mode card */
+.dark-mode .deployment-card {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.40),
+        0 1px 6px rgba(0, 0, 0, 0.30),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark-mode .deployment-card:hover {
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(167, 139, 250, 0.30);
+    box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.55),
+        0 4px 14px rgba(0, 0, 0, 0.40),
+        inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+/* ── Card Header ─────────────────────────────────────────────────── */
+.deployment-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+    z-index: 1;
+}
+
+.dark-mode .deployment-card-header {
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Title row: icon + name + hostname + badge */
+.deployment-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Card icon pill */
+.deployment-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(124, 58, 237, 0.10);
+    border: 1px solid rgba(124, 58, 237, 0.20);
+    color: #a78bfa;
+    transition: all 0.25s ease;
+}
+
+.deployment-card:hover .deployment-card-icon {
+    background: rgba(124, 58, 237, 0.18);
+    border-color: rgba(124, 58, 237, 0.35);
+    transform: scale(1.08);
+}
+
+/* Name group */
+.deployment-card-name-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.deployment-card-name {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s ease;
+}
+
+.deployment-card:hover .deployment-card-name {
+    color: #a78bfa;
+}
+
+.deployment-card-hostname {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.75;
+}
+
+/* ── Status Pill ─────────────────────────────────────────────────── */
+.deployment-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.deployment-status-pill.pill-active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.deployment-status-pill.pill-draft {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.deployment-status-pill.pill-default {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.20);
+}
+
+/* ── Actions Bar ─────────────────────────────────────────────────── */
+.deployment-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ── Version Chip ─────────────────────────────────────────────────
+   A single, self-contained chip — NO outer wrapper that creates
+   a second border layer. The select IS the chip.
+   ──────────────────────────────────────────────────────────────── */
+.deployment-version-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px 0 10px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.deployment-version-chip:focus-within {
+    border-color: rgba(167, 139, 250, 0.45);
+    background: rgba(167, 139, 250, 0.06);
+}
+
+.deployment-version-icon {
+    font-size: 10px;
+    color: #a78bfa;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+/* The select itself is invisible — just text + system arrow hidden */
+.deployment-version-select {
+    /* Reset completely */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    /* Typography */
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-color);
+    cursor: pointer;
+    /* Sizing */
+    min-width: 90px;
+    max-width: 130px;
+    /* Custom chevron via background */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+    background-size: 10px;
+    padding-right: 16px;
+}
+
+.deployment-version-select:disabled {
+    cursor: default;
+    opacity: 0.65;
+    /* No custom arrow when only one version */
+    background-image: none;
+    padding-right: 0;
+}
+
+/* Force dark dropdown options — critical for Electron readability */
+.dark-mode .deployment-version-select {
+    color: rgba(240, 240, 240, 0.92);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* Options need explicit colours because Electron renders native OS dropdowns */
+.deployment-version-select option {
+    background: #1a1a1e !important;
+    color: #f0f0f0 !important;
+    font-size: 13px;
+    padding: 8px 12px;
+}
+
+.deployment-version-select option:checked,
+.deployment-version-select option:hover {
+    background: #2d1f6e !important;
+    color: #e0d4ff !important;
+}
+
+/* ── Action Buttons ─────────────────────────────────────────────── */
+.deployment-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    letter-spacing: 0.01em;
+}
+
+/* Code button — accent filled */
+.deployment-code-btn {
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    color: #a78bfa;
+}
+
+.deployment-code-btn:hover {
+    background: rgba(124, 58, 237, 0.22);
+    border-color: rgba(167, 139, 250, 0.45);
+    color: #c4b5fd;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.22);
+}
+
+.deployment-code-btn:active {
+    transform: scale(0.96) translateY(0);
+}
+
+/* Expand button — ghost */
+.deployment-expand-btn {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: var(--text-secondary);
+}
+
+.deployment-expand-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.20);
+    color: var(--text-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20);
+}
+
+.deployment-expand-btn:active {
+    transform: scale(0.94);
+}
+
+/* ── Meta Grid ──────────────────────────────────────────────────── */
+.deployment-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.deployment-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+/* Full width row (e.g. R2 Prefix which is very long) */
+.deployment-meta-full {
+    grid-column: 1 / -1;
+}
+
+.deployment-meta-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.deployment-meta-value {
+    font-size: 12.5px;
+    color: var(--text-color);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    transition: color 0.2s ease;
+}
+
+.deployment-meta-value.mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 11.5px;
+}
+
+.deployment-card:hover .deployment-meta-value {
+    color: rgba(167, 139, 250, 0.9);
+}
+
+/* ── Expand Deployment Btn (legacy compat) ───────────────────────── */
+.expand-deployment-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.expand-deployment-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: var(--text-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20);
+}
+
+.expand-deployment-btn:active {
+    transform: scale(0.94);
+}
+
+
+
+/* Deployment Detail Modal */
+.deployment-detail-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1300;
+    padding: 20px;
+    animation: deployModalFadeIn 0.2s ease-out;
+}
+
+.deployment-detail-modal.hidden {
+    display: none;
+}
+
+.deployment-detail-dialog {
+    width: min(1400px, 95vw);
+    height: min(900px, 90vh);
+    background: var(--window-bg);
+    border-radius: 20px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: deployDialogSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes deployModalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes deployDialogSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Deployment Detail Header */
+.deployment-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 28px;
+    background: var(--elevated-bg);
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.deployment-detail-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.deployment-detail-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+    color: var(--elevated-bg);
+    border-radius: 14px;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(var(--accent-color-rgb), 0.25);
+    transition: all 0.3s ease;
+}
+
+.deployment-detail-icon:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(var(--accent-color-rgb), 0.35);
+}
+
+.deployment-detail-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.deployment-detail-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-color);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    letter-spacing: -0.02em;
+}
+
+.deployment-detail-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.deployment-detail-close {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.deployment-detail-close:hover {
+    background: var(--hover-bg);
+    color: var(--text-color);
+    transform: rotate(90deg);
+}
+
+/* Deployment Detail Content */
+.deployment-detail-content {
+    flex: 1;
+    display: flex;
+    gap: 20px;
+    padding: 0 28px 28px 28px;
+    overflow: hidden;
+}
+
+.deployment-detail-left {
+    width: 45%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.deployment-detail-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.deployment-detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Info Cards */
+.deployment-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.deployment-info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.deployment-info-card:hover {
+    box-shadow: 0 8px 24px rgba(var(--accent-color-rgb), 0.12);
+    transform: translateY(-3px);
+    border-color: var(--accent-muted);
+}
+
+.deployment-info-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--accent-muted) 0%, rgba(var(--accent-color-rgb), 0.04) 100%);
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.deployment-info-card-header i {
+    font-size: 16px;
+    color: var(--accent-color);
+    transition: transform 0.2s ease;
+}
+
+.deployment-info-card:hover .deployment-info-card-header i {
+    transform: scale(1.1);
+}
+
+.deployment-info-card-header span {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.deployment-info-card-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.deployment-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.deployment-info-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+}
+
+.deployment-info-value {
+    font-size: 13px;
+    color: var(--text-color);
+    text-align: right;
+    word-break: break-all;
+}
+
+.deployment-info-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+}
+
+/* File Tree Card */
+.deployment-file-tree-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 300px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+}
+
+.deployment-file-tree-card:hover {
+    box-shadow: 0 8px 24px rgba(var(--accent-color-rgb), 0.12);
+    border-color: var(--accent-muted);
+}
+
+.deployment-file-tree-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--accent-muted) 0%, rgba(var(--accent-color-rgb), 0.04) 100%);
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.deployment-file-tree-header i {
+    font-size: 16px;
+    color: var(--accent-color);
+    transition: transform 0.2s ease;
+}
+
+.deployment-file-tree-card:hover .deployment-file-tree-header i {
+    transform: scale(1.1);
+}
+
+.deployment-file-tree-header span {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.deployment-file-tree-list {
+    list-style: none;
+    margin: 0;
+    padding: 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 13px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.deployment-file-tree-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.deployment-file-tree-item:hover {
+    background: var(--hover-bg);
+    transform: translateX(4px);
+}
+
+.deployment-file-tree-item i {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.deployment-file-tree-item:hover i {
+    transform: scale(1.15);
+}
+
+.deployment-file-tree-item.file i {
+    color: var(--accent-color);
+}
+
+.deployment-file-tree-item.folder i {
+    color: var(--icon-color);
+}
+
+.deployment-file-size {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* Preview Card */
+.deployment-preview-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+}
+
+.deployment-preview-card:hover {
+    box-shadow: 0 8px 24px rgba(var(--accent-color-rgb), 0.12);
+    border-color: var(--accent-muted);
+}
+
+.deployment-preview-header {
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--accent-muted) 0%, rgba(var(--accent-color-rgb), 0.04) 100%);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.deployment-preview-url-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    min-width: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+}
+
+.deployment-preview-url-container:hover {
+    border-color: var(--accent-color);
+    background: var(--hover-bg);
+}
+
+.deployment-preview-url-container i {
+    font-size: 14px;
+    color: var(--accent-color);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.deployment-preview-url-container:hover i {
+    transform: scale(1.1);
+}
+
+.deployment-preview-url {
+    flex: 1;
+    color: var(--text-color);
+    font-size: 13px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.deployment-preview-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.deployment-preview-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--elevated-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.deployment-preview-btn:hover {
+    background: var(--accent-muted);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(var(--accent-color-rgb), 0.2);
+}
+
+.deployment-preview-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.deployment-preview-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 0 0 16px 16px;
+}
+
+.deployment-preview-frame {
+    flex: 1;
+    border: none;
+    background: #ffffff;
+    width: 100%;
+    height: 100%;
+}
+
+/* Webview specific styles for Electron */
+webview.deployment-preview-frame {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+}
+
+.deployment-preview-loading {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--text-secondary);
+    padding: 40px;
+}
+
+.deployment-preview-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--accent-muted);
+    border-left-color: var(--accent-color);
+    border-radius: 50%;
+    animation: deploymentSpin 1s linear infinite;
+}
+
+@keyframes deploymentSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ================================================================= */
+/* DARK MODE GLASSMORPHISM ENHANCEMENTS                             */
+/* ================================================================= */
+
+.dark-mode .deployment-detail-dialog {
+    background: rgba(10, 10, 10, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    box-shadow: 
+        0 24px 64px rgba(0, 0, 0, 0.80),
+        0 12px 32px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.50);
+}
+
+.dark-mode .deployment-detail-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.dark-mode .deployment-detail-icon {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
+    color: rgba(255, 255, 255, 0.95);
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.50),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.dark-mode .deployment-detail-icon:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.12) 100%);
+    box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.60),
+        inset 0 1px 0 rgba(255, 255, 255, 0.20);
+}
+
+.dark-mode .deployment-info-card,
+.dark-mode .deployment-file-tree-card,
+.dark-mode .deployment-preview-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.09);
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.55),
+        0 2px 8px rgba(0, 0, 0, 0.40),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.dark-mode .deployment-info-card:hover,
+.dark-mode .deployment-file-tree-card:hover,
+.dark-mode .deployment-preview-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.65),
+        0 6px 20px rgba(0, 0, 0, 0.50),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.dark-mode .deployment-info-card-header,
+.dark-mode .deployment-file-tree-header,
+.dark-mode .deployment-preview-header {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.dark-mode .deployment-preview-url-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.dark-mode .deployment-preview-url-container:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.50),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.dark-mode .deployment-preview-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.dark-mode .deployment-preview-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.dark-mode .deployment-file-tree-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .deployment-detail-close {
+    background: transparent;
+}
+
+.dark-mode .deployment-detail-close:hover {
+    background: rgba(255, 255, 255, 0.10);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.50),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.dark-mode .deployment-preview-container {
+    background: #000000;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Glass shine effect on hover */
+.dark-mode .deployment-info-card::before,
+.dark-mode .deployment-file-tree-card::before,
+.dark-mode .deployment-preview-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.05), 
+        transparent
+    );
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+
+.dark-mode .deployment-info-card:hover::before,
+.dark-mode .deployment-file-tree-card:hover::before,
+.dark-mode .deployment-preview-card:hover::before {
+    left: 100%;
+}
+
+/* Ensure cards have position relative for pseudo-elements */
+.deployment-info-card,
+.deployment-file-tree-card,
+.deployment-preview-card {
+    position: relative;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .deployment-detail-content {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .deployment-detail-left {
+        width: 100%;
+        max-height: 40%;
+        padding-right: 0;
+    }
+
+    .deployment-detail-right {
+        max-height: 60%;
+    }
+}
+
+@media (max-width: 768px) {
+    .deployment-detail-dialog {
+        width: 95vw;
+        height: 95vh;
+        border-radius: 16px;
+    }
+
+    .deployment-detail-header {
+        padding: 20px;
+    }
+
+    .deployment-detail-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .deployment-detail-title {
+        font-size: 18px;
+    }
+
+    .deployment-detail-content {
+        padding: 0 20px 20px 20px;
+    }
+}
