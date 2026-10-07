@@ -3,14 +3,19 @@
   "version": "1.0.4",
   "description": "Aetheria AI PWA: An AI-Powered Progressive Web Application",
   "scripts": {
+    "prestart": "node scripts/prepare-vendor.js",
+    "prebuild": "node scripts/prepare-vendor.js",
+    "pretest": "node scripts/prepare-vendor.js",
     "start": "http-server . -p 3000 -c-1",
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "test": "node --test tests/web-parity.test.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.10",
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "playwright": "^1.63.0"
   }
 }
