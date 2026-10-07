@@ -1,5 +1,5 @@
 // sw.js - Production Service Worker fo5 Aetheria AI PWA
-const CACHE_VERSION = 'aetheria-v1.1.43';
+const CACHE_VERSION = 'aetheria-web-parity-v1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
@@ -151,9 +151,12 @@ self.addEventListener('fetch', (event) => {
   // CRITICAL: Never cache real-time endpoints (socket.io, sessions API)
   // This prevents stale connection states and ensures fresh data
   if (url.pathname.includes('socket.io') ||
-    url.pathname.includes('/api/integrations')) {
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/login/') ||
+    url.hostname.endsWith('.supabase.co') ||
+    request.headers.has('Authorization')) {
     // Direct network request, no caching
-    event.respondWith(fetch(request));
+    event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
   }
 
