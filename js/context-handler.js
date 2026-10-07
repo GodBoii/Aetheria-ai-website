@@ -1,3 +1,4 @@
+import { getAuthenticatedSession } from './session-auth.js';
 import { backendRequest, uploadReadUrl } from './backend-api.js';
 // js/context-handler.js (Corrected)
 
@@ -96,6 +97,13 @@ class ContextHandler {
         });
         this.elements.panel?.addEventListener('click', (e) => e.stopPropagation());
         this.elements.closeContextBtn?.addEventListener('click', () => this.toggleWindow(false));
+        this.elements.contextWindow.addEventListener('keydown', event => {
+            if (document.querySelector('dialog[open]')) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.toggleWindow(false);
+            }
+        });
 
         // Sync/refresh button
         this.elements.syncBtn?.addEventListener('click', () => {
@@ -126,7 +134,7 @@ class ContextHandler {
         }
 
         if (show) {
-
+            if (!this.isWindowOpen) this.returnFocus = document.activeElement.closest('[role="menu"]') ? document.getElementById('attach-file-btn') : document.activeElement;
             this.isWindowOpen = true;
             if (buttonElement) {
                 this.triggerButton = buttonElement;
@@ -136,6 +144,7 @@ class ContextHandler {
             this.elements.contextWindow.classList.remove('hidden');
 
             this.renderCurrentState();
+            this.elements.closeContextBtn?.focus();
 
             if (this.loadingState === 'idle') {
 
@@ -146,13 +155,14 @@ class ContextHandler {
 
             }
         } else {
-
+            const returnFocus = this.elements.contextWindow.contains(document.activeElement);
             this.isWindowOpen = false;
             this.elements.contextWindow.classList.add('hidden');
             if (this.triggerButton) {
                 this.triggerButton.classList.remove('active');
                 this.triggerButton = null;
             }
+            if (returnFocus) this.returnFocus?.focus();
         }
     }
 
@@ -209,19 +219,7 @@ class ContextHandler {
         const loadPromise = (async () => {
             try {
 
-                try {
-                    await supabase.auth.refreshSession();
-
-                } catch (refreshError) {
-                    console.warn('[ContextHandler] Supabase session refresh failed:', refreshError);
-                }
-
-                const { data: authData, error: authError } = await supabase.auth.getSession();
-                const session = authData?.session;
-
-                if (authError || !session?.access_token) {
-                    throw new Error('Please log in to view chat history.');
-                }
+                const session = await getAuthenticatedSession();
 
                 const userId = session.user.id;
 
@@ -406,13 +404,7 @@ class ContextHandler {
         this.showLoadingMoreIndicator();
 
         try {
-            await supabase.auth.refreshSession();
-            const { data: authData, error: authError } = await supabase.auth.getSession();
-            const session = authData?.session;
-
-            if (authError || !session?.access_token) {
-                throw new Error('Session expired. Please log in again.');
-            }
+            const session = await getAuthenticatedSession();
 
             const userId = session.user.id;
 
@@ -718,11 +710,11 @@ class ContextHandler {
     }
 
     getSessionItemHTML(session, sessionName, formattedDate) {
-        const checkboxId = `session-check-${session.session_id}`;
+        const checkboxId = `session-check-${this.escapeHtml(session.session_id)}`;
         const workspaceBadge = this.getSessionWorkspaceBadgeHTML(session);
         return `
             <div class="session-select">
-                <input type="checkbox" class="session-checkbox" id="${checkboxId}" />
+                <input type="checkbox" class="session-checkbox" id="${checkboxId}" aria-label="Select ${this.escapeHtml(sessionName)}" />
                 <label for="${checkboxId}" class="custom-checkbox"></label>
             </div>
             <button type="button" class="session-content" aria-label="Open ${this.escapeHtml(sessionName)}">
