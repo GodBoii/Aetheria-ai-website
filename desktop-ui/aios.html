@@ -1,0 +1,772 @@
+<!-- aios.html (Complete, Updated Version) -->
+<div id="floating-window" class="floating-window hidden">
+    <div class="window-header">
+        <div class="window-title">Account</div>
+        <button class="close-btn" id="close-aios" aria-label="Close Settings">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="window-content">
+        <div class="split-layout">
+            <div class="tabs-sidebar">
+                <button class="tab-btn active" data-tab="account">
+                    <i class="fi fi-tr-circle-user"></i>
+                    <span>Account</span>
+                </button>
+                <button class="tab-btn" data-tab="integration">
+                    <i class="fi fi-tr-layer-plus"></i>
+                    <span>Integration</span>
+                </button>
+                <button class="tab-btn" data-tab="deployments">
+                    <i class="fi fi-tr-rocket-lunch"></i>
+                    <span>Deployments</span>
+                </button>
+                <button class="tab-btn" data-tab="database">
+                    <i class="fi fi-tr-vault"></i>
+                    <span>Files</span>
+                </button>
+                <button class="tab-btn" data-tab="memory">
+                    <i class="fi fi-tr-brain-circuit"></i>
+                    <span>Memory</span>
+                </button>
+                <button class="tab-btn" data-tab="capabilities">
+                    <i class="fi fi-tr-microchip-ai"></i>
+                    <span>Capabilities</span>
+                </button>
+                <button class="tab-btn" data-tab="about">
+                    <i class="fi fi-tr-information"></i>
+                    <span>About</span>
+                </button>
+                <button class="tab-btn" data-tab="support">
+                    <i class="fi fi-tr-customer-service"></i>
+                    <span>Support</span>
+                </button>
+                <button class="tab-btn" data-tab="updates">
+                    <i class="fi fi-tr-rotate-square"></i>
+                    <span>Updates</span>
+                </button>
+            </div>
+
+            <div class="tab-content-area">
+                <div class="tab-content active" id="account-tab">
+                    <h3 class="tab-heading">Account</h3>
+                    
+                    <!-- Logged Out State -->
+                    <div id="account-logged-out" class="auth-state">
+                        <div class="auth-tabs">
+                            <button class="auth-tab-btn active" data-auth-tab="login">Login</button>
+                            <button class="auth-tab-btn" data-auth-tab="signup">Sign Up</button>
+                        </div>
+                        
+                        <!-- Login Form -->
+                        <form id="login-form" class="auth-form active">
+                            <div class="form-group">
+                                <label for="loginEmail">Email</label>
+                                <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="loginPassword">Password</label>
+                                <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                            </div>
+                            <div id="login-error" class="auth-error"></div>
+                            <div class="form-actions">
+                                <button type="submit" class="auth-btn primary">Login</button>
+                            </div>
+                            
+                            <div class="social-auth-divider">OR</div>
+                            <div class="social-auth-actions">
+                                <button type="button" id="google-signin-btn" class="auth-btn social">
+                                    <i class="fab fa-google"></i>
+                                    <span>Sign in with Google</span>
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Sign Up Form -->
+                        <form id="signup-form" class="auth-form">
+                            <div class="form-group">
+                                <label for="signupName">Name</label>
+                                <input type="text" id="signupName" placeholder="Enter your name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="signupEmail">Email</label>
+                                <input type="email" id="signupEmail" placeholder="Enter your email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="signupPhone">Mobile Number</label>
+                                <input type="tel" id="signupPhone" placeholder="+91 98765 43210" autocomplete="tel" inputmode="tel" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="signupPassword">Password</label>
+                                <input type="password" id="signupPassword" placeholder="Create a password" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm Password</label>
+                                <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+                            </div>
+                            <div id="signup-error" class="auth-error"></div>
+                            <div class="form-actions">
+                                <button type="submit" class="auth-btn primary">Sign Up</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Logged In State -->
+                    <div id="account-logged-in" class="auth-state hidden">
+                        
+                        <!-- NEW: User Identity Card -->
+                        <div class="user-identity-card">
+                            <div class="user-avatar-container" id="account-avatar">
+                                <!-- Avatar img or initials div will be dynamically inserted here -->
+                            </div>
+                            <div class="user-info">
+                                <span class="user-name-display" id="account-userName"></span>
+                                <span class="user-email-display" id="account-userEmail"></span>
+                            </div>
+                            <button class="logout-button" id="logout-btn" title="Log out">
+                                <i class="fi fi-tr-sign-out-alt"></i>
+                            </button>
+                        </div>
+                        <!-- END: User Identity Card -->
+
+                        <section class="account-usage-section" aria-labelledby="usage-title">
+                            <div class="usage-header">
+                                <div class="usage-header-left">
+                                    <h4 class="usage-title" id="usage-title">Usage</h4>
+                                    <button type="button" class="btn-icon usage-graph-toggle" id="usage-graph-toggle" title="Toggle graph view" aria-label="Toggle graph view">
+                                        <i class="fi fi-tr-chart-line-up"></i>
+                                    </button>
+                                </div>
+                                <button type="button" class="btn-secondary usage-refresh-btn" id="refresh-usage-btn">
+                                    <i class="fi fi-tr-refresh"></i>
+                                    Refresh
+                                </button>
+                            </div>
+
+                            <!-- Summary View (Default) -->
+                            <div class="usage-display" id="usage-summary-view">
+                                <div class="usage-lifetime-label" id="usage-period-label">Lifetime Usage</div>
+                                <div class="usage-total-hero" id="usage-total-tokens">-</div>
+                                <div class="usage-breakdown">
+                                    <div class="usage-breakdown-item">
+                                        <span class="breakdown-label">Input</span>
+                                        <span class="breakdown-value" id="usage-input-tokens">-</span>
+                                    </div>
+                                    <div class="usage-breakdown-divider"></div>
+                                    <div class="usage-breakdown-item">
+                                        <span class="breakdown-label">Output</span>
+                                        <span class="breakdown-value" id="usage-output-tokens">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Graph View (Hidden by default) -->
+                            <div class="usage-graph-view hidden" id="usage-graph-view">
+                                <div class="usage-graph-period-selector">
+                                    <button type="button" class="period-btn active" data-period="7">7D</button>
+                                    <button type="button" class="period-btn" data-period="14">14D</button>
+                                    <button type="button" class="period-btn" data-period="30">30D</button>
+                                    <button type="button" class="period-btn" data-period="90">90D</button>
+                                </div>
+
+                                <div class="usage-graph-content">
+                                    <div class="usage-graph-loading" id="usage-graph-loading">
+                                        <i class="fi fi-tr-spinner"></i>
+                                        <span>Loading...</span>
+                                    </div>
+                                    <div class="usage-graph-error hidden" id="usage-graph-error">
+                                        <i class="fi fi-tr-exclamation"></i>
+                                        <span id="usage-graph-error-message">Failed to load</span>
+                                    </div>
+                                    <div class="usage-graph-canvas-container hidden" id="usage-graph-canvas-container">
+                                        <canvas id="usage-graph-canvas"></canvas>
+                                    </div>
+                                </div>
+
+                                <div class="usage-graph-stats">
+                                    <div class="usage-stat-item">
+                                        <span class="usage-stat-label">Avg Daily</span>
+                                        <span class="usage-stat-value" id="usage-stat-avg">-</span>
+                                    </div>
+                                    <div class="usage-stat-item">
+                                        <span class="usage-stat-label">Peak</span>
+                                        <span class="usage-stat-value" id="usage-stat-peak">-</span>
+                                    </div>
+                                    <div class="usage-stat-item">
+                                        <span class="usage-stat-label">Total</span>
+                                        <span class="usage-stat-value" id="usage-stat-total">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="usage-error" id="usage-error" role="status" aria-live="polite"></div>
+                        </section>
+
+                        <section class="subscription-section" aria-labelledby="subscription-title">
+                            <div class="subscription-section-header">
+                                <div>
+                                    <h4 class="subscription-title" id="subscription-title">Subscription</h4>
+                                    <p class="subscription-subtitle" id="subscription-subtitle">Track your plan and upgrade when you need more headroom.</p>
+                                </div>
+                                <button type="button" class="btn-secondary subscription-manage-btn" id="manage-subscription-btn">
+                                    <i class="fi fi-tr-credit-card"></i>
+                                    Manage Plans
+                                </button>
+                            </div>
+
+                            <div class="subscription-summary-card">
+                                <div class="subscription-summary-top">
+                                    <div>
+                                        <div class="subscription-summary-label">Current plan</div>
+                                        <div class="subscription-current-name" id="current-plan-name">Core</div>
+                                    </div>
+                                    <span class="subscription-status-badge status-free" id="subscription-status-badge">FREE</span>
+                                </div>
+
+                                <div class="subscription-meta-grid">
+                                    <div class="subscription-meta-item">
+                                        <span class="subscription-meta-label">Limit</span>
+                                        <strong class="subscription-meta-value" id="current-plan-limit">50,000 tokens/day</strong>
+                                    </div>
+                                    <div class="subscription-meta-item">
+                                        <span class="subscription-meta-label">Remaining</span>
+                                        <strong class="subscription-meta-value" id="current-plan-remaining">-</strong>
+                                    </div>
+                                    <div class="subscription-meta-item">
+                                        <span class="subscription-meta-label">Reset / renewal</span>
+                                        <strong class="subscription-meta-value" id="current-plan-renewal">-</strong>
+                                    </div>
+                                </div>
+
+                                <div class="subscription-progress-block">
+                                    <div class="subscription-progress-track">
+                                        <div class="subscription-progress-bar" id="subscription-usage-bar"></div>
+                                    </div>
+                                    <div class="subscription-progress-copy" id="subscription-progress-copy">Usage will appear here.</div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="integration-tab">
+                    <h3 class="tab-heading">Integrations</h3>
+                    <div class="integration-content">
+                        <p class="integration-description">
+                            Connect your third-party services to enhance your AI-OS experience. 
+                            Manage all your integrations and their permissions from this central location.
+                        </p>
+                        
+                        <!-- Integrations Section -->
+                        <div class="integrations-section">
+                            <!-- GitHub Integration Item -->
+                            <div class="integration-item">
+                                <div class="integration-info">
+                                    <i class="fab fa-github"></i>
+                                    <span>GitHub</span>
+                                </div>
+                                <button class="connect-btn" id="connect-github-btn" data-provider="github" data-action="connect">
+                                    <i class="fi fi-tr-link-horizontal icon-connect"></i>
+                                    <i class="fi fi-tr-check icon-connected"></i>
+                                    <span class="btn-text">Connect</span>
+                                </button>
+                            </div>
+                            <!-- Google Integration Item -->
+                            <div class="integration-item">
+                                <div class="integration-info">
+                                    <i class="fab fa-google"></i>
+                                    <span>Google</span>
+                                </div>
+                                <button class="connect-btn" id="connect-google-btn" data-provider="google" data-action="connect">
+                                    <i class="fi fi-tr-link-horizontal icon-connect"></i>
+                                    <i class="fi fi-tr-check icon-connected"></i>
+                                    <span class="btn-text">Connect</span>
+                                </button>
+                            </div>
+                            <!-- Google Services Subbar -->
+                            <div class="google-services-subbar" id="google-services-subbar">
+                                <div class="services-icons">
+                                    <div class="service-icon-item" title="Gmail">
+                                        <svg viewBox="0 0 256 193" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
+                                            <path d="M58.182 192.05V93.14L27.507 65.077 0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4"/>
+                                            <path d="M197.818 192.05h40.727c9.659 0 17.455-7.826 17.455-17.455V49.505l-31.156 17.837-27.026 25.798v98.91Z" fill="#34A853"/>
+                                            <path d="m58.182 93.14-4.174-38.647 4.174-36.989L128 69.868l69.818-52.364 4.669 34.992-4.669 40.644L128 145.504z" fill="#EA4335"/>
+                                            <path d="M197.818 17.504V93.14L256 49.504V26.231c0-21.585-24.64-33.89-41.89-20.945l-16.292 12.218Z" fill="#FBBC04"/>
+                                            <path d="m0 49.504 26.759 20.07L58.182 93.14V17.504L41.89 5.286C24.61-7.66 0 4.646 0 26.23v23.273Z" fill="#C5221F"/>
+                                        </svg>
+                                    </div>
+                                    <div class="service-icon-item" title="Google Drive">
+                                        <svg viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                            <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                                            <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                                            <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                            <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                            <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                        </svg>
+                                    </div>
+                                    <div class="service-icon-item" title="Google Sheets">
+                                        <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
+                                            <path d="M0 0h256v256H0V0Z" fill="#0F9D58"/>
+                                            <path d="M58.182 58.182h139.636v139.636H58.182V58.182Z" fill="#F1F1F1"/>
+                                            <path d="M128 58.182h69.818v139.636H128V58.182Z" fill="#0F9D58" opacity=".2"/>
+                                            <path d="M58.182 104.727h139.636v23.273H58.182v-23.273Zm0 46.546h139.636v23.272H58.182v-23.272Zm69.818-93.091v139.636h23.273V58.182H128Z" fill="#0F9D58" opacity=".2"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Vercel Integration Item -->
+                            <div class="integration-item">
+                                <div class="integration-info">
+                                    <svg class="provider-icon vercel-icon" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M24 22.525H0l12-21.05 12 21.05z"/>
+                                    </svg>
+                                    <span>Vercel</span>
+                                </div>
+                                <button class="connect-btn" id="connect-vercel-btn" data-provider="vercel" data-action="connect">
+                                    <i class="fi fi-tr-link-horizontal icon-connect"></i>
+                                    <i class="fi fi-tr-check icon-connected"></i>
+                                    <span class="btn-text">Connect</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Supabase Integration Item -->
+                            <div class="integration-item">
+                                <div class="integration-info">
+                                    <svg class="provider-icon" role="img" viewBox="0 0 109 113" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
+                                        <path d="M63.7076 110.284C60.8481 113.885 55.0502 111.912 54.9813 107.314L53.9738 40.0627L99.1935 40.0627C107.384 40.0627 111.952 49.5228 106.859 55.9374L63.7076 110.284Z" fill="url(#paint0_linear)"/>
+                                        <path d="M63.7076 110.284C60.8481 113.885 55.0502 111.912 54.9813 107.314L53.9738 40.0627L99.1935 40.0627C107.384 40.0627 111.952 49.5228 106.859 55.9374L63.7076 110.284Z" fill="url(#paint1_linear)" fill-opacity="0.2"/>
+                                        <path d="M45.317 2.07103C48.1765 -1.53037 53.9745 0.442937 54.0434 5.041L54.4849 72.2922H9.83113C1.64038 72.2922 -2.92775 62.8321 2.1655 56.4175L45.317 2.07103Z" fill="#3ECF8E"/>
+                                        <defs>
+                                            <linearGradient id="paint0_linear" x1="53.9738" y1="54.974" x2="94.1635" y2="71.8295" gradientUnits="userSpaceOnUse">
+                                                <stop stop-color="#249361"/>
+                                                <stop offset="1" stop-color="#3ECF8E"/>
+                                            </linearGradient>
+                                            <linearGradient id="paint1_linear" x1="36.1558" y1="30.578" x2="54.4844" y2="65.0806" gradientUnits="userSpaceOnUse">
+                                                <stop/>
+                                                <stop offset="1" stop-opacity="0"/>
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <span>Supabase</span>
+                                </div>
+                                <button class="connect-btn" id="connect-supabase-btn" data-provider="supabase" data-action="connect">
+                                    <i class="fi fi-tr-link-horizontal icon-connect"></i>
+                                    <i class="fi fi-tr-check icon-connected"></i>
+                                    <span class="btn-text">Connect</span>
+                                </button>
+                            </div>
+
+                            <div class="integration-item">
+                                <div class="integration-info">
+                                    <svg class="provider-icon whatsapp-icon" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                    </svg>
+                                    <span>WhatsApp (Composio)</span>
+                                </div>
+                                <button class="connect-btn" id="connect-whatsapp-btn" data-provider="composio_whatsapp" data-action="connect">
+                                    <i class="fi fi-tr-link-horizontal icon-connect"></i>
+                                    <i class="fi fi-tr-check icon-connected"></i>
+                                    <span class="btn-text">Connect</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="deployments-tab">
+                    <h3 class="tab-heading">Deployments</h3>
+                    <div class="settings-section-header">
+                        <p class="integration-description">
+                            All deployed projects for your account. Use this list to identify the live site and deployment metadata.
+                        </p>
+                        <button class="btn-secondary" id="refresh-deployments-btn">
+                            <i class="fi fi-tr-refresh"></i>
+                            Refresh
+                        </button>
+                    </div>
+                    <div id="deployments-empty" class="empty-state hidden">No deployments found.</div>
+                    <div id="deployments-list" class="settings-list"></div>
+                </div>
+
+                <div class="tab-content" id="database-tab">
+                    <h3 class="tab-heading" style="margin-bottom: 8px;">Files</h3>
+                    <div class="settings-section-header" style="margin-bottom: 12px;">
+                        <p class="integration-description" style="margin-bottom: 0;">
+                            Upload and manage your personal files. Aetheria AI can access these files using vault tools.
+                        </p>
+                    </div>
+                    <div class="files-action-bar" style="display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; background: var(--bg-secondary); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div class="search-wrapper" style="flex: 1; position: relative;">
+                            <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none;"></i>
+                            <input type="text" id="user-files-search" placeholder="Search by file name" style="width: 100%; margin: 0; padding-left: 36px; height: 38px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); transition: border-color 0.2s;">
+                        </div>
+                        <div class="action-buttons-wrapper" style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
+                            <input type="file" id="user-files-upload-input" multiple style="display: none;">
+                            <button class="btn-primary" id="trigger-file-select-btn" type="button" title="Upload" style="margin: 0; width: 38px; height: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                                <i class="fas fa-upload" style="font-size: 16px; color: var(--button-primary-text);"></i>
+                            </button>
+                            <button class="btn-secondary hidden" id="user-files-upload-btn" type="button"></button>
+                            <button class="btn-secondary" id="refresh-databases-btn" title="Refresh" style="margin: 0; width: 38px; height: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                                <i class="fas fa-sync-alt" style="font-size: 16px; color: var(--text-primary);"></i>
+                            </button>
+                            <button class="btn-secondary" id="open-files-cache-folder-btn" title="Open Files Folder" style="margin: 0; width: 38px; height: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                                <i class="fas fa-folder-open" style="font-size: 16px; color: var(--text-primary);"></i>
+                            </button>
+                            <!-- View Toggle -->
+                            <div class="view-toggle" style="display: flex; gap: 4px; padding: 4px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color); margin-left: 8px;">
+                                <button class="icon-btn active" id="view-mode-detailed" title="Detailed View" style="margin: 0; width: 30px; height: 30px; padding: 0; border-radius: 6px; background: var(--hover-bg);"><i class="fas fa-list" style="font-size: 14px;"></i></button>
+                                <button class="icon-btn" id="view-mode-preview" title="Preview View" style="margin: 0; width: 30px; height: 30px; padding: 0; border-radius: 6px;"><i class="fas fa-th-large" style="font-size: 14px;"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="databases-empty" class="empty-state hidden">No files found.</div>
+                    <div id="databases-list" class="settings-list"></div>
+                </div>
+
+                <div class="tab-content" id="memory-tab">
+                    <h3 class="tab-heading">Memory</h3>
+                    <div class="settings-section-header">
+                        <p class="integration-description">
+                            Personal memory stored in Supabase for personalized responses. Add or review what your agents remember.
+                        </p>
+                        <button class="btn-secondary" id="refresh-memories-btn">
+                            <i class="fi fi-tr-refresh"></i>
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div class="memory-entry-card" id="memory-entry-card">
+                        <button type="button" class="memory-entry-toggle" id="memory-entry-toggle">
+                            <div class="memory-entry-toggle-left">
+                                <i class="fas fa-plus-circle"></i>
+                                <h4 class="memory-entry-title" id="memory-entry-title">Add Memory Manually</h4>
+                            </div>
+                            <i class="fas fa-chevron-down memory-entry-chevron" id="memory-entry-chevron"></i>
+                        </button>
+                        <div class="memory-entry-collapsible" id="memory-entry-collapsible">
+                            <form id="memory-form" class="memory-form">
+                                <div class="form-group">
+                                    <label for="memory-content">Memory Content <span style="color: #ef4444;">*</span></label>
+                                    <textarea id="memory-content" placeholder='{"name": "Prajwal", "timezone": "Asia/Kolkata", "preferences": {"theme": "dark"}}' required></textarea>
+                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
+                                        Enter JSON object or plain text. JSON is recommended for structured data.
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="memory-input">Source / Context <span style="color: var(--text-secondary); font-size: 11px; font-weight: 400;">(Optional)</span></label>
+                                    <input type="text" id="memory-input" placeholder="How this memory was captured">
+                                </div>
+                                <div class="memory-form-grid">
+                                    <div class="form-group">
+                                        <label for="memory-agent-id">Agent ID <span style="color: var(--text-secondary); font-size: 11px; font-weight: 400;">(Optional)</span></label>
+                                        <input type="text" id="memory-agent-id" placeholder="assistant-v1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="memory-team-id">Team ID <span style="color: var(--text-secondary); font-size: 11px; font-weight: 400;">(Optional)</span></label>
+                                        <input type="text" id="memory-team-id" placeholder="aetheria-ai">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="memory-topics">Topics <span style="color: var(--text-secondary); font-size: 11px; font-weight: 400;">(Optional)</span></label>
+                                    <input type="text" id="memory-topics" placeholder="preferences, profile, work">
+                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
+                                        Comma-separated tags for organizing memories
+                                    </small>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="auth-btn primary" id="memory-submit-btn">
+                                        <i class="fas fa-plus"></i>
+                                        Add Memory
+                                    </button>
+                                    <button type="button" class="btn-secondary hidden" id="memory-cancel-edit-btn">
+                                        <i class="fas fa-times"></i>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="memories-empty" class="empty-state hidden">
+                        No memories found. Add one manually or let the agent capture it automatically.
+                    </div>
+                    <div id="memories-list" class="settings-list"></div>
+                </div>
+
+                <div class="tab-content" id="capabilities-tab">
+                    <h3 class="tab-heading">What Aetheria ai Can Do</h3>
+                    <div class="capabilities-content">
+                        <p class="capabilities-intro">
+                            AI-OS orchestrates specialized AI agents to handle complex tasks through natural conversation. Each capability represents a powerful tool at your disposal.
+                        </p>
+                        
+                        <div class="capabilities-grid">
+                            <!-- Development Agent -->
+                            <div class="capability-module">
+                                <div class="module-header">
+                                    <div class="module-icon">
+                                        <i class="fi fi-tr-code-simple"></i>
+                                    </div>
+                                    <div class="module-power">
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                    </div>
+                                </div>
+                                <h4 class="module-title">Development Agent</h4>
+                                <p class="module-description">Full-stack development with Ubuntu terminal access. Build and deploy live websites, manage persistent file vaults, and execute system commands seamlessly.</p>
+                                <div class="module-tags">
+                                    <span class="tag">Terminal</span>
+                                    <span class="tag">Deploy</span>
+                                    <span class="tag">Files</span>
+                                </div>
+                            </div>
+
+                            <!-- Knowledge Agent -->
+                            <div class="capability-module">
+                                <div class="module-header">
+                                    <div class="module-icon">
+                                        <i class="fi fi-tr-telescope"></i>
+                                    </div>
+                                    <div class="module-power">
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                    </div>
+                                </div>
+                                <h4 class="module-title">Knowledge Agent</h4>
+                                <p class="module-description">Gather real-time information from multiple sources across the web. Intelligent data synthesis, API integration, and comprehensive research capabilities.</p>
+                                <div class="module-tags">
+                                    <span class="tag">Research</span>
+                                    <span class="tag">APIs</span>
+                                    <span class="tag">Data</span>
+                                </div>
+                            </div>
+
+                            <!-- Reasoning Engine -->
+                            <div class="capability-module">
+                                <div class="module-header">
+                                    <div class="module-icon">
+                                        <i class="fi fi-tr-brain-bulb"></i>
+                                    </div>
+                                    <div class="module-power">
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                    </div>
+                                </div>
+                                <h4 class="module-title">Reasoning Engine</h4>
+                                <p class="module-description">Advanced AI model for complex problem-solving. Breaks down intricate tasks into actionable steps with deep logical analysis and strategic planning.</p>
+                                <div class="module-tags">
+                                    <span class="tag">Planning</span>
+                                    <span class="tag">Analysis</span>
+                                    <span class="tag">Strategy</span>
+                                </div>
+                            </div>
+
+                            <!-- Image Generation -->
+                            <div class="capability-module">
+                                <div class="module-header">
+                                    <div class="module-icon">
+                                        <i class="fi fi-tr-palette"></i>
+                                    </div>
+                                    <div class="module-power">
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                    </div>
+                                </div>
+                                <h4 class="module-title">Image Generation</h4>
+                                <p class="module-description">Transform text descriptions into stunning visuals. AI-powered image synthesis for creative projects, design mockups, and visual content.</p>
+                                <div class="module-tags">
+                                    <span class="tag">Creative</span>
+                                    <span class="tag">Design</span>
+                                </div>
+                            </div>
+
+                            <!-- System Automation -->
+                            <div class="capability-module">
+                                <div class="module-header">
+                                    <div class="module-icon">
+                                        <i class="fi fi-tr-robot"></i>
+                                    </div>
+                                    <div class="module-power">
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                    </div>
+                                </div>
+                                <h4 class="module-title">System Automation</h4>
+                                <p class="module-description">Direct control over your computer. Automate mouse movements, keyboard inputs, and application interactions with AI-driven precision.</p>
+                                <div class="module-tags">
+                                    <span class="tag">Automation</span>
+                                    <span class="tag">Control</span>
+                                </div>
+                            </div>
+
+                            <!-- Web Automation -->
+                            <div class="capability-module">
+                                <div class="module-header">
+                                    <div class="module-icon">
+                                        <i class="fi fi-tr-globe-pointer"></i>
+                                    </div>
+                                    <div class="module-power">
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                        <div class="power-bar"></div>
+                                    </div>
+                                </div>
+                                <h4 class="module-title">Web Automation</h4>
+                                <p class="module-description">Intelligent browser control for web tasks. Navigate websites, fill forms, extract data, and automate repetitive online workflows.</p>
+                                <div class="module-tags">
+                                    <span class="tag">Browser</span>
+                                    <span class="tag">Scraping</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="capabilities-footer">
+                            <div class="system-status">
+                                <span class="status-indicator"></span>
+                                <span class="status-text">All agents ready</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="about-tab">
+                    <h3 class="tab-heading">About AIOS Desktop</h3>
+                    <div class="about-content">
+                        <p class="version">Version 1.1.4</p>
+                        <p class="description">
+                            Aetheria AI-OS is a sophisticated personal AI Operating System that intelligently orchestrates specialized AI agents and integrations to handle complex, multi-step tasks through natural conversation.
+                        </p>
+                        <div class="about-links">
+                            <a href="https://ai-os-website.vercel.app/privacy" class="link external-link" aria-label="Privacy Policy" data-external="true">Privacy Policy</a>
+                            <a href="https://ai-os-website.vercel.app/terms" class="link external-link" aria-label="Terms of Service" data-external="true">Terms of Service</a>
+                            <a href="https://github.com/GodBoii/AI-OS" class="link external-link" aria-label="Documentation" data-external="true">Documentation</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="support-tab">
+                    <h3 class="tab-heading">Support & Feedback</h3>
+                    <form id="support-form">
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <input type="text" id="subject" placeholder="Enter subject" aria-label="Subject">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea id="description" placeholder="Describe your issue or feedback" aria-label="Description"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="screenshot">Upload Screenshot</label>
+                            <div class="upload-container">
+                                <input type="file" id="screenshot" accept=".jpg,.png,.gif,.txt" aria-label="Upload Screenshot">
+                                <p class="file-hint">Supported formats: .jpg, .png, .gif, .txt</p>
+                            </div>
+                            <div class="screenshot-preview"></div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="submit-btn primary">Submit Feedback</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="tab-content" id="updates-tab">
+                    <h3 class="tab-heading">Software Updates</h3>
+                    <div class="updates-content">
+                        <div class="update-status-card">
+                            <div class="update-icon" id="update-icon">
+                                <i class="fi fi-tr-check-circle"></i>
+                            </div>
+                            <div class="update-info">
+                                <h4 id="update-status-title">Checking for updates...</h4>
+                                <p id="update-status-message">Please wait while we check for the latest version.</p>
+                                <p class="current-version">Current Version: <span id="current-version-display">1.1.4</span></p>
+                                <p class="last-check">Last checked: <span id="last-check-time">Never</span></p>
+                            </div>
+                        </div>
+
+                        <div id="update-details" class="update-details hidden">
+                            <h4>What's New in v<span id="new-version-number"></span></h4>
+                            <div id="release-notes-content" class="release-notes"></div>
+                            
+                            <div class="download-options">
+                                <h5>Download Options:</h5>
+                                <div id="download-links" class="download-links-grid"></div>
+                            </div>
+                        </div>
+
+                        <div class="update-actions">
+                            <button class="btn-secondary" id="check-updates-btn">
+                                <i class="fi fi-tr-refresh"></i>
+                                Check for Updates
+                            </button>
+                            <button class="btn-primary hidden" id="download-update-btn">
+                                <i class="fi fi-tr-download"></i>
+                                Download Update
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pricing-modal" class="pricing-modal hidden" aria-hidden="true">
+        <div class="pricing-modal-backdrop" id="pricing-modal-backdrop"></div>
+        <div class="pricing-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pricing-modal-title">
+            <div class="pricing-modal-header">
+                <div>
+                    <div class="pricing-modal-kicker">Billing</div>
+                    <h3 class="pricing-modal-title" id="pricing-modal-title">Choose your plan</h3>
+                    <p class="pricing-modal-message" id="pricing-modal-message">Subscriptions are billed monthly through Razorpay.</p>
+                </div>
+                <button type="button" class="pricing-modal-close" id="pricing-modal-close" aria-label="Close pricing modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="pricing-plan-grid">
+                <article class="pricing-plan-card" data-plan-card="free">
+                    <div class="pricing-plan-badge">Core</div>
+                    <h4 class="pricing-plan-name">Core</h4>
+                    <div class="pricing-plan-price">Rs 0<span>/month</span></div>
+                    <p class="pricing-plan-copy">For evaluation and light daily usage.</p>
+                    <div class="pricing-plan-limit">50,000 tokens/day</div>
+                    <button type="button" class="pricing-plan-btn is-current" id="plan-btn-free" data-plan-type="free" disabled>Current plan</button>
+                </article>
+
+                <article class="pricing-plan-card is-featured" data-plan-card="pro">
+                    <div class="pricing-plan-badge">Most Popular</div>
+                    <h4 class="pricing-plan-name">Pro</h4>
+                    <div class="pricing-plan-price">Rs 428<span>/month</span></div>
+                    <p class="pricing-plan-copy">For steady builder workflows and larger token budgets.</p>
+                    <div class="pricing-plan-limit">5,000,000 tokens/month</div>
+                    <button type="button" class="pricing-plan-btn" id="plan-btn-pro" data-plan-type="pro">Upgrade to Pro</button>
+                </article>
+
+                <article class="pricing-plan-card is-elite" data-plan-card="elite">
+                    <div class="pricing-plan-badge">High Capacity</div>
+                    <h4 class="pricing-plan-name">Elite</h4>
+                    <div class="pricing-plan-price">Rs 4,428<span>/month</span></div>
+                    <p class="pricing-plan-copy">For sustained, high-volume work across coding and automation.</p>
+                    <div class="pricing-plan-limit">50,000,000 tokens/month</div>
+                    <button type="button" class="pricing-plan-btn" id="plan-btn-elite" data-plan-type="elite">Upgrade to Elite</button>
+                </article>
+            </div>
+
+            <div class="pricing-modal-footer">
+                <div class="pricing-modal-footnote" id="pricing-modal-footnote">Your current usage and renewal window will update after payment verification.</div>
+            </div>
+        </div>
+    </div>
+
+
+
+</div>
+
