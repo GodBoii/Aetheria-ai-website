@@ -157,13 +157,7 @@
   </button>
 
   <!-- Mindspace Section (mobile-only, hidden — native app feature) -->
-  <button class="settings-menu-item mobile-only-hidden" data-section="mindspace" style="display:none;">
-    <i class="fi fi-tr-brain"></i>
-    <span>Mindspace</span>
-    <i class="fas fa-chevron-right item-arrow"></i>
-  </button>
-
-  <!-- Theme Section -->
+<!-- Theme Section -->
   <button class="settings-menu-item" data-section="theme">
     <i class="fi fi-tr-circle-half-stroke"></i>
     <span>Theme</span>
@@ -192,20 +186,8 @@
   </button>
 
   <!-- Notes Section (mobile-only, hidden — native app feature) -->
-  <button class="settings-menu-item mobile-only-hidden" data-section="notes" style="display:none;">
-    <i class="fas fa-note-sticky"></i>
-    <span>Notes</span>
-    <i class="fas fa-chevron-right item-arrow"></i>
-  </button>
-
-  <!-- Offline Mode Section (mobile-only, hidden — native app feature) -->
-  <button class="settings-menu-item mobile-only-hidden" data-section="offline-mode" style="display:none;">
-    <i class="fi fi-tr-bolt"></i>
-    <span>Offline Mode</span>
-    <i class="fas fa-chevron-right item-arrow"></i>
-  </button>
-
-  <!-- Support Section -->
+<!-- Offline Mode Section (mobile-only, hidden — native app feature) -->
+<!-- Support Section -->
   <button class="settings-menu-item" data-section="support">
     <i class="fa-regular fa-circle-question"></i>
     <span>Support</span>
@@ -267,17 +249,6 @@
     </div>
 
     <!-- Google Sheets Integration Item -->
-    <div class="integration-item">
-      <div class="integration-info">
-        <i class="fas fa-table"></i>
-        <span>Google Sheets</span>
-      </div>
-      <button class="connect-btn" id="connect-googlesheets-btn" data-provider="composio-googlesheets">
-        <i class="fas fa-link icon-connect"></i>
-        <i class="fas fa-check icon-connected" style="display: none;"></i>
-        <span class="btn-text">Connect</span>
-      </button>
-    </div>
 
     <!-- WhatsApp Integration Item -->
     <div class="integration-item">
@@ -319,7 +290,43 @@
         <span class="btn-text">Connect</span>
       </button>
     </div>
-  </div>
+
+<div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-facebook"></i>
+        <span>Facebook</span>
+      </div>
+      <button class="connect-btn" id="connect-facebook-btn" data-provider="composio-facebook">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+<div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-instagram"></i>
+        <span>Instagram</span>
+      </div>
+      <button class="connect-btn" id="connect-instagram-btn" data-provider="composio-instagram">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+
+<div class="integration-item">
+      <div class="integration-info">
+        <i class="fab fa-youtube"></i>
+        <span>YouTube</span>
+      </div>
+      <button class="connect-btn" id="connect-youtube-btn" data-provider="composio-youtube">
+        <i class="fas fa-link icon-connect"></i>
+        <i class="fas fa-check icon-connected" style="display: none;"></i>
+        <span class="btn-text">Connect</span>
+      </button>
+    </div>
+</div>
 </div>
 
 <div id="usage-panel" class="settings-full-panel hidden">
@@ -520,98 +527,6 @@
   </div>
 </div>
 
-<div id="offline-mode-panel" class="settings-full-panel hidden">
-  <div class="panel-header">
-    <button class="back-to-menu-btn" data-back="offline-mode">
-      <i class="fas fa-arrow-left"></i>
-    </button>
-    <h2>Offline Mode</h2>
-  </div>
-  <div class="panel-content">
-    <p class="panel-description">Run Aetheria completely offline using an on-device, lightweight AI model.</p>
-
-    <!-- Notes Section -->
-    <div class="offline-notes-section" style="margin-bottom: 20px;">
-      <h4 style="margin-bottom: 10px; color: var(--text-primary);">Notes</h4>
-      <ul class="offline-notes-list" style="list-style: none; padding: 0; margin: 0;">
-        <li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
-          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
-          <span style="color: var(--text-secondary); font-size: 14px;">Our Widget uses offline mode</span>
-        </li>
-        <li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
-          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
-          <span style="color: var(--text-secondary); font-size: 14px;">Privacy-focused processing on your device</span>
-        </li>
-        <li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
-          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
-          <span style="color: var(--text-secondary); font-size: 14px;">No internet connection required</span>
-        </li>
-        <li style="padding-left: 20px; position: relative;">
-          <i class="fas fa-check-circle" style="position: absolute; left: 0; top: 2px; color: var(--accent-color); font-size: 14px;"></i>
-          <span style="color: var(--text-secondary); font-size: 14px;">Slow response times with local processing</span>
-        </li>
-      </ul>
-    </div>
-
-    <div class="offline-model-status-card">
-      <div class="offline-model-header">
-        <i class="fi fi-tr-brain-circuit offline-model-icon"></i>
-        <div class="offline-model-info">
-          <h3>Aetheria ai</h3>
-          <p>Multimodal capability</p>
-        </div>
-        <div class="offline-model-badge" id="offline-status-badge">Not Downloaded</div>
-      </div>
-
-      <div class="offline-model-progress-container hidden" id="offline-progress-container">
-        <div class="offline-progress-bar">
-          <div class="offline-progress-fill" id="offline-progress-fill"></div>
-        </div>
-        <div class="offline-progress-text" id="offline-progress-text">Downloading... 0%</div>
-      </div>
-
-      <div class="offline-model-actions">
-        <button id="download-model-btn" class="btn btn-primary">
-          <i class="fas fa-download"></i> Download Model
-        </button>
-        <button id="delete-model-btn" class="btn btn-danger hidden">
-          <i class="fas fa-trash"></i> Delete
-        </button>
-      </div>
-    </div>
-
-    <!-- Widget to take user input -->
-    <div id="offline-inference-widget" class="offline-inference-widget hidden">
-      <h3 style="margin-top:20px;margin-bottom:10px;">Test Offline Model</h3>
-      <div class="form-group" style="display: flex; gap: 10px; align-items: stretch;">
-        <input type="text" id="offline-input-text" placeholder="Ask Aetheria ai..." style="flex: 1;" />
-        <button id="offline-send-btn" class="btn btn-primary circular-btn" style="width: 48px; border-radius: 50%;"><i
-            class="fas fa-paper-plane"></i></button>
-      </div>
-      <div id="offline-chat-output"
-        style="margin-top: 10px; min-height: 100px; max-height: 250px; overflow-y: auto; background: var(--bg-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.9em;">
-        <em>Output will appear here...</em>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="mindspace-panel" class="settings-full-panel hidden">
-  <div class="panel-header">
-    <button class="back-to-menu-btn" data-back="mindspace">
-      <i class="fas fa-arrow-left"></i>
-    </button>
-    <h2>Mindspace</h2>
-  </div>
-  <div class="panel-content">
-    <p class="panel-description">Your local history of screen captures and analysis.</p>
-    <div id="mindspace-list" class="mindspace-list">
-      <!-- populated by js -->
-    </div>
-  </div>
-</div>
-
-<!-- Memory Panel -->
 <div id="memory-panel" class="settings-full-panel hidden">
   <div class="panel-header">
     <button class="back-to-menu-btn" data-back="memory">
@@ -698,40 +613,6 @@
 </div>
 
 <!-- Assistant Notes Panel -->
-<div id="notes-panel" class="settings-full-panel hidden">
-  <div class="panel-header">
-    <button class="back-to-menu-btn" data-back="notes">
-      <i class="fas fa-arrow-left"></i>
-    </button>
-    <h2>Notes</h2>
-    <button id="notes-refresh-btn" class="memory-header-add-btn" title="Refresh notes">
-      <i class="fas fa-rotate-right"></i>
-    </button>
-  </div>
-  <div class="panel-content" id="notes-panel-content">
-    <p class="panel-description">Notes created by native assistant tools on this device.</p>
-    <div id="notes-storage-meta" class="notes-storage-meta">Storage: loading...</div>
-
-    <div id="notes-loading" class="memory-state-block hidden">
-      <div class="memory-spinner"></div>
-      <span>Loading notes...</span>
-    </div>
-
-    <div id="notes-empty" class="memory-state-block hidden">
-      <i class="fas fa-note-sticky memory-empty-icon"></i>
-      <p class="memory-empty-heading">No notes yet</p>
-      <p class="memory-empty-sub">Create notes with the assistant and they will appear here.</p>
-    </div>
-
-    <div id="notes-error" class="memory-state-block hidden">
-      <i class="fas fa-exclamation-circle memory-error-icon"></i>
-      <p class="memory-empty-heading">Failed to load notes</p>
-      <p class="memory-empty-sub">Try again or reopen this panel.</p>
-    </div>
-
-    <div id="notes-list" class="notes-list"></div>
-  </div>
-</div>
 
 <div id="deployments-panel" class="settings-full-panel hidden">
   <div class="panel-header">
@@ -742,6 +623,7 @@
   </div>
   <div class="panel-content">
     <div class="settings-section-header">
+      <button id="refresh-deployments-btn" class="btn btn-secondary" type="button">Refresh</button>
       <p class="panel-description">All deployed projects for your account.</p>
     </div>
     <div id="deployments-empty" class="settings-empty-state hidden">No deployments found.</div>
@@ -775,8 +657,12 @@
           </button>
         </div>
       </div>
+      <p id="files-storage-status" role="status"></p>
+      <label class="files-type-control">File type
+        <select id="files-type-filter"><option value="all">All files</option><option value="image">Images</option><option value="document">Documents</option><option value="audio">Audio</option><option value="video">Video</option></select>
+      </label>
       <div class="files-controls-row files-controls-bottom">
-        <div class="files-view-toggle" role="tablist" aria-label="File view mode">
+        <div class="files-view-toggle" role="group" aria-label="File view mode">
           <button id="files-view-detailed-btn" class="files-view-btn active" type="button" data-view-mode="detailed" title="Detailed view" aria-label="Detailed view">
             <i class="fas fa-list"></i>
           </button>
@@ -785,9 +671,6 @@
           </button>
         </div>
         <div class="files-controls-actions files-secondary-actions">
-          <button class="btn btn-secondary settings-refresh-btn files-icon-btn files-folder-btn" id="open-files-cache-folder-btn" type="button" title="Open local cache folder" aria-label="Open local cache folder">
-            <i class="fas fa-folder-open"></i>
-          </button>
         </div>
       </div>
     </div>
