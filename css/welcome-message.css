@@ -5,7 +5,7 @@
 /*
  * This module contains styles for the welcome message display
  * that appears when no chat messages are present.
- * 
+ *
  * Dependencies: chat-variables.css, design-system.css
  * Used by: Welcome message component
  */
@@ -13,10 +13,10 @@
 /* --- Welcome Container --- */
 .welcome-container {
     position: fixed;
-    top: 42%;
+    top: 45%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: var(--z-welcome-message, 10);
+    z-index: 10;
     width: 100%;
     max-width: 800px;
     padding: 2rem;
@@ -58,7 +58,7 @@
     margin: 0;
     line-height: var(--leading-tight, 1.25);
     letter-spacing: var(--tracking-tight, -0.025em);
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: Georgia, serif;
 }
 
 /* Add a subtle gradient effect for the heading */
@@ -87,7 +87,7 @@
     font-weight: 400;
     line-height: var(--leading-relaxed, 1.625);
     opacity: 0.9;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: Georgia, serif;
 }
 
 /* --- Animations --- */
@@ -162,14 +162,6 @@
         animation: none;
     }
 
-    @keyframes welcomeFadeIn {
-
-        0%,
-        100% {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
 }
 
 /* --- Dark Mode Adjustments --- */
@@ -207,17 +199,8 @@
     }
 }
 
-@media (min-width: 769px) {
-    .welcome-container {
-        top: 30%;
-    }
-}
-
-
-
 /* =================================================================
- * MOBILE PILLS — Inline pills + expandable content panel
- * Shown on < 1024px viewports. Mirrors the native mobile app UX.
+ * WELCOME SCREEEN PILLS & POWERPOINT LAYOUTS STYLES
  * ================================================================= */
 
 .welcome-container {
@@ -230,74 +213,103 @@
     pointer-events: auto !important;
 }
 
-/* --- Pills Row (inline, below welcome text) --- */
+/* --- Carousel Banner Showcase --- */
+.welcome-carousel-container {
+    margin-top: 1rem;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    width: 100%;
+    max-width: 420px;
+    transition: transform 0.3s ease, opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+}
+
+.welcome-carousel-container.hidden {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+}
+
+.welcome-carousel-track {
+    width: 100%;
+    transition: opacity 0.3s ease;
+}
+
+.welcome-carousel-slide {
+    text-align: center;
+    animation: slideFadeIn 0.4s ease-out;
+}
+
+.carousel-slide-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-bottom: 2px;
+    font-family: var(--font-family, sans-serif);
+}
+
+.carousel-slide-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+@keyframes slideFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Home Pills Row --- */
 .home-pills-container {
-    margin-top: 1.8rem;
+    margin-top: 2rem;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.55rem;
-    max-width: 560px;
+    gap: 0.6rem;
+    max-width: 580px;
     width: 100%;
 }
 
-.home-pills-container .home-pill {
+.home-pill {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 0.55rem 1rem;
+    padding: 0.6rem 1.1rem;
     border-radius: 20px;
-    color: var(--text-color, #fff);
-    font-size: 0.82rem;
-    font-weight: 500;
-    font-family: inherit;
+    color: var(--text-color);
+    font-size: 0.85rem;
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.5rem;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.home-pills-container .home-pill i {
-    font-size: 0.82rem;
-    color: var(--accent-color, #7dd3fc);
+.home-pill i {
+    font-size: 0.9rem;
+    color: var(--accent-color);
 }
 
-.home-pills-container .home-pill:hover,
-.home-pills-container .home-pill.active {
+.home-pill:hover,
+.home-pill.active {
     background: rgba(255, 255, 255, 0.1);
-    border-color: var(--accent-color, #7dd3fc);
+    border-color: var(--accent-color);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(125, 211, 252, 0.15);
+    box-shadow: 0 6px 16px rgba(var(--accent-color-rgb, 27, 82, 153), 0.2);
 }
 
-/* Light mode pills */
-body:not(.dark-mode) .home-pills-container .home-pill {
-    background: rgba(44, 36, 28, 0.04);
-    border-color: rgba(44, 36, 28, 0.12);
-    color: rgba(44, 36, 28, 0.78);
-    box-shadow: 0 4px 12px rgba(73, 58, 38, 0.06);
-}
-
-body:not(.dark-mode) .home-pills-container .home-pill i {
-    color: var(--accent-color, #2364aa);
-}
-
-body:not(.dark-mode) .home-pills-container .home-pill:hover,
-body:not(.dark-mode) .home-pills-container .home-pill.active {
-    background: rgba(44, 36, 28, 0.08);
-    border-color: var(--accent-color, #2364aa);
-    color: rgba(16, 14, 11, 0.92);
-    box-shadow: 0 6px 16px rgba(35, 100, 170, 0.12);
+.home-pill.active i {
+    transform: scale(1.1);
 }
 
 /* --- Expanded Content Panel --- */
 .home-pill-content-panel {
     width: 100%;
-    max-width: 580px;
-    margin-top: 1.2rem;
+    max-width: 620px;
+    margin-top: 1.5rem;
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -305,7 +317,7 @@ body:not(.dark-mode) .home-pills-container .home-pill.active {
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .home-pill-content-panel.hidden {
@@ -320,65 +332,874 @@ body:not(.dark-mode) .home-pills-container .home-pill.active {
     transform: scale(1) translateY(0);
 }
 
-body:not(.dark-mode) .home-pill-content-panel {
-    background: rgba(255, 255, 255, 0.8);
-    border-color: rgba(44, 36, 28, 0.1);
-    box-shadow: 0 12px 32px rgba(73, 58, 38, 0.1);
-}
-
 .home-pill-content-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.7rem 1rem;
+    padding: 0.8rem 1.2rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.12);
-}
-
-body:not(.dark-mode) .home-pill-content-header {
-    background: rgba(44, 36, 28, 0.03);
-    border-bottom-color: rgba(44, 36, 28, 0.08);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .close-pill-content-btn {
     background: transparent;
     border: none;
-    color: var(--text-color, #fff);
+    color: var(--text-color);
     cursor: pointer;
-    font-size: 0.82rem;
-    font-family: inherit;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 6px;
-    opacity: 0.75;
+    opacity: 0.8;
     transition: opacity 0.2s;
-    padding: 4px 8px;
-    border-radius: 6px;
 }
 
 .close-pill-content-btn:hover {
     opacity: 1;
-    background: rgba(255, 255, 255, 0.06);
 }
 
 .home-pill-content-title {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    color: var(--text-secondary);
 }
 
 .home-pill-content-body {
-    padding: 1rem;
-    max-height: 260px;
+    padding: 1.2rem;
+    max-height: 280px;
     overflow-y: auto;
-    scrollbar-width: none;
 }
 
-.home-pill-content-body::-webkit-scrollbar {
+/* --- Horizontal Templates Selector --- */
+.templates-scroller {
+    display: flex;
+    gap: 0.8rem;
+    overflow-x: auto;
+    padding: 0.4rem 0.2rem;
+    scroll-behavior: smooth;
+    scrollbar-width: none; /* Firefox */
+}
+
+.templates-scroller::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.ppt-template-card {
+    flex: 0 0 170px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 0.8rem;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s, opacity 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.ppt-template-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.ppt-template-card.selected {
+    background: rgba(var(--accent-color-rgb, 27, 82, 153), 0.08);
+    border-color: var(--accent-color);
+    box-shadow: inset 0 0 0 1px var(--accent-color);
+}
+
+.ppt-template-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+}
+
+.ppt-template-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.template-preview-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: transform 0.2s, opacity 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.template-preview-btn:hover {
+    color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ppt-template-desc {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+    height: 38px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin-bottom: 0.6rem;
+}
+
+.ppt-template-color-row {
+    display: flex;
+    gap: 4px;
+}
+
+.ppt-template-color-row .color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.selected-check-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--accent-color);
+    color: #fff;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Horizontal scroller arrows */
+.scroller-arrow-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+    transition: opacity 0.2s;
+}
+
+.scroller-arrow-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.scroller-arrow-left { left: 4px; }
+.scroller-arrow-right { right: 4px; }
+
+/* --- Prompt Starters Grid --- */
+.prompts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+}
+
+@media (min-width: 480px) {
+    .prompts-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.prompt-starter-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 0.8rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.prompt-starter-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.prompt-starter-icon {
+    background: rgba(var(--accent-color-rgb, 27, 82, 153), 0.12);
+    color: var(--accent-color);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.prompt-starter-icon i {
+    font-size: 0.8rem;
+}
+
+.prompt-starter-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.prompt-starter-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.prompt-starter-desc {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* --- Sessions List inside Pills --- */
+.sessions-pill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.session-pill-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.session-pill-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.session-pill-item i {
+    color: var(--accent-color);
+    font-size: 0.8rem;
+}
+
+.session-pill-item .arrow {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.session-pill-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.session-pill-item .session-workspace-badge i {
+    color: inherit;
+}
+
+/* --- Tasks List inside Pills --- */
+.tasks-pill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+}
+
+.task-pill-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-left: 3px solid var(--accent-color);
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.task-pill-item[data-priority="high"] { border-left-color: var(--error-500, #EF4444); }
+.task-pill-item[data-priority="medium"] { border-left-color: var(--warning-500, #F59E0B); }
+.task-pill-item[data-priority="low"] { border-left-color: var(--success-500, #10B981); }
+
+.task-pill-item.completed {
+    opacity: 0.5;
+}
+
+.task-pill-text-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.task-pill-title-text {
+    font-size: 0.8rem;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.task-pill-item.completed .task-pill-title-text {
+    text-decoration: line-through;
+}
+
+.task-pill-desc-text {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.task-pill-item .toggle-accordion-icon {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+}
+
+.task-pill-details {
+    width: 100%;
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.task-pill-details.hidden {
     display: none;
 }
 
-/* --- Panel Active State (hides welcome text + pills row) --- */
+.task-pill-details .deadline {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.task-pill-details .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.task-pill-details .tag {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+}
+
+.home-tasks-btn {
+    width: 100%;
+    background: rgba(var(--accent-color-rgb, 27, 82, 153), 0.12);
+    border: 1px solid var(--accent-color);
+    color: var(--text-color);
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: transform 0.2s, opacity 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.home-tasks-btn:hover {
+    background: var(--accent-color);
+}
+
+/* Generic States */
+.pill-loading-state,
+.pill-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.pill-loading-state i {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+}
+
+.pill-empty-state i {
+    font-size: 1.4rem;
+    opacity: 0.5;
+}
+
+/* --- Presentation Template Preview Modal --- */
+.ppt-preview-modal-panel {
+    background: #111;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    max-width: 580px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    animation: modalSlideUp 0.3s ease-out;
+}
+
+.ppt-preview-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ppt-preview-modal-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #fff;
+}
+
+.close-ppt-preview-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.close-ppt-preview-btn:hover {
+    opacity: 1;
+}
+
+.ppt-preview-modal-body {
+    padding: 1.2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    background: #181818;
+}
+
+/* Slide Miniature Preview rendering */
+.mini-slide-preview {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    border-radius: 8px;
+    background: var(--ppt-bg);
+    position: relative;
+    padding: 0.8rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    overflow: hidden;
+}
+
+.mini-slide-accent-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+}
+
+.mini-slide-kicker {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.mini-slide-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    line-height: 1.2;
+}
+
+/* Layouts Specific */
+.mini-slide-cover-layout {
+    display: flex;
+    height: 100%;
+    gap: 0.8rem;
+    padding-top: 0.4rem;
+}
+
+.mini-slide-cover-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.mini-slide-subtitle {
+    font-size: 0.55rem;
+    margin: 0 0 8px 0;
+}
+
+.mini-slide-cover-metrics {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-bottom: 0.2rem;
+}
+
+.mini-slide-cover-metric-item {
+    padding-left: 4px;
+    display: flex;
+    flex-direction: column;
+}
+
+.mini-slide-cover-metric-item span:first-child {
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.mini-slide-cover-metric-item span:last-child {
+    font-size: 0.45rem;
+    line-height: 1.2;
+}
+
+.mini-slide-cover-right {
+    width: 32%;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+}
+
+.mini-slide-abstract-shape {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    top: 10%;
+    left: 10%;
+}
+
+.mini-slide-abstract-dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    top: 25%;
+    right: 25%;
+}
+
+.mini-slide-abstract-dot2 {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    bottom: 30%;
+    left: 20%;
+}
+
+.mini-slide-two-col-layout {
+    display: flex;
+    gap: 0.6rem;
+    height: 65%;
+}
+
+.mini-slide-col {
+    flex: 1;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.mini-slide-col-header {
+    font-size: 0.48rem;
+    font-weight: 600;
+    padding: 3px 6px;
+    line-height: 1;
+}
+
+.mini-slide-col-bullets {
+    padding: 6px;
+    margin: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mini-slide-col-bullets li {
+    font-size: 0.42rem;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.mini-slide-col-bullets li .dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mini-slide-metrics-layout {
+    display: flex;
+    gap: 0.5rem;
+    height: 60%;
+    align-items: center;
+}
+
+.mini-slide-metric-card {
+    flex: 1;
+    border-radius: 6px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 80%;
+}
+
+.mini-slide-metric-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.mini-slide-metric-label {
+    font-size: 0.42rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* =================================================================
+ * POWERPOINT CHAT PREVIEW & MINIATURE STYLES
+ * ================================================================= */
+
+.presentation-preview-block {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.presentation-hero-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--ppt-bg);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.presentation-hero-card .hero-left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.presentation-hero-card .icon {
+    font-size: 1.5rem;
+    color: var(--ppt-accent);
+}
+
+.presentation-hero-card .details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.presentation-hero-card .title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ppt-ink);
+}
+
+.presentation-hero-card .subtitle {
+    font-size: 0.72rem;
+    color: var(--ppt-muted);
+}
+
+.ppt-download-btn {
+    background: var(--ppt-accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.2s;
+}
+
+.ppt-download-btn:hover {
+    opacity: 0.9;
+}
+
+.presentation-slides-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+}
+
+@media (max-width: 480px) {
+    .presentation-slides-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.presentation-slide-thumbnail {
+    background: var(--ppt-bg);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.slide-thumbnail-card-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ppt-ink);
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.slide-thumbnail-body {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    border-radius: 4px;
+    position: relative;
+    padding: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* Miniature layout types inside chat preview */
+.accent-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+}
+
+.slide-thumb-cover {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 4px;
+}
+
+.slide-thumb-cover .cover-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.slide-thumb-cover .cover-visual-block {
+    width: 25%;
+    height: 70%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slide-thumb-comparison .columns-grid {
+    display: flex;
+    gap: 6px;
+    height: 60%;
+}
+
+.slide-thumb-comparison .column-block {
+    flex: 1;
+    border-radius: 2px;
+    padding: 3px;
+}
+
+.slide-thumb-chart .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 55%;
+    padding-left: 6px;
+}
+
+.slide-thumb-chart .bar {
+    width: 10px;
+    border-radius: 1px;
+}
+
+.slide-thumb-table .table-rows {
+    display: flex;
+    flex-direction: column;
+    height: 55%;
+}
+
+.slide-thumb-diagram .diagram-nodes {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 60%;
+}
+
+.slide-thumb-content .bullets-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.slide-thumb-content .bullet-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.slide-thumb-content .bullet-row span {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+}
+
+.slide-thumb-content .bullet-row .line {
+    height: 2px;
+    border-radius: 0.5px;
+}
+
+/* --- Panel Active View State --- */
 .welcome-container.panel-active .welcome-content,
 .welcome-container.panel-active .home-pills-container {
     opacity: 0;
@@ -388,353 +1209,23 @@ body:not(.dark-mode) .home-pill-content-header {
     padding: 0;
     overflow: hidden;
     pointer-events: none;
-    transition: opacity 0.2s ease, height 0.2s ease, margin 0.2s ease, visibility 0s 0.2s;
+    transition: opacity 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+                height 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+                margin 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+                padding 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+                visibility 0s 0.2s;
 }
 
 .welcome-container:not(.panel-active) .welcome-content,
 .welcome-container:not(.panel-active) .home-pills-container {
-    transition: opacity 0.2s ease 0.1s, height 0.2s ease, margin 0.2s ease, visibility 0s;
+    transition: opacity 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)) 0.1s,
+                height 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+                margin 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+                padding 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+                visibility 0s;
 }
 
 .welcome-container.panel-active .home-pill-content-panel {
     margin-top: 0;
-}
-
-/* --- Mobile Template Cards --- */
-.mobile-templates-scroll {
-    display: flex;
-    gap: 0.7rem;
-    overflow-x: auto;
-    padding: 0.3rem 0.2rem 0.6rem;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-}
-
-.mobile-templates-scroll::-webkit-scrollbar {
-    display: none;
-}
-
-.mobile-template-card {
-    flex: 0 0 150px;
-    scroll-snap-align: start;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    background: rgba(255, 255, 255, 0.04);
-    cursor: pointer;
-    overflow: hidden;
-    position: relative;
-    transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.mobile-template-card:hover {
-    transform: translateY(-2px);
-}
-
-.mobile-template-card.selected {
-    border-color: var(--accent-color, #7dd3fc);
-    box-shadow: 0 0 0 1px var(--accent-color, #7dd3fc);
-}
-
-body:not(.dark-mode) .mobile-template-card {
-    background: rgba(255, 255, 255, 0.85);
-    border-color: rgba(44, 36, 28, 0.1);
-}
-
-body:not(.dark-mode) .mobile-template-card.selected {
-    border-color: var(--accent-color, #2364aa);
-}
-
-.mobile-template-card .ppt-template-canvas {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    display: block;
-    position: relative;
-    overflow: hidden;
-    border-radius: 10px 10px 0 0;
-    background: var(--ppt-bg);
-    border-bottom: 1px solid rgba(127, 127, 127, 0.12);
-}
-
-.mobile-template-info {
-    padding: 8px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.mobile-template-info strong {
-    font-size: 0.76rem;
-    font-weight: 700;
-    color: var(--text-color, #fff);
-    line-height: 1.2;
-}
-
-.mobile-template-info small {
-    font-size: 0.66rem;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.mobile-template-check {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--accent-color, #7dd3fc);
-    color: #0a0e17;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.58rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.mobile-templates-hint {
-    margin-top: 6px;
-    font-size: 0.7rem;
-    text-align: center;
-    color: var(--text-secondary, rgba(255,255,255,0.4));
-}
-
-/* --- Mobile Prompt Grid --- */
-.mobile-prompt-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-}
-
-@media (min-width: 480px) {
-    .mobile-prompt-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.mobile-prompt-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.7rem;
-    padding: 0.7rem 0.85rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    background: rgba(255, 255, 255, 0.03);
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    transition: all 0.2s ease;
-}
-
-.mobile-prompt-card:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-body:not(.dark-mode) .mobile-prompt-card {
-    background: rgba(255, 255, 255, 0.6);
-    border-color: rgba(44, 36, 28, 0.08);
-}
-
-body:not(.dark-mode) .mobile-prompt-card:hover {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(44, 36, 28, 0.15);
-}
-
-.mobile-prompt-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 0.78rem;
-    background: rgba(125, 211, 252, 0.1);
-    color: var(--accent-color, #7dd3fc);
-}
-
-body:not(.dark-mode) .mobile-prompt-icon {
-    background: rgba(35, 100, 170, 0.08);
-    color: var(--accent-color, #2364aa);
-}
-
-.mobile-prompt-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.mobile-prompt-copy strong {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-color, #fff);
-}
-
-.mobile-prompt-copy small {
-    font-size: 0.68rem;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
-    line-height: 1.35;
-}
-
-/* --- Mobile Sessions List --- */
-.mobile-sessions-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-
-.mobile-session-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem 0.8rem;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.03);
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.78rem;
-    color: var(--text-color, #fff);
-    text-align: left;
-    width: 100%;
-    transition: all 0.2s ease;
-}
-
-.mobile-session-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-}
-
-.mobile-session-item i:first-child {
-    color: var(--accent-color, #7dd3fc);
-    font-size: 0.75rem;
-}
-
-.mobile-session-item span {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.mobile-session-item i:last-child {
-    color: var(--text-secondary, rgba(255,255,255,0.4));
-    font-size: 0.65rem;
-    margin-left: auto;
-}
-
-body:not(.dark-mode) .mobile-session-item {
-    background: rgba(255, 255, 255, 0.6);
-    border-color: rgba(44, 36, 28, 0.08);
-    color: rgba(16, 14, 11, 0.92);
-}
-
-/* --- Mobile Tasks --- */
-.mobile-tasks-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 0.7rem;
-}
-
-.mobile-task-item {
-    padding: 0.55rem 0.8rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-left: 3px solid var(--accent-color, #7dd3fc);
-    background: rgba(255, 255, 255, 0.03);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.mobile-task-title {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--text-color, #fff);
-}
-
-.mobile-task-meta {
-    font-size: 0.66rem;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
-}
-
-body:not(.dark-mode) .mobile-task-item {
-    background: rgba(255, 255, 255, 0.6);
-    border-color: rgba(44, 36, 28, 0.08);
-    border-left-color: var(--accent-color, #2364aa);
-}
-
-.mobile-tasks-open-btn {
-    width: 100%;
-    padding: 0.5rem;
-    border-radius: 8px;
-    border: 1px solid var(--accent-color, #7dd3fc);
-    background: rgba(125, 211, 252, 0.08);
-    color: var(--text-color, #fff);
-    font-size: 0.78rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: background 0.2s ease;
-}
-
-.mobile-tasks-open-btn:hover {
-    background: rgba(125, 211, 252, 0.18);
-}
-
-body:not(.dark-mode) .mobile-tasks-open-btn {
-    border-color: var(--accent-color, #2364aa);
-    background: rgba(35, 100, 170, 0.08);
-    color: rgba(16, 14, 11, 0.92);
-}
-
-/* --- Mobile Pill Empty State --- */
-.mobile-pill-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 1.5rem 1rem;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
-    font-size: 0.78rem;
-    text-align: center;
-}
-
-.mobile-pill-empty i {
-    font-size: 1.3rem;
-    opacity: 0.5;
-}
-
-.mobile-pill-empty p {
-    margin: 0;
-}
-
-/* --- Hide mobile pills on desktop (they use the desktop rail instead) --- */
-@media (min-width: 1024px) {
-    .home-pills-container,
-    .home-pill-content-panel {
-        display: none !important;
-    }
-}
-
-/* --- Adjust welcome position on mobile when pills are present --- */
-@media (max-width: 1023px) {
-    .welcome-container {
-        top: 38%;
-    }
-
-    .welcome-container.panel-active {
-        top: 50%;
-    }
+    transition: margin-top 0.2s var(--easing-standard, cubic-bezier(0.4, 0, 0.2, 1));
 }
