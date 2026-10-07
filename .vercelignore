@@ -38,3 +38,17 @@ agno_sessions_rows*.json
 .vscode/
 .git/
 .gradle/
+
+# Local credentials and app reference copies never belong in the web deployment.
+.env*
+*.txt
+*.md
+desktop-ui/
+mobile-ui/
+tests/
+test/
+docs/
+convex/
+progress/
+public/
+/*.mp4
