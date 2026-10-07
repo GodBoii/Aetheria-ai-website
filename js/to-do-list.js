@@ -10,10 +10,18 @@ export class ToDoList {
         this.notificationService = new NotificationService();
         this.subscription = null;
         this.bootstrapPromise = null;
+        this.authListenerBound = false;
         this.currentOutputTask = null;
     }
 
     async init() {
+        if (!this.authListenerBound) {
+            this.authListenerBound = true;
+            supabase.auth.onAuthStateChange(event => {
+                if (event === 'SIGNED_OUT') { this.tasks = []; this.renderTasks(); }
+                else if (event === 'SIGNED_IN') setTimeout(() => this.fetchTasks(), 0);
+            });
+        }
         this.cacheElements();
         this.setupEventListeners();
         this.registerFloatingWindow();
@@ -95,6 +103,12 @@ export class ToDoList {
     setupEventListeners() {
         // Panel close
         this.elements.closeBtn?.addEventListener('click', () => this.toggleWindow(false));
+        this.elements.container?.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !document.querySelector('dialog[open]')) {
+                event.preventDefault();
+                this.toggleWindow(false);
+            }
+        });
 
         // FAB
         this.elements.addTaskFab?.addEventListener('click', () => this.openNewTaskModal());
@@ -130,12 +144,17 @@ export class ToDoList {
 
     toggleWindow(show, buttonElement = null) {
         if (!this.elements.container) return;
+        const wasOpen = !this.elements.container.classList.contains('hidden');
+        const returnFocus = this.elements.container.contains(document.activeElement);
+        if (show && !wasOpen) this.returnFocus = buttonElement || (document.activeElement.closest('[role="menu"]') ? document.getElementById('new-chat-btn') : document.activeElement);
 
         if (show && buttonElement) {
             this.triggerButton = buttonElement;
         }
 
         this.elements.container.classList.toggle('hidden', !show);
+        if (show && !wasOpen) this.elements.closeBtn?.focus();
+        if (!show && wasOpen && returnFocus) this.returnFocus?.focus();
 
         // Toggle body class
         if (show) {
@@ -165,7 +184,8 @@ export class ToDoList {
 
     async fetchTasks() {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
             if (!user) return;
 
             const { data, error } = await supabase
@@ -224,7 +244,8 @@ export class ToDoList {
         this.elements.saveTaskBtn.disabled = true;
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
             if (!user) {
                 this.showNotification('You must be logged in.', 'error');
                 return;
