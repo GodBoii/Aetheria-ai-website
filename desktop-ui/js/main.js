@@ -1,0 +1,1035 @@
+// main.js (Definitive Version with Correct Deep Link Handling and Logging)
+
+const electron = require('electron');
+const { app, BrowserWindow, ipcMain, BrowserView, shell, dialog, nativeImage, Tray, Menu } = electron;
+const path = require('path');
+const PythonBridge = require('./python-bridge');
+const http = require('http');
+const { EventEmitter } = require('events');
+const BrowserHandler = require('./browser-handler.js');
+const ComputerControlHandler = require('./computer-control-handler.js');
+const LocalCoderHandler = require('./local-coder-handler.js');
+const NativeNotificationService = require('./native-notification-service.js');
+const VoskSttService = require('./vosk-stt-service.js');
+
+let mainWindow;
+let appTray = null;
+let minimizeToTray = false;
+let computerToolNotificationsEnabled = true;
+let runCompleteNotificationsEnabled = true;
+
+// --- App Name Setup ---
+app.setName('Aetheria AI');
+
+// --- CRITICAL: Set Application User Model ID for Windows Taskbar Icon ---
+// This ensures Windows properly associates the running app with its icon
+// IMPORTANT: Only set this in production, not in development
+if (process.platform === 'win32' && app.isPackaged) {
+    app.setAppUserModelId('com.aetheria-ai.desktop');
+}
+
+// --- Protocol Registration ---
+// This tells the OS that our app can handle 'aios://' links.
+if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+        app.setAsDefaultProtocolClient('aios', process.execPath, [path.resolve(process.argv[1])]);
+    }
+} else {
+    app.setAsDefaultProtocolClient('aios');
+}
+
+let pythonBridge;
+let browserHandler;
+let computerControlHandler;
+let localCoderHandler;
+let nativeNotificationService;
+let voskSttService;
+let linkWebView = null;
+let isAppQuitting = false;
+
+// --- CRITICAL SECTION 1: The Deep Link Handler ---
+// This function's only job is to receive the URL from the OS and pass it to the UI.
+function parseTrustedDeepLink(rawUrl) {
+    let parsed;
+    try {
+        parsed = new URL(String(rawUrl || ''));
+    } catch (error) {
+        return null;
+    }
+
+    if (parsed.protocol !== 'aios:') {
+        return null;
+    }
+
+    const host = parsed.hostname;
+    const pathName = parsed.pathname || '';
+
+    if (host === 'auth' && pathName === '/callback') {
+        const provider = parsed.searchParams.get('provider') || 'unknown';
+        if (!/^[a-z0-9_-]{1,64}$/i.test(provider)) {
+            return null;
+        }
+
+        return {
+            type: 'integration-callback',
+            parsed,
+            provider,
+        };
+    }
+
+    if (host === 'auth-callback' || (host === 'auth' && pathName === '/auth-callback')) {
+        const hash = new URLSearchParams(parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash);
+        if (!hash.get('access_token') || !hash.get('refresh_token')) {
+            return null;
+        }
+
+        return {
+            type: 'auth-callback',
+            parsed,
+        };
+    }
+
+    return null;
+}
+
+function handleDeepLink(url) {
+    console.log('[main.js] >>> handleDeepLink function triggered.');
+
+    if (!mainWindow) {
+        console.error('[main.js] >>> Error: mainWindow is not available. The app might still be launching.');
+        return;
+    }
+
+    const trustedLink = parseTrustedDeepLink(url);
+    if (!trustedLink) {
+        console.warn('[main.js] >>> Ignored untrusted or unsupported deep link.');
+        return;
+    }
+
+    // Bring the app window to the front, this is crucial.
+    if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+    }
+    mainWindow.focus();
+
+    if (trustedLink.type === 'integration-callback') {
+        const params = trustedLink.parsed.searchParams;
+        const error = params.get('error') || params.get('error_description');
+        const successParam = params.get('success');
+        const success = successParam ? successParam === 'true' : !error;
+
+        console.log('[main.js] >>> Emitting oauth-integration-callback from deep link.');
+        mainWindow.webContents.send('oauth-integration-callback', {
+            success,
+            provider: trustedLink.provider,
+            error: error || null,
+        });
+        return;
+    }
+
+    console.log('[main.js] >>> Forwarding "auth-state-changed" IPC message to the renderer process.');
+    // We send the raw URL. The Supabase client in the renderer will handle it.
+    mainWindow.webContents.send('auth-state-changed', { url });
+}
+
+// --- CRITICAL SECTION 2: Single Instance Lock ---
+// This ensures that when a deep link is clicked, the URL is sent to your
+// ALREADY RUNNING application, instead of trying to launch a new one.
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    // If we don't get the lock, another instance is already running, so this new one quits.
+    app.quit();
+} else {
+    // This event fires in the PRIMARY instance when a second instance is launched.
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+        console.log('[main.js] >>> "second-instance" event fired.');
+        const deepLinkUrl = commandLine.find(arg => arg.startsWith('aios://'));
+
+        if (deepLinkUrl) {
+            console.log('[main.js] >>> Deep link found in second instance arguments.');
+            handleDeepLink(deepLinkUrl);
+        } else if (mainWindow) {
+            // If it wasn't a deep link, just focus the existing window.
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        }
+    });
+
+    // This handles the case where the app is launched for the first time via a deep link.
+    const deepLinkArg = process.argv.find(arg => arg.startsWith('aios://'));
+    if (deepLinkArg) {
+        app.whenReady().then(() => handleDeepLink(deepLinkArg));
+    }
+}
+
+
+function createSystemTray() {
+    if (appTray) return;
+    try {
+        const fs = require('fs');
+        let trayIconPath;
+        if (app.isPackaged) {
+            trayIconPath = path.join(process.resourcesPath, process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+        } else {
+            trayIconPath = path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+        }
+        if (!fs.existsSync(trayIconPath)) {
+            console.error('[Tray] Icon not found:', trayIconPath);
+            return;
+        }
+        const trayIcon = nativeImage.createFromPath(trayIconPath);
+        appTray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
+        appTray.setToolTip('Aetheria AI');
+        const contextMenu = Menu.buildFromTemplate([
+            {
+                label: 'Show Aetheria AI',
+                click: () => {
+                    if (mainWindow) {
+                        mainWindow.show();
+                        if (mainWindow.isMinimized()) mainWindow.restore();
+                        mainWindow.focus();
+                    }
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'Quit',
+                click: () => {
+                    isAppQuitting = true;
+                    app.quit();
+                }
+            }
+        ]);
+        appTray.setContextMenu(contextMenu);
+        appTray.on('double-click', () => {
+            if (mainWindow) {
+                mainWindow.show();
+                if (mainWindow.isMinimized()) mainWindow.restore();
+                mainWindow.focus();
+            }
+        });
+        console.log('[Tray] System tray created successfully');
+    } catch (error) {
+        console.error('[Tray] Error creating system tray:', error);
+    }
+}
+
+function createWindow() {
+    const mainProcessEmitter = new EventEmitter();
+    const fs = require('fs');
+
+    // Resolve icon path correctly for both development and production
+    let iconPath;
+    if (app.isPackaged) {
+        // In production, icon is copied to resources folder via extraResources in package.json
+        iconPath = path.join(process.resourcesPath, 'icon.ico');
+        console.log('[Icon] Production icon path:', iconPath);
+    } else {
+        // In development, use the regular path
+        iconPath = path.join(__dirname, '..', 'assets', 'icon.ico');
+        console.log('[Icon] Development icon path:', iconPath);
+    }
+
+    // Verify icon exists
+    const iconExists = fs.existsSync(iconPath);
+    console.log('[Icon] Path exists:', iconExists);
+
+    if (!iconExists) {
+        console.error('[Icon] CRITICAL: Icon file not found at:', iconPath);
+    }
+
+    // Create native image from icon path
+    const icon = nativeImage.createFromPath(iconPath);
+    if (icon.isEmpty()) {
+        console.error('[Icon] Failed to load icon from path:', iconPath);
+    } else {
+        console.log('[Icon] Successfully loaded icon, size:', icon.getSize());
+    }
+
+    mainWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        icon: icon,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true,
+            contextIsolation: true,
+            enableRemoteModule: true,
+            webSecurity: false,
+            webviewTag: true  // Enable <webview> tag support
+        },
+        frame: true,
+        transparent: true,
+        skipTaskbar: false  // Explicitly show in taskbar
+    });
+
+    // Additional Windows-specific icon handling
+    // This ensures the icon is properly set for the window and taskbar
+    if (process.platform === 'win32') {
+        mainWindow.setIcon(icon);
+        // Set overlay icon (shown in taskbar when app is running)
+        mainWindow.setOverlayIcon(icon, 'Aetheria AI');
+    }
+
+    mainWindow.maximize();
+    mainWindow.loadFile('index.html');
+
+    pythonBridge = new PythonBridge(mainWindow, mainProcessEmitter);
+
+    const getAuthToken = async () => {
+        try {
+            const session = await mainWindow.webContents.executeJavaScript(
+                'window.electron.auth.getSession()',
+                true
+            );
+            return session ? session.access_token : null;
+        } catch (error) {
+            console.error("Main process failed to get auth token:", error);
+            return null;
+        }
+    };
+
+    const appDataPath = app.getPath('userData');
+    browserHandler = new BrowserHandler(mainProcessEmitter, appDataPath, getAuthToken);
+
+    browserHandler.initialize();
+
+    pythonBridge.setBrowserController(browserHandler);
+
+    // Initialize Computer Control Handler
+    computerControlHandler = new ComputerControlHandler(mainProcessEmitter, appDataPath, getAuthToken);
+    computerControlHandler.initialize();
+    pythonBridge.setComputerController(computerControlHandler);
+
+    // Initialize Local Coder Handler
+    localCoderHandler = new LocalCoderHandler(mainProcessEmitter, mainWindow);
+    localCoderHandler.initialize();
+    pythonBridge.setLocalCoderController(localCoderHandler);
+
+    nativeNotificationService = new NativeNotificationService();
+    nativeNotificationService.setMainWindow(mainWindow);
+    voskSttService = new VoskSttService();
+
+    mainProcessEmitter.on('computer-tool-notification', (data) => {
+        console.log('[main.js] Routing computer tool notification to native pipeline:', {
+            action: data?.action || null,
+            message: data?.message || null
+        });
+        if (!nativeNotificationService) {
+            return;
+        }
+        if (!computerToolNotificationsEnabled) {
+            return;
+        }
+        nativeNotificationService.queueNotification(
+            data?.action || 'computer_tool',
+            data?.message || 'Computer tool used',
+            { urgency: 'low' }
+        );
+    });
+
+    // --- Agent Run Completion → Native OS Notification ---
+    mainProcessEmitter.on('run-completed', (data) => {
+        // Only show native notification when user is NOT actively using the app
+        const isBackgrounded = !mainWindow.isFocused() || mainWindow.isMinimized();
+        console.log('[main.js] Agent run completed:', {
+            conversationId: data?.conversationId || null,
+            title: data?.title || null,
+            isBackgrounded,
+            notificationsEnabled: runCompleteNotificationsEnabled,
+        });
+
+        if (isBackgrounded && nativeNotificationService && runCompleteNotificationsEnabled) {
+            const taskTitle = (data?.title || '').trim() || 'AI task';
+            const preview = (data?.preview || '').trim();
+            // Build notification body: title + first few lines of preview
+            let body = `Your "${taskTitle}" task is completed.`;
+            if (preview) {
+                // Take first ~200 chars of preview for the notification body
+                const previewSnippet = preview.length > 200
+                    ? preview.substring(0, 200) + '…'
+                    : preview;
+                body += `\n${previewSnippet}`;
+            }
+            nativeNotificationService.showNotification(
+                'Aetheria AI',
+                body,
+                {
+                    tag: `run-completed-${data?.conversationId || 'unknown'}`,
+                    urgency: 'normal',
+                    silent: false,
+                }
+            );
+        }
+    });
+
+    // --- Fix: Handle the toggle-native-notifications IPC from renderer settings ---
+    ipcMain.on('toggle-native-notifications', (event, enabled) => {
+        console.log('[main.js] Native notifications toggled:', enabled);
+        if (nativeNotificationService) {
+            nativeNotificationService.setEnabled(enabled);
+        }
+    });
+
+    // --- Granular Notification Controls ---
+    ipcMain.on('toggle-computer-tool-notifications', (event, enabled) => {
+        console.log('[main.js] Computer tool notifications toggled:', enabled);
+        computerToolNotificationsEnabled = enabled;
+    });
+
+    ipcMain.on('toggle-run-complete-notifications', (event, enabled) => {
+        console.log('[main.js] Run complete notifications toggled:', enabled);
+        runCompleteNotificationsEnabled = enabled;
+    });
+
+    // --- General Settings IPC Handlers ---
+    ipcMain.on('set-always-on-top', (event, enabled) => {
+        console.log('[main.js] Always on top toggled:', enabled);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(enabled);
+        }
+    });
+
+    ipcMain.on('set-launch-at-startup', (event, enabled) => {
+        console.log('[main.js] Launch at startup toggled:', enabled);
+        app.setLoginItemSettings({
+            openAtLogin: enabled,
+            name: 'Aetheria AI'
+        });
+    });
+
+    ipcMain.on('toggle-devtools', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.toggleDevTools();
+        }
+    });
+
+    ipcMain.on('set-minimize-to-tray', (event, enabled) => {
+        console.log('[main.js] Minimize to tray toggled:', enabled);
+        minimizeToTray = enabled;
+        if (enabled && !appTray) {
+            createSystemTray();
+        } else if (!enabled && appTray) {
+            appTray.destroy();
+            appTray = null;
+        }
+    });
+
+    ipcMain.handle('vosk-stt-status', async () => {
+        if (!voskSttService) {
+            return { ready: false, error: 'Vosk STT service not initialized' };
+        }
+        return voskSttService.getStatus();
+    });
+
+    ipcMain.handle('vosk-stt-download-model', async (event) => {
+        if (!voskSttService) {
+            return { ok: false, error: 'Vosk STT service not initialized' };
+        }
+
+        try {
+            const result = await voskSttService.downloadDefaultModel((message) => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('vosk-stt-download-progress', message);
+                }
+            });
+            return result;
+        } catch (error) {
+            return { ok: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('vosk-stt-transcribe', async (event, payload) => {
+        if (!voskSttService) {
+            return { ok: false, error: 'Vosk STT service not initialized' };
+        }
+
+        try {
+            return await voskSttService.transcribe(payload);
+        } catch (error) {
+            console.error('[VoskSTT] Transcription failed:', error);
+            return { ok: false, error: error.message };
+        }
+    });
+
+    // --- Close window: minimize to tray if setting is on ---
+    mainWindow.on('close', (event) => {
+        if (minimizeToTray && !isAppQuitting) {
+            event.preventDefault();
+            mainWindow.hide();
+            if (!appTray) createSystemTray();
+        }
+    });
+
+    pythonBridge.start().catch(error => {
+        console.error('Python bridge error:', error.message);
+        mainWindow.webContents.on('did-finish-load', () => {
+            mainWindow.webContents.send('socket-connection-status', {
+                connected: false,
+                error: 'Failed to connect to Python backend: ' + error.message
+            });
+        });
+
+        setTimeout(() => {
+            console.log('Attempting to reconnect to Python backend...');
+            if (pythonBridge) {
+                pythonBridge.stop();
+            }
+            pythonBridge = new PythonBridge(mainWindow, mainProcessEmitter);
+            pythonBridge.setBrowserController(browserHandler);
+            pythonBridge.setComputerController(computerControlHandler);
+            pythonBridge.setLocalCoderController(localCoderHandler);
+            pythonBridge.start().catch(err => {
+                console.error('Python bridge reconnection failed:', err.message);
+            });
+        }, 10000);
+    });
+
+    ipcMain.on('minimize-window', () => { mainWindow.minimize(); });
+    ipcMain.on('toggle-maximize-window', () => {
+        if (mainWindow.isMaximized()) { mainWindow.unmaximize(); } else { mainWindow.maximize(); }
+        mainWindow.webContents.send('window-state-changed', mainWindow.isMaximized());
+    });
+    ipcMain.on('close-window', () => { mainWindow.close(); });
+    ipcMain.on('deepsearch-request', (event, data) => { pythonBridge.sendMessage(data); });
+    ipcMain.on('check-socket-connection', (event) => {
+        const isConnected = pythonBridge.socket && pythonBridge.socket.connected;
+        event.reply('socket-connection-status', { connected: isConnected });
+    });
+    ipcMain.on('restart-python-bridge', () => {
+        if (pythonBridge) { pythonBridge.stop(); }
+        pythonBridge = new PythonBridge(mainWindow, mainProcessEmitter);
+        pythonBridge.setBrowserController(browserHandler);
+        pythonBridge.setComputerController(computerControlHandler);
+        pythonBridge.setLocalCoderController(localCoderHandler);
+        pythonBridge.start().catch(error => {
+            console.error('Failed to restart Python bridge:', error);
+            mainWindow.webContents.send('socket-connection-status', {
+                connected: false,
+                error: 'Failed to connect to Python backend: ' + error.message
+            });
+        });
+    });
+
+    ipcMain.handle('computer-get-access-state', async () => {
+        if (!computerControlHandler) {
+            return { success: false, error: 'Computer control handler not initialized' };
+        }
+        return { success: true, state: computerControlHandler.getAccessState() };
+    });
+
+    ipcMain.handle('computer-manual-grant', async () => {
+        if (!computerControlHandler) {
+            return { success: false, error: 'Computer control handler not initialized' };
+        }
+        const state = computerControlHandler.grantManualPermission();
+        return { success: true, state };
+    });
+
+    ipcMain.handle('computer-select-scope', async () => {
+        if (!computerControlHandler) {
+            return { success: false, error: 'Computer control handler not initialized' };
+        }
+
+        const result = await dialog.showOpenDialog(mainWindow, {
+            title: 'Select Computer Tool Scope',
+            properties: ['openDirectory', 'createDirectory'],
+            buttonLabel: 'Use This Folder'
+        });
+
+        if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+            return { success: false, canceled: true };
+        }
+
+        const state = computerControlHandler.setPrimaryScope(result.filePaths[0]);
+        return { success: true, state, selectedPath: result.filePaths[0] };
+    });
+
+    ipcMain.handle('project-select-local-workspace', async () => {
+        const result = await dialog.showOpenDialog(mainWindow, {
+            title: 'Select Local Project Folder',
+            properties: ['openDirectory', 'createDirectory'],
+            buttonLabel: 'Use Folder',
+        });
+
+        if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+            return { success: false, canceled: true };
+        }
+        return { success: true, selectedPath: result.filePaths[0] };
+    });
+
+    ipcMain.handle('project-local-clone-repo', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+
+        const body = payload && typeof payload === 'object' ? payload : {};
+        let selectedFolder = String(body.parentFolder || '').trim();
+        if (!selectedFolder) {
+            const selection = await dialog.showOpenDialog(mainWindow, {
+                title: 'Choose Destination Folder',
+                properties: ['openDirectory', 'createDirectory'],
+                buttonLabel: 'Clone Here',
+            });
+            if (selection.canceled || !selection.filePaths || selection.filePaths.length === 0) {
+                return { success: false, canceled: true };
+            }
+            selectedFolder = selection.filePaths[0];
+        }
+
+        return localCoderHandler.cloneRepo({
+            conversationId: body.conversationId,
+            repoUrl: body.repoUrl,
+            branch: body.branch || 'main',
+            parentFolder: selectedFolder,
+        });
+    });
+
+    ipcMain.handle('project-local-import-files', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+
+        const body = payload && typeof payload === 'object' ? payload : {};
+        let selectedFolder = String(body.parentFolder || '').trim();
+        if (!selectedFolder) {
+            const selection = await dialog.showOpenDialog(mainWindow, {
+                title: 'Choose Location For Deployed Project',
+                properties: ['openDirectory', 'createDirectory'],
+                buttonLabel: 'Save Project Here',
+            });
+            if (selection.canceled || !selection.filePaths || selection.filePaths.length === 0) {
+                return { success: false, canceled: true };
+            }
+            selectedFolder = selection.filePaths[0];
+        }
+
+        return localCoderHandler.importProjectFiles({
+            conversationId: body.conversationId,
+            parentFolder: selectedFolder,
+            projectName: body.projectName,
+            files: Array.isArray(body.files) ? body.files : [],
+            repoUrl: body.repoUrl || null,
+            branch: body.branch || 'main',
+            metadata: body.metadata || {},
+        });
+    });
+
+    ipcMain.handle('project-local-set-context', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+
+        const body = payload && typeof payload === 'object' ? payload : {};
+        if (!body.conversationId) {
+            return { success: false, error: 'conversationId is required' };
+        }
+        const context = localCoderHandler.setWorkspaceContext(body.conversationId, body.context || {});
+        return { success: true, context };
+    });
+
+    ipcMain.handle('project-local-tree', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        return localCoderHandler.listWorkspaceTree({
+            conversationId: body.conversationId,
+            rootPath: body.rootPath,
+        });
+    });
+
+    ipcMain.handle('project-local-file-content', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        return localCoderHandler.readWorkspaceFile({
+            conversationId: body.conversationId,
+            rootPath: body.rootPath,
+            relativePath: body.path,
+        });
+    });
+
+    ipcMain.handle('project-watch-local-workspace', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        return localCoderHandler.startWatching(body.conversationId, body.rootPath);
+    });
+
+    ipcMain.handle('project-unwatch-local-workspace', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        localCoderHandler.stopWatching(body.conversationId);
+        return { success: true };
+    });
+
+    ipcMain.handle('project-local-terminal-start', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        return localCoderHandler.startTerminal(body.conversationId, body.cwd, {
+            cols: body.cols,
+            rows: body.rows,
+        });
+    });
+
+    ipcMain.handle('project-local-terminal-send', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        const data = body.data != null ? body.data : body.command;
+        return localCoderHandler.sendTerminalInput(body.conversationId, data);
+    });
+
+    ipcMain.handle('project-local-terminal-resize', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        return localCoderHandler.resizeTerminal(body.conversationId, body.cols, body.rows);
+    });
+
+    ipcMain.handle('project-local-terminal-stop', async (event, payload) => {
+        if (!localCoderHandler) {
+            return { success: false, error: 'Local coder handler not initialized' };
+        }
+        const body = payload && typeof payload === 'object' ? payload : {};
+        return localCoderHandler.stopTerminal(body.conversationId);
+    });
+
+    ipcMain.on('open-webview', (event, url) => {
+        console.log('Received open-webview request for URL:', url);
+
+        if (linkWebView) {
+            try {
+                mainWindow.removeBrowserView(linkWebView);
+                linkWebView.webContents.destroy();
+                linkWebView = null;
+            } catch (error) {
+                console.error('Error closing existing linkWebView:', error);
+            }
+        }
+
+        try {
+            linkWebView = new BrowserView({
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    webSecurity: true
+                }
+            });
+
+            mainWindow.addBrowserView(linkWebView);
+
+            const contentBounds = mainWindow.getContentBounds();
+            const bounds = {
+                x: Math.round(contentBounds.width * 0.65),
+                y: 100,
+                width: Math.round(contentBounds.width * 0.30),
+                height: Math.round(contentBounds.height * 0.5)
+            };
+
+            linkWebView.setBounds({
+                x: bounds.x + 10,
+                y: bounds.y + 60,
+                width: bounds.width - 20,
+                height: bounds.height - 70
+            });
+
+            linkWebView.webContents.on('did-start-loading', () => {
+                mainWindow.webContents.send('webview-navigation-updated', { url: linkWebView.webContents.getURL(), loading: true });
+            });
+            linkWebView.webContents.on('did-finish-load', () => {
+                const currentUrl = linkWebView.webContents.getURL();
+                mainWindow.webContents.send('webview-navigation-updated', { url: currentUrl, loading: false, canGoBack: linkWebView.webContents.canGoBack(), canGoForward: linkWebView.webContents.canGoForward() });
+                mainWindow.webContents.send('webview-page-loaded');
+            });
+            linkWebView.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+                console.error('linkWebView failed to load:', errorDescription);
+                mainWindow.webContents.send('webview-navigation-updated', { error: errorDescription });
+            });
+
+            // Listen for navigation to aios:// deep link (OAuth callback)
+            linkWebView.webContents.on('will-navigate', (event, navigationUrl) => {
+                console.log('linkWebView will-navigate');
+
+                // Check if navigating to aios:// deep link
+                if (navigationUrl.startsWith('aios://')) {
+                    event.preventDefault();
+                    const trustedLink = parseTrustedDeepLink(navigationUrl);
+                    if (!trustedLink || trustedLink.type !== 'integration-callback') {
+                        console.warn('Ignored untrusted webview deep link navigation.');
+                        return;
+                    }
+                    console.log('OAuth callback detected, closing webview and processing deep link');
+
+                    // Parse the deep link URL
+                    try {
+                        const url = trustedLink.parsed;
+                        const params = new URLSearchParams(url.search);
+                        const success = params.get('success') === 'true';
+                        const provider = trustedLink.provider;
+                        const error = params.get('error');
+
+                        // Close the webview
+                        if (linkWebView) {
+                            mainWindow.removeBrowserView(linkWebView);
+                            linkWebView.webContents.destroy();
+                            linkWebView = null;
+                            mainWindow.webContents.send('webview-closed');
+                        }
+
+                        // Send OAuth callback result to renderer
+                        mainWindow.webContents.send('oauth-integration-callback', {
+                            success: success,
+                            provider: provider,
+                            error: error
+                        });
+
+                    } catch (e) {
+                        console.error('Error parsing OAuth callback URL:', e);
+                    }
+                }
+            });
+            linkWebView.webContents.loadURL(url).then(() => {
+                console.log('URL loaded successfully:', url);
+                mainWindow.webContents.send('webview-created', bounds);
+            }).catch((error) => {
+                console.error('Failed to load URL:', error);
+                mainWindow.webContents.send('socket-error', { message: `Failed to load URL: ${error.message}` });
+            });
+        } catch (error) {
+            console.error('Error creating linkWebView:', error);
+            mainWindow.webContents.send('socket-error', { message: `Error creating linkWebView: ${error.message}` });
+        }
+    });
+    ipcMain.on('resize-webview', (event, bounds) => { if (linkWebView) { linkWebView.setBounds({ x: bounds.x + 10, y: bounds.y + 60, width: bounds.width - 20, height: bounds.height - 70 }); } });
+    ipcMain.on('drag-webview', (event, { x, y }) => { if (linkWebView) { const currentBounds = linkWebView.getBounds(); linkWebView.setBounds({ x: x + 10, y: y + 60, width: currentBounds.width, height: currentBounds.height }); } });
+    ipcMain.on('close-webview', () => { if (linkWebView) { mainWindow.removeBrowserView(linkWebView); linkWebView.webContents.destroy(); linkWebView = null; mainWindow.webContents.send('webview-closed'); } });
+
+    // User context handlers - forward to backend via Socket.IO
+    ipcMain.on('save-user-context', async (event, data) => {
+        try {
+            const session = await mainWindow.webContents.executeJavaScript('window.electron.auth.getSession()', true);
+            if (!session || !session.access_token) {
+                mainWindow.webContents.send('user-context-saved', { success: false, error: 'Not authenticated' });
+                return;
+            }
+
+            // Forward to backend via python bridge
+            if (pythonBridge && pythonBridge.socket && pythonBridge.socket.connected) {
+                pythonBridge.socket.emit('save-user-context', {
+                    accessToken: session.access_token,
+                    context: data.context
+                });
+
+                // Listen for response
+                pythonBridge.socket.once('user-context-saved', (result) => {
+                    mainWindow.webContents.send('user-context-saved', result);
+                });
+            } else {
+                mainWindow.webContents.send('user-context-saved', { success: false, error: 'Backend not connected' });
+            }
+        } catch (error) {
+            console.error('Error saving user context:', error);
+            mainWindow.webContents.send('user-context-saved', { success: false, error: error.message });
+        }
+    });
+
+    ipcMain.on('get-user-context', async (event) => {
+        try {
+            const session = await mainWindow.webContents.executeJavaScript('window.electron.auth.getSession()', true);
+            if (!session || !session.access_token) {
+                mainWindow.webContents.send('user-context-retrieved', { success: false, error: 'Not authenticated' });
+                return;
+            }
+
+            // Forward to backend via python bridge
+            if (pythonBridge && pythonBridge.socket && pythonBridge.socket.connected) {
+                pythonBridge.socket.emit('get-user-context', {
+                    accessToken: session.access_token
+                });
+
+                // Listen for response
+                pythonBridge.socket.once('user-context-retrieved', (result) => {
+                    mainWindow.webContents.send('user-context-retrieved', result);
+                });
+            } else {
+                mainWindow.webContents.send('user-context-retrieved', { success: false, error: 'Backend not connected' });
+            }
+        } catch (error) {
+            console.error('Error getting user context:', error);
+            mainWindow.webContents.send('user-context-retrieved', { success: false, error: error.message });
+        }
+    });
+}
+
+// --- macOS Deep Link Handler ---
+app.on('open-url', (event, url) => {
+    event.preventDefault();
+    handleDeepLink(url);
+});
+
+const fs = require('fs').promises;
+ipcMain.handle('show-save-dialog', async (event, options) => { return await dialog.showSaveDialog(mainWindow, options); });
+ipcMain.handle('save-file', async (event, { filePath, content, encoding = 'utf8' }) => {
+    try {
+        if (encoding === 'base64') {
+            await fs.writeFile(filePath, Buffer.from(content, 'base64'));
+        } else if (encoding === 'binary') {
+            await fs.writeFile(filePath, Buffer.from(content, 'binary'));
+        } else {
+            await fs.writeFile(filePath, content, 'utf8');
+        }
+        return true;
+    } catch (error) {
+        console.error('Error saving file:', error);
+        return false;
+    }
+});
+ipcMain.handle('export-conversation-pdf', async (event, payload) => {
+    const html = String(payload?.html || '').trim();
+    const defaultPath = String(payload?.defaultPath || 'aetheria-conversation.pdf').trim() || 'aetheria-conversation.pdf';
+
+    if (!html) {
+        return { success: false, error: 'No conversation HTML provided.' };
+    }
+
+    let exportWindow = null;
+    try {
+        const saveResult = await dialog.showSaveDialog(mainWindow, {
+            defaultPath,
+            filters: [
+                { name: 'PDF Files', extensions: ['pdf'] }
+            ]
+        });
+
+        if (saveResult.canceled || !saveResult.filePath) {
+            return { canceled: true };
+        }
+
+        exportWindow = new BrowserWindow({
+            show: false,
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                sandbox: true
+            }
+        });
+
+        await exportWindow.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(html)}`);
+        const pdfBuffer = await exportWindow.webContents.printToPDF({
+            printBackground: true,
+            preferCSSPageSize: true,
+            pageSize: 'A4',
+            marginsType: 1,
+            landscape: false
+        });
+
+        await fs.writeFile(saveResult.filePath, pdfBuffer);
+        return { success: true, filePath: saveResult.filePath };
+    } catch (error) {
+        console.error('Error exporting conversation PDF:', error);
+        return { success: false, error: error.message || 'Failed to export PDF.' };
+    } finally {
+        if (exportWindow && !exportWindow.isDestroyed()) {
+            exportWindow.destroy();
+        }
+    }
+});
+ipcMain.handle('get-path', (event, pathName) => { try { return app.getPath(pathName); } catch (error) { console.error(`Error getting path for ${pathName}:`, error); return null; } });
+ipcMain.handle('get-app-path', () => { return app.getAppPath(); });
+ipcMain.handle('resolve-app-resource', (event, ...segments) => { return path.join(app.getAppPath(), ...segments); });
+
+// Handle save file dialog for sharing AI responses
+ipcMain.on('save-file-dialog', async (event, { content, defaultPath, filters }) => {
+    try {
+        const result = await dialog.showSaveDialog(mainWindow, {
+            defaultPath: defaultPath,
+            filters: filters || [
+                { name: 'Text Files', extensions: ['txt'] },
+                { name: 'Markdown Files', extensions: ['md'] },
+                { name: 'All Files', extensions: ['*'] }
+            ]
+        });
+
+        if (!result.canceled && result.filePath) {
+            await fs.writeFile(result.filePath, content, 'utf8');
+            event.reply('save-file-result', { success: true, filePath: result.filePath });
+        } else {
+            event.reply('save-file-result', { canceled: true });
+        }
+    } catch (error) {
+        console.error('Error saving file:', error);
+        event.reply('save-file-result', { success: false, error: error.message });
+    }
+});
+
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+app.on('before-quit', async () => {
+    if (isAppQuitting) return;
+    isAppQuitting = true;
+
+    if (browserHandler) {
+        try {
+            await browserHandler.cleanup();
+        } catch (error) {
+            console.error('Error cleaning up BrowserHandler:', error.message);
+        }
+    }
+
+    if (localCoderHandler) {
+        try {
+            await localCoderHandler.cleanup();
+        } catch (error) {
+            console.error('Error cleaning up LocalCoderHandler:', error.message);
+        }
+    }
+
+    if (linkWebView) {
+        try {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.removeBrowserView(linkWebView);
+            }
+            if (linkWebView.webContents && !linkWebView.webContents.isDestroyed()) {
+                linkWebView.webContents.destroy();
+            }
+            linkWebView = null;
+        } catch (error) {
+            console.error('Error cleaning up linkWebView:', error.message);
+        }
+    }
+
+    if (appTray) {
+        try {
+            appTray.destroy();
+            appTray = null;
+        } catch (error) {
+            console.error('Error cleaning up tray:', error.message);
+        }
+    }
+
+    if (pythonBridge) {
+        try {
+            pythonBridge.stop();
+            pythonBridge = null;
+        } catch (error) {
+            console.error('Error stopping Python bridge:', error.message);
+        }
+    }
+});
