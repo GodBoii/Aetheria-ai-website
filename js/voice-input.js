@@ -1,3 +1,4 @@
+import { getAuthenticatedSession } from './session-auth.js';
 // js/voice-input.js - Cloud intelligent mic handler for mobile/WebView
 
 import { config } from './config.js';
@@ -328,13 +329,7 @@ class VoiceInputHandler {
   }
 
   async getAccessToken() {
-    await supabase.auth.refreshSession();
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error('[VoiceInput] Failed to get session:', error);
-      return null;
-    }
-    return data?.session?.access_token || null;
+    return (await getAuthenticatedSession()).access_token;
   }
 
   mixToMono(audioBuffer) {
