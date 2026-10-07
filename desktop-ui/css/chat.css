@@ -1,0 +1,70 @@
+/* ================================================================= */
+/* CHAT INTERFACE - MODULAR CSS ARCHITECTURE                       */
+/* ================================================================= */
+
+/*
+ * This file serves as the main orchestrator for the chat interface CSS.
+ * All styles are organized into focused modules for better maintainability.
+ * 
+ * Module Dependencies:
+ * 1. Variables (foundation) - CSS custom properties and themes
+ * 2. Layout - Core structural components and positioning
+ * 3. Components - Reusable UI elements (buttons, badges, etc.)
+ * 4. Input - Floating input interface and related components
+ * 5. Messages - Message bubbles, animations, and conversation display
+ * 6. Context - Modal windows, popups, and session management
+ */
+
+/* --- Foundation: Variables and Themes --- */
+@import url('chat-variables.css');
+
+/* --- Core Structure: Layout and Containers --- */
+@import url('chat-layout.css');
+
+/* --- Reusable Elements: Components and Utilities --- */
+@import url('chat-components.css');
+
+/* --- Input Interface: Floating Input and Toolbar --- */
+@import url('chat-input.css');
+
+/* --- Message Display: Bubbles and Conversations --- */
+@import url('chat-messages.css');
+
+/* --- Modal Interfaces: Context Windows and Popups --- */
+@import url('chat-context.css');
+
+/* --- Welcome Message: Initial Interface State --- */
+@import url('welcome-message.css');
+
+/* --- File Preview: Simple Modal Preview --- */
+@import url('file-preview-modal.css');
+
+/* ================================================================= */
+/* CRITICAL OVERRIDES & INTEGRATION FIXES                          */
+/* ================================================================= */
+
+/*
+ * Any critical CSS that must load last or override module styles
+ * should be placed here. Keep this section minimal.
+ */
+
+/* Ensure proper z-index stacking */
+.welcome-container {
+    z-index: var(--z-welcome-message);
+}
+
+.floating-input-container {
+    z-index: var(--z-input-container);
+}
+
+.context-window {
+    z-index: var(--z-context-window);
+}
+
+.tools-menu,
+.shuffle-menu {
+    z-index: var(--z-dropdown-menu);
+}
+
+/* Ensure animations work across all modules */
+/* Reduced motion preference removed to force animations */
