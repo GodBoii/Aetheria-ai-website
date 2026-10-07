@@ -1,3 +1,4 @@
+import { getAuthenticatedSession } from './session-auth.js';
 // js/aios.js
 
 import { supabase } from './supabase-client.js';
@@ -11,6 +12,7 @@ import { DeploySettingsManager } from './deploy-settings-manager.js';
 
 import { authGate } from './auth-gate.js';
 import { IdempotencyKeyGenerator } from './security-utils.js';
+import { loadLibrary } from './workspace-assets.js';
 
 // Backend URL for OAuth integrations - Production (Cloudflare Tunnel)
 const OAUTH_BACKEND_URL = config.backend.url;
@@ -56,8 +58,10 @@ export class AIOS {
 
         this.cacheElements();
         this.accountSection = document.querySelector('.settings-section.account-section');
+        this.setupSettingsNavigation();
         window.matchMedia('(min-width: 1024px)').addEventListener('change', event => {
-            const visiblePanel = Array.from(this.elements.settingsPanels).find(panel => !panel.classList.contains('hidden'));
+            const visiblePanel = Array.from(this.elements.settingsPanels).find(panel => !panel.classList.contains('hidden') && panel.getClientRects().length);
+            if (!visiblePanel) this.elements.settingsPanels.forEach(panel => panel.classList.add('hidden'));
             if (!event.matches) {
                 this.elements.settingsView.prepend(this.accountSection);
                 this.elements.settingsPanels.forEach(panel => document.getElementById('aios-root').appendChild(panel));
@@ -87,7 +91,8 @@ export class AIOS {
         this.handleComposioCallback();
 
         // Get current user and update UI
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user || null;
         await this.updateAuthUI(user);
         this.loadUsageData().catch((error) => {
             console.error('[AIOS] Initial usage load failed:', error);
@@ -105,23 +110,10 @@ export class AIOS {
 
         try {
 
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}${window.location.pathname}`,
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'consent',
-                    },
-                },
-            });
-
-            if (error) {
-                throw error;
-            }
+            await authService.signInWithGoogle();
         } catch (error) {
             console.error('Google Sign-In error:', error);
-            const errorMsg = `${error.message || 'Google Sign-In failed.'} Add your deployed Vercel URL to Supabase Authentication Redirect URLs, for example https://<your-app>.vercel.app/**.`;
+            const errorMsg = error.message || 'Google sign-in could not start. Please try again.';
 
             this.elements.loginError.textContent = errorMsg;
             this.elements.signupError.textContent = errorMsg;
@@ -341,6 +333,7 @@ export class AIOS {
             const theme = option.dataset.theme;
             const active = (isDark && theme === 'dark') || (!isDark && theme === 'light');
             option.classList.toggle('active', active);
+            option.setAttribute('aria-pressed', String(active));
         });
     }
 
@@ -353,9 +346,77 @@ export class AIOS {
         }
     }
 
+    setupSettingsNavigation() {
+        const dropdown = this.elements.profileDropdown;
+        // Settings contains navigation and forms, rather than an ARIA menu.
+        dropdown.setAttribute('role', 'dialog');
+        dropdown.setAttribute('aria-label', 'Settings');
+        const title = document.createElement('h2');
+        title.className = 'settings-dialog-title';
+        title.textContent = 'Settings';
+        dropdown.appendChild(title);
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'settings-close-btn';
+        close.setAttribute('aria-label', 'Close settings');
+        close.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+        close.addEventListener('click', () => this.closeProfileMenu());
+        dropdown.appendChild(close);
+        const account = document.createElement('button');
+        account.type = 'button';
+        account.className = 'settings-menu-item settings-account-nav';
+        account.dataset.section = 'account';
+        account.innerHTML = '<i class="fas fa-user-circle" aria-hidden="true"></i><span>Account</span>';
+        account.addEventListener('click', () => this.openDesktopAccountPanel());
+        this.elements.settingsView.prepend(account);
+        this.elements.settingsView.querySelectorAll('.settings-menu-item i').forEach(icon => icon.setAttribute('aria-hidden', 'true'));
+        this.elements.backButtons.forEach(button => button.setAttribute('aria-label', 'Back to settings'));
+        this.elements.settingsPanels.forEach(panel => {
+            panel.setAttribute('role', 'dialog');
+            panel.setAttribute('aria-label', panel.querySelector('h2')?.textContent || 'Settings');
+        });
+        document.addEventListener('keydown', event => {
+            if (document.querySelector('dialog[open]') || !this.elements.profileDropdown) return;
+            const subscription = this.elements.subscriptionModal;
+            const subscriptionOpen = subscription && !subscription.classList.contains('hidden');
+            const panel = Array.from(this.elements.settingsPanels).find(item => !item.classList.contains('hidden') && item.getClientRects().length);
+            const open = !dropdown.classList.contains('hidden');
+            if (!open && !panel && !subscriptionOpen) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (subscriptionOpen) this.closeSubscriptionModal();
+                else if (panel && !window.matchMedia('(min-width: 1024px)').matches) this.closePanel();
+                else this.closeProfileMenu();
+            } else if (event.key === 'Tab') {
+                const region = subscriptionOpen ? subscription : open ? dropdown : panel;
+                const controls = Array.from(region.querySelectorAll('button, a[href], input, select, textarea, [tabindex="0"]'))
+                    .filter(item => !item.disabled && item.getClientRects().length && getComputedStyle(item).visibility !== 'hidden');
+                const first = controls[0];
+                const last = controls.at(-1);
+                if (event.shiftKey && (document.activeElement === first || !region.contains(document.activeElement))) {
+                    event.preventDefault(); last?.focus();
+                } else if (!event.shiftKey && (document.activeElement === last || !region.contains(document.activeElement))) {
+                    event.preventDefault(); first?.focus();
+                }
+            }
+        }, true);
+    }
+
+    markSettingsSection(section) {
+        this.elements.settingsView.querySelectorAll('.settings-menu-item').forEach(item => {
+            const selected = item.dataset.section === section;
+            item.classList.toggle('selected', selected);
+            if (selected) item.setAttribute('aria-current', 'page');
+            else item.removeAttribute('aria-current');
+        });
+    }
+
     openProfileMenu() {
+        if (!this.elements.profileDropdown.contains(document.activeElement) && !document.activeElement.closest('.settings-full-panel')) this.settingsTrigger = document.activeElement;
         this.elements.profileDropdown.classList.remove('hidden');
         this.elements.profileMenuBtn.setAttribute('aria-expanded', 'true');
+        document.getElementById('sidebar-profile-btn')?.setAttribute('aria-expanded', 'true');
 
         // Load settings view into dropdown
         if (this.elements.settingsView && !this.elements.profileDropdown.contains(this.elements.settingsView)) {
@@ -371,22 +432,31 @@ export class AIOS {
         // Update integration status if user is on account section
         this.updateIntegrationStatus();
         this.loadUsageData();
+        this.elements.profileDropdown.querySelector('.settings-close-btn')?.focus();
     }
 
     closeProfileMenu() {
+        const wasOpen = !this.elements.profileDropdown.classList.contains('hidden');
         this.elements.profileDropdown.classList.add('hidden');
         this.elements.profileMenuBtn.setAttribute('aria-expanded', 'false');
+        document.getElementById('sidebar-profile-btn')?.setAttribute('aria-expanded', 'false');
+        document.getElementById('sidebar-profile-btn')?.classList.remove('active');
+        if (wasOpen && this.elements.profileDropdown.contains(document.activeElement)) this.settingsTrigger?.focus();
     }
 
     openPanel(section) {
         const panel = document.getElementById(`${section}-panel`);
         if (panel) {
+            this.elements.settingsPanels.forEach(item => item.classList.toggle('hidden', item !== panel));
+            this.markSettingsSection(section);
             panel.classList.remove('hidden');
 
             // On desktop (>=1024px), keep the profile dropdown open and show panel inside it
             const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
             if (isDesktop) {
+                if (this.elements.profileDropdown.classList.contains('hidden')) this.settingsTrigger = document.getElementById('sidebar-profile-btn');
                 this.elements.profileDropdown?.classList.remove('hidden');
+                document.getElementById('sidebar-profile-btn')?.setAttribute('aria-expanded', 'true');
                 // Move panel into the profile dropdown for split-layout display
                 const dropdown = this.elements.profileDropdown;
                 if (dropdown && !dropdown.contains(panel)) {
@@ -418,6 +488,7 @@ export class AIOS {
                 this.deploySettingsManager.loadFiles();
 
             }
+            panel.querySelector('.back-to-menu-btn')?.focus();
         }
     }
 
@@ -450,6 +521,7 @@ export class AIOS {
     openDesktopAccountPanel() {
         const dropdown = this.elements.profileDropdown;
         if (!dropdown) return;
+        this.markSettingsSection('account');
 
         // Get or create the desktop account right panel
         let accountPanel = document.getElementById('desktop-account-right-panel');
@@ -464,7 +536,6 @@ export class AIOS {
         const accountSection = this.accountSection;
         if (accountSection) {
             // Only refresh if the content has changed
-            const accountHTML = accountSection.innerHTML;
             if (accountPanel.dataset.rendered !== 'true') {
                 accountPanel.innerHTML = `
                     <div class="desktop-account-right-header">
@@ -601,20 +672,18 @@ export class AIOS {
         if (!this.usageRenderer || this.isSubscriptionLoading) return;
 
         this.isSubscriptionLoading = true;
-        const token = await this._getAccessToken();
-        if (!token) {
-            this.subscriptionSummary = null;
-            this.usageRenderer.renderLoggedOut();
-            this.renderAccountSubscriptionLoggedOut();
-            this.isSubscriptionLoading = false;
-            return;
-        }
-
-        this.usageRenderer.setState('loading');
-        this.usageRenderer.setManagePlansEnabled(false);
-        this.elements.accountManagePlansBtn && (this.elements.accountManagePlansBtn.disabled = true);
-
         try {
+            const token = await this._getAccessToken();
+            if (!token) {
+                this.subscriptionSummary = null;
+                this.usageRenderer.renderLoggedOut();
+                this.renderAccountSubscriptionLoggedOut();
+                return;
+            }
+
+            this.usageRenderer.setState('loading');
+            this.usageRenderer.setManagePlansEnabled(false);
+            this.elements.accountManagePlansBtn && (this.elements.accountManagePlansBtn.disabled = true);
             const response = await fetch(`${API_BACKEND_URL}/api/subscription/status`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -796,6 +865,7 @@ export class AIOS {
     }
 
     async openSubscriptionModal(reason = 'manual') {
+        this.subscriptionTrigger = document.activeElement;
         if (!this.subscriptionSummary) {
             await this.loadUsageData();
         }
@@ -806,10 +876,13 @@ export class AIOS {
         this.renderPricingModal(this.subscriptionSummary);
         this.elements.subscriptionModal?.classList.remove('hidden');
         this.elements.subscriptionModal?.setAttribute('data-open-reason', reason);
+        this.elements.subscriptionModalClose?.focus();
     }
 
     closeSubscriptionModal() {
+        const wasOpen = this.elements.subscriptionModal && !this.elements.subscriptionModal.classList.contains('hidden');
         this.elements.subscriptionModal?.classList.add('hidden');
+        if (wasOpen) this.subscriptionTrigger?.focus();
     }
 
     async startPlanUpgrade(planType) {
@@ -899,6 +972,7 @@ export class AIOS {
     }
 
     async launchRazorpayCheckout(createPayload) {
+        await loadLibrary('checkout');
         const keyId = createPayload?.key_id;
         const subscriptionId = createPayload?.subscription_id;
         if (!keyId || !subscriptionId) {
@@ -1172,8 +1246,7 @@ export class AIOS {
 
     async handleIntegrationConnect(provider) {
         this.showNotification(`Connecting to ${provider}...`, 'info');
-        await supabase.auth.refreshSession();
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await getAuthenticatedSession();
         if (!session) {
             this.showNotification("You must be logged in to connect an integration.", 'error');
             return;
@@ -1289,9 +1362,7 @@ export class AIOS {
 
     async handleIntegrationDisconnect(provider) {
         if (!confirm(`Are you sure you want to disconnect your ${provider} account?`)) return;
-
-        await supabase.auth.refreshSession();
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await getAuthenticatedSession();
         if (!session) {
             this.showNotification("Session expired. Please log in again.", 'error');
             return;
@@ -1587,7 +1658,7 @@ export class AIOS {
     async _getAccessToken() {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-        return data?.session?.access_token || null;
+        return data?.session ? (await getAuthenticatedSession()).access_token : null;
     }
 
     async loadMemories() {
