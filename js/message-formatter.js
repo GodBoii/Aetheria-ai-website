@@ -2,9 +2,8 @@ import { artifactHandler } from './artifact-handler.js';
 
 const SANITIZE_TAGS = ['button', 'i', 'div', 'span', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
 const SANITIZE_ATTRS = [
-    'class', 'id', 'role', 'title', 'type', 'tabindex',
-    'aria-label', 'aria-pressed', 'aria-expanded', 'aria-hidden',
-    'data-artifact-id', 'data-mermaid-source', 'data-code-id', 'data-toggle-target', 
+    'class', 'id', 'role', 'title', 'tabindex', 'aria-label', 'aria-pressed', 'aria-hidden',
+    'data-artifact-id', 'data-mermaid-source', 'data-code-id', 'data-toggle-target',
     'data-content-id', 'data-code-content', 'data-view'
 ];
 
@@ -25,11 +24,10 @@ class MessageFormatter {
         if (this.hasMarked && this.hasDOMPurify) {
             this.configureMarked();
             this.inlineRenderer = this.buildInlineRenderer();
+            this.setupArtifactListeners();
         } else {
             console.warn('MessageFormatter: marked or DOMPurify unavailable; output will be minimally formatted.');
         }
-
-        this.setupArtifactListeners();
     }
 
     initializeMermaid() {
@@ -65,21 +63,9 @@ class MessageFormatter {
 
         const renderer = {
             code: (code, language) => {
-                console.log('[MessageFormatter] Default renderer code() called:', {
-                    codeType: typeof code,
-                    codeLength: code?.length,
-                    language: language,
-                    codePreview: typeof code === 'string' ? code.substring(0, 100) : code
-                });
 
                 try {
                     const { codeContent, normalizedLang } = this.extractCodeFromPayload(code, language);
-
-                    console.log('[MessageFormatter] After extraction:', {
-                        codeContentType: typeof codeContent,
-                        codeContentLength: codeContent?.length,
-                        normalizedLang: normalizedLang
-                    });
 
                     // Ensure codeContent is a string
                     if (typeof codeContent !== 'string') {
@@ -92,12 +78,12 @@ class MessageFormatter {
 
                     // For Mermaid diagrams, ALWAYS render inline with diagram
                     if (normalizedLang === 'mermaid') {
-                        console.log('[MessageFormatter] Rendering Mermaid diagram inline');
+
                         return this.renderMermaidInline(codeContent);
                     }
 
                     // For all other code, render as collapsible block
-                    console.log('[MessageFormatter] Rendering collapsible code block');
+
                     return this.renderCollapsibleCode(codeContent, normalizedLang);
                 } catch (error) {
                     console.error('[MessageFormatter] Error in code renderer:', error);
@@ -111,122 +97,72 @@ class MessageFormatter {
     }
 
     setupArtifactListeners() {
-        if (this.artifactListenersInitialized) return;
-        this.artifactListenersInitialized = true;
-
-        const toggleCodeBlock = (codeHeader) => {
-            if (!codeHeader) return;
-
-            const wrapper = codeHeader.closest('.collapsible-code-block');
-            const codeId = codeHeader.dataset.toggleTarget || wrapper?.dataset.codeId;
-            const contentDiv = wrapper?.querySelector('.code-block-content')
-                || document.querySelector(`[data-content-id="${codeId}"]`);
-            const chevron = codeHeader.querySelector('.code-block-chevron');
-
-            if (!contentDiv) return;
-
-            const willExpand = contentDiv.classList.contains('collapsed');
-            contentDiv.classList.toggle('collapsed', !willExpand);
-            contentDiv.classList.toggle('expanded', willExpand);
-            codeHeader.setAttribute('aria-expanded', String(willExpand));
-
-            if (chevron) {
-                chevron.style.transform = willExpand ? 'rotate(180deg)' : 'rotate(0deg)';
-            }
-
-            if (willExpand && typeof hljs !== 'undefined') {
-                const codeEl = contentDiv.querySelector('code');
-                if (codeEl && !codeEl.dataset.highlighted) {
-                    hljs.highlightElement(codeEl);
-                    codeEl.dataset.highlighted = 'true';
-                }
-            }
-        };
-
-        const getCodeContentForCopy = (copyBtn) => {
-            const wrapper = copyBtn.closest('.collapsible-code-block')
-                || document.querySelector(`[data-code-id="${copyBtn.dataset.codeId}"]`);
-            const pre = wrapper?.querySelector('pre');
-            const codeEl = pre?.querySelector('code');
-
-            return pre?.dataset.codeContent || codeEl?.textContent || pre?.textContent || '';
-        };
-
-        const copyTextToClipboard = async (text) => {
-            const fallbackCopy = () => new Promise((resolve, reject) => {
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                textArea.setAttribute('readonly', '');
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-999999px';
-                textArea.style.top = '0';
-                textArea.style.opacity = '0';
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                textArea.setSelectionRange(0, textArea.value.length);
-
-                try {
-                    const successful = document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    successful ? resolve() : reject(new Error('execCommand failed'));
-                } catch (err) {
-                    document.body.removeChild(textArea);
-                    reject(err);
-                }
-            });
-
-            if (navigator.clipboard?.writeText && window.isSecureContext) {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    return;
-                } catch (err) {
-                    console.warn('[MessageFormatter] navigator.clipboard failed; trying fallback.', err);
-                }
-            }
-
-            await fallbackCopy();
-        };
-
         // Use event delegation with proper priority
         document.addEventListener('click', (event) => {
             // PRIORITY 1: Copy button (check first to prevent header toggle)
             const copyBtn = event.target.closest('.inline-code-copy-btn, .code-copy-btn');
             if (copyBtn) {
-                console.log('[MessageFormatter] Copy button clicked');
+
                 event.preventDefault();
                 event.stopPropagation();
 
-                const codeContent = getCodeContentForCopy(copyBtn);
+                const codeId = copyBtn.dataset.codeId;
+                const wrapper = document.querySelector(`[data-code-id="${codeId}"]`);
+                if (wrapper) {
+                    const pre = wrapper.querySelector('pre');
+                    const codeContent = pre?.dataset.codeContent || pre?.textContent || '';
 
-                console.log('[MessageFormatter] Copying code, length:', codeContent.length);
+                    // Try modern clipboard API first, fallback to legacy method
+                    const copyToClipboard = (text) => {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            return navigator.clipboard.writeText(text);
+                        } else {
+                            // Fallback for older browsers or insecure contexts
+                            return new Promise((resolve, reject) => {
+                                const textArea = document.createElement('textarea');
+                                textArea.value = text;
+                                textArea.style.position = 'fixed';
+                                textArea.style.left = '-999999px';
+                                textArea.style.top = '-999999px';
+                                document.body.appendChild(textArea);
+                                textArea.focus();
+                                textArea.select();
 
-                copyTextToClipboard(codeContent).then(() => {
-                    console.log('[MessageFormatter] Code copied successfully');
-                    const icon = copyBtn.querySelector('i');
-                    const originalClass = icon?.className || '';
-                    if (icon) icon.className = 'fas fa-check';
-                    copyBtn.style.color = 'var(--success-500)';
+                                try {
+                                    const successful = document.execCommand('copy');
+                                    document.body.removeChild(textArea);
+                                    if (successful) {
+                                        resolve();
+                                    } else {
+                                        reject(new Error('execCommand failed'));
+                                    }
+                                } catch (err) {
+                                    document.body.removeChild(textArea);
+                                    reject(err);
+                                }
+                            });
+                        }
+                    };
 
-                    setTimeout(() => {
-                        if (icon) icon.className = originalClass;
-                        copyBtn.style.color = '';
-                    }, 2000);
-                }).catch(err => {
-                    console.error('[MessageFormatter] Failed to copy code:', err);
-                    const icon = copyBtn.querySelector('i');
-                    const originalClass = icon?.className || '';
-                    if (icon) icon.className = 'fas fa-times';
-                    copyBtn.style.color = 'var(--error-500)';
+                    copyToClipboard(codeContent).then(() => {
 
-                    setTimeout(() => {
-                        if (icon) icon.className = originalClass;
-                        copyBtn.style.color = '';
-                    }, 2000);
-                });
+                        const icon = copyBtn.querySelector('i');
+                        const originalClass = icon.className;
+                        icon.className = 'fas fa-check';
+                        copyBtn.style.color = 'var(--success-500)';
+
+                        setTimeout(() => {
+                            icon.className = originalClass;
+                            copyBtn.style.color = '';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('[MessageFormatter] Failed to copy code:', err);
+                        alert('Failed to copy code: ' + err.message);
+                    });
+                }
                 return; // Stop here, don't check other handlers
             }
-            
+
             // PRIORITY 2: Artifact button
             const artifactBtn = event.target.closest('.artifact-reference');
             if (artifactBtn) {
@@ -237,7 +173,7 @@ class MessageFormatter {
                 }
                 return;
             }
-            
+
             // PRIORITY 3: Code block header toggle (only if not clicking copy button)
             const codeHeader = event.target.closest('.code-block-header');
             if (codeHeader) {
@@ -245,20 +181,31 @@ class MessageFormatter {
                 if (event.target.closest('.code-copy-btn')) {
                     return;
                 }
-                
-                toggleCodeBlock(codeHeader);
+
+                const codeId = codeHeader.dataset.toggleTarget;
+                const contentDiv = document.querySelector(`[data-content-id="${codeId}"]`);
+                const chevron = codeHeader.querySelector('.code-block-chevron');
+
+                if (contentDiv) {
+                    const isCollapsed = contentDiv.classList.contains('collapsed');
+                    contentDiv.classList.toggle('collapsed');
+                    contentDiv.classList.toggle('expanded');
+
+                    if (chevron) {
+                        chevron.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+                    }
+
+                    // Apply syntax highlighting if expanding for first time
+                    if (isCollapsed && typeof hljs !== 'undefined') {
+                        const codeEl = contentDiv.querySelector('code');
+                        if (codeEl && !codeEl.dataset.highlighted) {
+                            hljs.highlightElement(codeEl);
+                            codeEl.dataset.highlighted = 'true';
+                        }
+                    }
+                }
                 return;
             }
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-
-            const codeHeader = event.target.closest?.('.code-block-header');
-            if (!codeHeader || event.target.closest('.code-copy-btn')) return;
-
-            event.preventDefault();
-            toggleCodeBlock(codeHeader);
         });
     }
 
@@ -266,19 +213,9 @@ class MessageFormatter {
         const renderer = new marked.Renderer();
 
         renderer.code = (code, language = 'plaintext') => {
-            console.log('[MessageFormatter] Inline renderer code() called:', {
-                codeType: typeof code,
-                codeLength: code?.length,
-                language: language
-            });
 
             try {
                 const { codeContent, normalizedLang } = this.extractCodeFromPayload(code, language);
-
-                console.log('[MessageFormatter] Inline renderer after extraction:', {
-                    codeContentType: typeof codeContent,
-                    normalizedLang: normalizedLang
-                });
 
                 // Ensure codeContent is a string
                 if (typeof codeContent !== 'string') {
@@ -295,12 +232,12 @@ class MessageFormatter {
 
                 // For Mermaid, ALWAYS render the diagram inline with toggle
                 if (normalizedLang === 'mermaid') {
-                    console.log('[MessageFormatter] Rendering inline Mermaid with diagram');
+
                     return this.renderMermaidInline(codeContent);
                 }
 
                 // For all other code, render with collapsible dropdown and copy button
-                console.log('[MessageFormatter] Rendering collapsible code block');
+
                 return this.renderCollapsibleCode(codeContent, normalizedLang);
             } catch (error) {
                 console.error('[MessageFormatter] Error in inline renderer:', error);
@@ -314,26 +251,20 @@ class MessageFormatter {
     }
 
     extractCodeFromPayload(rawCode, language) {
-        console.log('[MessageFormatter] extractCodeFromPayload called:', {
-            rawCodeType: typeof rawCode,
-            rawCode: rawCode,
-            language: language
-        });
 
         let codeContent = rawCode;
         let lang = language;
 
         // Handle marked's token object format
         if (typeof rawCode === 'object' && rawCode !== null) {
-            console.log('[MessageFormatter] rawCode is object, checking for marked token format');
-            
+
             // Marked passes tokens like: { type: 'code', raw: '```lang\ncode\n```', text: 'code', lang: 'lang' }
             if (rawCode.text && typeof rawCode.text === 'string') {
-                console.log('[MessageFormatter] Found text property in token');
+
                 codeContent = rawCode.text;
                 lang = rawCode.lang || language || 'plaintext';
             } else if (rawCode.raw && typeof rawCode.raw === 'string') {
-                console.log('[MessageFormatter] Found raw property in token');
+
                 // Extract code from raw markdown
                 const rawStr = rawCode.raw;
                 const match = rawStr.match(/^```([a-zA-Z0-9]*)\n([\s\S]*?)\n```$/);
@@ -374,16 +305,10 @@ class MessageFormatter {
             normalizedLang: (lang || 'plaintext').toLowerCase(),
         };
 
-        console.log('[MessageFormatter] extractCodeFromPayload result:', result);
         return result;
     }
 
     renderCollapsibleCode(code, language) {
-        console.log('[MessageFormatter] renderCollapsibleCode called:', {
-            codeType: typeof code,
-            codeLength: code?.length,
-            language: language
-        });
 
         // Ensure code is a string
         const codeString = typeof code === 'string' ? code : String(code || '');
@@ -393,20 +318,20 @@ class MessageFormatter {
             ? DOMPurify.sanitize(codeString, { USE_PROFILES: { html: false } })
             : codeString;
         const langClass = language || 'plaintext';
-        
+
         // Store code for copy functionality
         const codeId = `code-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
+
         return `
             <div class="collapsible-code-block" data-code-id="${codeId}">
-                <div class="code-block-header" role="button" tabindex="0" aria-expanded="false" data-toggle-target="${codeId}">
+                <div class="code-block-header" role="button" tabindex="0" data-toggle-target="${codeId}">
                     <div class="code-block-info">
                         <i class="fas fa-code code-block-icon"></i>
                         <span class="code-block-language">${language || 'code'}</span>
                         <span class="code-block-lines">${lineCount} line${lineCount !== 1 ? 's' : ''}</span>
                     </div>
                     <div class="code-block-actions">
-                        <button type="button" class="code-copy-btn" data-code-id="${codeId}" title="Copy code" aria-label="Copy code">
+                        <button class="code-copy-btn" data-code-id="${codeId}" title="Copy code">
                             <i class="fi fi-tr-copy"></i>
                         </button>
                         <i class="fas fa-chevron-down code-block-chevron"></i>
@@ -425,10 +350,6 @@ class MessageFormatter {
     }
 
     renderMermaidInline(code) {
-        console.log('[MessageFormatter] renderMermaidInline called:', {
-            codeType: typeof code,
-            codeLength: code?.length
-        });
 
         // Ensure code is a string
         const codeString = typeof code === 'string' ? code : String(code || '');
@@ -437,10 +358,9 @@ class MessageFormatter {
             ? DOMPurify.sanitize(codeString, { USE_PROFILES: { html: false } })
             : codeString;
         const escaped = this.escapeHtml(codeString);
-        
+
         // Create artifact for full-size view
         const artifactId = artifactHandler.createArtifact(codeString, 'mermaid');
-        console.log('[MessageFormatter] Created Mermaid artifact for inline:', artifactId);
 
         return `
             <div class="inline-mermaid-block" data-view-mode="preview">
@@ -530,16 +450,9 @@ class MessageFormatter {
     }
 
     format(content, options = {}) {
-        console.log('[MessageFormatter] format() called:', {
-            contentType: typeof content,
-            contentLength: content?.length,
-            options: options,
-            hasMarked: this.hasMarked,
-            hasDOMPurify: this.hasDOMPurify
-        });
 
         if (!content) {
-            console.log('[MessageFormatter] No content, returning empty string');
+
             return '';
         }
 
@@ -549,28 +462,19 @@ class MessageFormatter {
         }
 
         const normalized = this.normalizeContent(content);
-        console.log('[MessageFormatter] Content normalized:', {
-            normalizedType: typeof normalized,
-            normalizedLength: normalized?.length,
-            normalizedPreview: normalized?.substring(0, 100)
-        });
 
         const inlineMode = options.inlineArtifacts === true && this.inlineRenderer;
-        console.log('[MessageFormatter] Rendering mode:', inlineMode ? 'inline' : 'button');
 
         try {
             const rawHtml = inlineMode
                 ? marked.parse(normalized, { renderer: this.inlineRenderer })
                 : marked.parse(normalized);
 
-            console.log('[MessageFormatter] Marked parse successful, sanitizing...');
-
             const sanitized = DOMPurify.sanitize(rawHtml, {
                 ADD_TAGS: SANITIZE_TAGS,
                 ADD_ATTR: SANITIZE_ATTRS,
             });
 
-            console.log('[MessageFormatter] Sanitization complete');
             return sanitized;
         } catch (error) {
             console.error('[MessageFormatter] Error in format():', error);
@@ -703,7 +607,7 @@ class MessageFormatter {
         toggles.forEach((button) => {
             button.addEventListener('click', (e) => {
                 const mode = button.dataset.view || 'preview';
-                
+
                 // Handle full-size button
                 if (mode === 'fullsize') {
                     const artifactId = button.dataset.artifactId;
@@ -713,7 +617,7 @@ class MessageFormatter {
                     }
                     return;
                 }
-                
+
                 if (container.dataset.viewMode === mode) return;
                 setMode(mode);
             });
