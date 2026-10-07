@@ -1,0 +1,149 @@
+/* ================================================================= */
+/* CHAT-SPECIFIC THEME & COLOR VARIABLES                           */
+/* ================================================================= */
+
+/*
+ * This module defines all CSS custom properties used throughout the chat interface.
+ * It serves as the foundation for the entire chat styling system.
+ * 
+ * Dependencies: None (foundation module)
+ * Used by: All other chat modules
+ * 
+ * Key Features:
+ * - Light and dark theme definitions
+ * - Animation timing and easing functions
+ * - Layout dimensions and constraints
+ * - Z-index management for proper layering
+ */
+
+:root {
+    /* Window & Background Colors */
+    --window-bg: var(--window-bg, #f8fafc);
+    --taskbar-bg: var(--taskbar-bg, rgba(255, 255, 255, 0.75));
+    --elevated-bg: var(--elevated-bg, #ffffff);
+    --input-bg: var(--input-bg, rgba(255, 255, 255, 0.9));
+    --hover-bg: var(--hover-bg, rgba(15, 23, 42, 0.04));
+
+    /* Text Colors */
+    --text-color: var(--text-color, #0f172a);
+    --text-secondary: var(--text-secondary, #475569);
+    --file-name-color: var(--text-color, #0f172a);
+
+    /* Border & Divider Colors */
+    --border-color: var(--border-color, #e2e8f0);
+
+    /* Shadow Colors */
+    --shadow-color: rgba(17, 24, 39, 0.08);
+    --shadow-sm: var(--shadow-sm, 0 1px 2px rgba(17, 24, 39, 0.05));
+    --shadow-md: var(--shadow-md, 0 4px 12px rgba(17, 24, 39, 0.08));
+    --shadow-xl: var(--shadow-xl, 0 40px 65px rgba(17, 24, 39, 0.12));
+
+    /* Accent & Interactive Colors */
+    --accent-color: var(--accent-color, #4338ca);
+    --accent-hover: var(--accent-hover, #3730a3);
+    --accent-color-rgb: var(--accent-color-rgb, 67, 56, 202);
+    --accent-muted: var(--accent-muted, rgba(67, 56, 202, 0.08));
+    --icon-color: var(--icon-color, #64748b);
+
+    /* Link Colors */
+    --link-color: var(--accent-color, #4338ca);
+    --link-hover: var(--accent-hover, #3730a3);
+
+    /* Code & Syntax Colors */
+    --code-bg: var(--code-bg, #f1f5f9);
+    --code-header-bg: var(--background-secondary, #e2e8f0);
+    --code-border: var(--code-border, #e2e8f0);
+    --code-language-color: var(--text-secondary, #475569);
+
+    /* Table Colors */
+    --table-border: #e2e8f0;
+    --table-header-bg: #f1f5f9;
+    --table-stripe-bg: #f8fafc;
+
+    /* Message Colors */
+    --message-user-bg: var(--message-user-bg, #4338ca);
+    --message-bot-bg: var(--message-bot-bg, #ffffff);
+
+    /* Animation Variables */
+    --anim-fast: 0.2s;
+    --anim-normal: 0.3s;
+    --anim-slow: 0.4s;
+    --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Chat-Specific Layout Variables */
+    --chat-container-width: 55%;
+    --chat-container-left: 52.5%;
+    --chat-max-width: 800px;
+    --input-container-max-width: 800px;
+    --message-max-width: 85%;
+    --input-min-height: 70px;
+    --input-max-height: 200px;
+
+    /* Z-Index Management */
+    --z-chat-container: 999;
+    --z-welcome-message: 1000;
+    --z-context-window: 1001;
+    --z-input-container: 1002;
+    --z-selected-context-viewer: 1003;
+    --z-dropdown-menu: 1004;
+}
+
+/* Dark Mode Theme Overrides — Pure Black Glassmorphism */
+.dark-mode {
+    /* Window & Background Colors — Pure Black + Glass */
+    --window-bg:    rgba(12, 12, 12, 0.92);
+    --taskbar-bg:   rgba(10, 10, 10, 0.85);
+    --elevated-bg:  rgba(255, 255, 255, 0.055);
+    --input-bg:     rgba(255, 255, 255, 0.05);
+    --hover-bg:     rgba(255, 255, 255, 0.06);
+
+    /* Text Colors */
+    --text-color:       #f0f0f0;
+    --text-secondary:   #a0a0a8;
+    --file-name-color:  #f0f0f0;
+
+    /* Border & Divider Colors — Frosted Glass */
+    --border-color: rgba(255, 255, 255, 0.09);
+
+    /* Shadow Colors — True Black Depth */
+    --shadow-color: rgba(0, 0, 0, 0.60);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.50),
+                 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55),
+                 0 2px 8px  rgba(0, 0, 0, 0.45),
+                 inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.75),
+                 0 12px 32px rgba(0, 0, 0, 0.60),
+                 inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    /* Accent & Interactive Colors */
+    --accent-color:     rgba(230, 230, 235, 0.95);
+    --accent-hover:     #ffffff;
+    --accent-color-rgb: 230, 230, 235;
+    --accent-muted:     rgba(255, 255, 255, 0.08);
+    --icon-color:       rgba(255, 255, 255, 0.45);
+
+    /* Link Colors */
+    --link-color: rgba(230, 230, 235, 0.90);
+    --link-hover: #ffffff;
+
+    /* Code & Syntax Colors — Glass-tinted */
+    --code-bg:             rgba(255, 255, 255, 0.06);
+    --code-header-bg:      rgba(255, 255, 255, 0.08);
+    --code-border:         rgba(255, 255, 255, 0.08);
+    --code-language-color: rgba(255, 255, 255, 0.40);
+
+    /* Table Colors — Glass-tinted */
+    --table-border:     rgba(255, 255, 255, 0.08);
+    --table-header-bg:  rgba(255, 255, 255, 0.06);
+    --table-stripe-bg:  rgba(255, 255, 255, 0.03);
+
+    /* Message Colors */
+    --message-user-bg:  rgba(240, 240, 245, 0.95);
+    --message-bot-bg:   rgba(255, 255, 255, 0.055);
+
+    /* Animation Variables (same for both themes) */
+    --anim-fast: 0.2s;
+    --anim-normal: 0.3s;
+    --anim-slow: 0.4s;
+}
