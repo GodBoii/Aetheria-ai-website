@@ -1,0 +1,79 @@
+/* css/style.css (Updated for Notifications and Layout) */
+
+/* Import the foundational styles for the application */
+@import url('design-system.css');
+@import url('mobile.css');
+@import url('modals.css');
+
+/* --- Main Application Body Styles --- */
+body {
+    background: var(--bg-color);
+}
+
+/* Light mode - keep subtle gradient */
+body:not(.dark-mode) {
+    background-image:
+        radial-gradient(at 0% 0%, rgba(var(--accent-color-rgb), 0.04) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(var(--accent-color-rgb), 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(var(--accent-color-rgb), 0.04) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(var(--accent-color-rgb), 0.06) 0px, transparent 50%);
+    background-size: 200% 200%;
+    animation: gradientMove 20s ease infinite;
+    background-attachment: fixed;
+}
+
+/* Dark mode - pure black, no gradient overlay */
+.dark-mode {
+    background: #000000;
+    background-image: none;
+}
+
+/* --- Connection Status --- */
+.connection-error {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    background-color: var(--error-500);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: var(--text-sm);
+    z-index: 1000;
+    box-shadow: var(--shadow-md);
+    animation: fadeIn 0.3s ease;
+}
+
+/* --- Notification System --- */
+/* Notification styles are now handled by notifications.css (unified top-center system) */
+
+/* --- Utility Classes --- */
+.hidden {
+    display: none !important;
+}
+
+/* --- Keyframes --- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* --- Hide Scrollbars Globally (Maintain Functionality) --- */
+/* Hide scrollbar for Chrome, Safari and Opera */
+*::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
