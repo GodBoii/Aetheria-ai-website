@@ -1,0 +1,978 @@
+<div id="chat-container" class="chat-container hidden">
+    <div class="chat-window">
+        <div id="conversation-title-bar" class="conversation-title-bar hidden">
+            <span id="conversation-title-text" class="conversation-title-text"></span>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+        </div>
+        <div id="project-main-file-preview" class="project-main-file-preview hidden">
+            <div class="project-main-file-preview-header">
+                <div id="project-main-file-preview-title" class="project-main-file-preview-title">File Preview</div>
+                <button id="project-main-file-preview-close" class="project-main-file-preview-close"
+                    aria-label="Close file preview">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <pre id="project-main-file-preview-content"
+                class="project-main-file-preview-content">Click a file to view its content.</pre>
+        </div>
+        <div id="project-local-terminal-overlay" class="project-local-terminal-overlay hidden">
+            <div class="project-local-terminal-header">
+                <div class="project-local-terminal-title">Aetheria Terminal</div>
+                <button id="project-local-terminal-close" class="project-local-terminal-close" aria-label="Close terminal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="project-local-terminal-shell" class="project-local-terminal-shell" role="application" aria-label="Local terminal" tabindex="0"></div>
+            <pre id="project-local-terminal-output" class="project-local-terminal-output hidden" aria-hidden="true"></pre>
+            <div class="project-local-terminal-input-row hidden" aria-hidden="true">
+                <input id="project-local-terminal-input" class="project-local-terminal-input" type="text"
+                    placeholder="Type command and press Enter" />
+                <button id="project-local-terminal-send" class="project-local-terminal-send" aria-label="Send command">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="context-active-indicator">
+            <i class="fas fa-layer-group"></i>
+            <span class="context-label">Context</span>
+            <span class="context-badge"></span>
+        </div>
+        <!-- The .chat-tools div has been removed from here -->
+    </div>
+</div>
+
+<!-- Design Mode overlay — OUTSIDE chat-container so position:fixed uses the full viewport -->
+<button id="active-workspace-pill" class="active-workspace-pill hidden" type="button" aria-live="polite">
+    <i class="fas fa-code active-workspace-pill-icon" aria-hidden="true"></i>
+    <span id="active-workspace-pill-label">Coder Workspace</span>
+</button>
+
+<div id="design-mode-overlay" class="design-mode-overlay hidden" aria-hidden="true">
+    <div class="design-mode-shell">
+        <div class="design-mode-header">
+            <div class="design-mode-header-copy">
+                <div class="design-mode-title">Design Mode</div>
+                <div id="design-mode-subtitle" class="design-mode-subtitle">Select an element in the preview to edit simple UI properties.</div>
+            </div>
+            <div class="design-mode-toolstrip" role="tablist" aria-label="Design tools">
+                <button id="design-mode-edit-tab" class="design-mode-tab active" type="button" role="tab" aria-selected="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>Edit
+                </button>
+                <button id="design-mode-comment-tab" class="design-mode-tab" type="button" role="tab" aria-selected="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Comment
+                </button>
+            </div>
+            <div class="design-mode-actions">
+                <button id="design-mode-refresh-btn" class="design-mode-action-btn" type="button" title="Reload from disk">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Refresh
+                </button>
+                <button id="design-mode-done-btn" class="design-mode-action-btn primary" type="button" title="Save changes and close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Done
+                </button>
+                <button id="design-mode-close-btn" class="design-mode-action-btn" type="button" aria-label="Close design mode" title="Close without saving" style="width:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="design-mode-body">
+            <div class="design-mode-preview-wrap">
+                <div id="design-mode-status" class="design-mode-status">Open a local deployed project to start designing.</div>
+                <iframe id="design-mode-preview-frame" class="design-mode-preview-frame" title="Design preview"></iframe>
+            </div>
+            <aside class="design-mode-inspector">
+                <div class="design-mode-inspector-header">
+                    <div class="design-mode-inspector-title">Inspector</div>
+                    <div id="design-mode-selection-label" class="design-mode-selection-label">No element selected</div>
+                </div>
+                <div id="design-mode-edit-controls">
+                    <!-- ═══ CONTENT ═══ -->
+                    <div class="design-mode-section" data-dm-section="content">
+                        <button class="design-mode-section-toggle" type="button" aria-expanded="true">
+                            <span class="design-mode-section-title">Content</span>
+                            <svg class="design-mode-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="design-mode-section-body">
+                            <div class="design-mode-control-group">
+                                <textarea id="design-mode-text-input" class="design-mode-textarea" rows="2" placeholder="Select an element to edit text..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ TYPOGRAPHY ═══ -->
+                    <div class="design-mode-section" data-dm-section="typography">
+                        <button class="design-mode-section-toggle" type="button" aria-expanded="true">
+                            <span class="design-mode-section-title">Typography</span>
+                            <svg class="design-mode-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="design-mode-section-body">
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-font-size-input">Size</label>
+                                    <input id="design-mode-font-size-input" class="design-mode-number-input" type="number" min="0" step="1" placeholder="px" />
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-font-weight-input">Weight</label>
+                                    <select id="design-mode-font-weight-input" class="design-mode-select">
+                                        <option value="">Auto</option>
+                                        <option value="300">Light (300)</option>
+                                        <option value="400">Regular (400)</option>
+                                        <option value="500">Medium (500)</option>
+                                        <option value="600">Semi (600)</option>
+                                        <option value="700">Bold (700)</option>
+                                        <option value="800">Extra (800)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-line-height-input">Line Height</label>
+                                    <input id="design-mode-line-height-input" class="design-mode-number-input" type="number" step="0.1" placeholder="em/px" />
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-letter-spacing-input">Spacing</label>
+                                    <input id="design-mode-letter-spacing-input" class="design-mode-number-input" type="number" step="0.1" placeholder="px" />
+                                </div>
+                            </div>
+                            <div class="design-mode-control-group">
+                                <label class="design-mode-label" for="design-mode-text-align-input">Alignment</label>
+                                <select id="design-mode-text-align-input" class="design-mode-select">
+                                    <option value="">Auto</option>
+                                    <option value="left">Left</option>
+                                    <option value="center">Center</option>
+                                    <option value="right">Right</option>
+                                    <option value="justify">Justify</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ APPEARANCE ═══ -->
+                    <div class="design-mode-section" data-dm-section="appearance">
+                        <button class="design-mode-section-toggle" type="button" aria-expanded="true">
+                            <span class="design-mode-section-title">Appearance</span>
+                            <svg class="design-mode-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="design-mode-section-body">
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-bg-color">Fill</label>
+                                    <div class="design-mode-color-wrap">
+                                        <input id="design-mode-bg-color" class="design-mode-color-input" type="color" value="#ffffff" />
+                                    </div>
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-text-color">Text</label>
+                                    <div class="design-mode-color-wrap">
+                                        <input id="design-mode-text-color" class="design-mode-color-input" type="color" value="#111111" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="design-mode-control-group">
+                                <label class="design-mode-label" for="design-mode-opacity-input">Opacity</label>
+                                <div class="design-mode-range-row">
+                                    <input id="design-mode-opacity-input" class="design-mode-range-input" type="range" min="0" max="1" step="0.05" value="1" />
+                                    <span id="design-mode-opacity-value" class="design-mode-range-value">1</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ DIMENSIONS ═══ -->
+                    <div class="design-mode-section" data-dm-section="dimensions">
+                        <button class="design-mode-section-toggle" type="button" aria-expanded="true">
+                            <span class="design-mode-section-title">Dimensions</span>
+                            <svg class="design-mode-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="design-mode-section-body">
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-width-input">Width</label>
+                                    <input id="design-mode-width-input" class="design-mode-number-input" type="text" placeholder="auto" />
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-height-input">Height</label>
+                                    <input id="design-mode-height-input" class="design-mode-number-input" type="text" placeholder="auto" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ LAYOUT & SPACING ═══ -->
+                    <div class="design-mode-section" data-dm-section="layout">
+                        <button class="design-mode-section-toggle" type="button" aria-expanded="true">
+                            <span class="design-mode-section-title">Layout & Spacing</span>
+                            <svg class="design-mode-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="design-mode-section-body">
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-display-input">Display</label>
+                                    <select id="design-mode-display-input" class="design-mode-select">
+                                        <option value="">Auto</option>
+                                        <option value="block">Block</option>
+                                        <option value="inline-block">Inline Block</option>
+                                        <option value="flex">Flex</option>
+                                        <option value="inline-flex">Inline Flex</option>
+                                        <option value="grid">Grid</option>
+                                        <option value="none">None</option>
+                                    </select>
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-flex-dir-input">Direction</label>
+                                    <select id="design-mode-flex-dir-input" class="design-mode-select">
+                                        <option value="">Auto</option>
+                                        <option value="row">Row</option>
+                                        <option value="row-reverse">Row Reverse</option>
+                                        <option value="column">Column</option>
+                                        <option value="column-reverse">Col Reverse</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-gap-input">Gap</label>
+                                    <input id="design-mode-gap-input" class="design-mode-number-input" type="text" placeholder="0" />
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-overflow-input">Overflow</label>
+                                    <select id="design-mode-overflow-input" class="design-mode-select">
+                                        <option value="">Default</option>
+                                        <option value="visible">Visible</option>
+                                        <option value="hidden">Hidden</option>
+                                        <option value="scroll">Scroll</option>
+                                        <option value="auto">Auto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-padding-input">Padding</label>
+                                    <input id="design-mode-padding-input" class="design-mode-number-input" type="text" placeholder="0" />
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-margin-input">Margin</label>
+                                    <input id="design-mode-margin-input" class="design-mode-number-input" type="text" placeholder="0" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ BORDERS & EFFECTS ═══ -->
+                    <div class="design-mode-section" data-dm-section="borders">
+                        <button class="design-mode-section-toggle" type="button" aria-expanded="true">
+                            <span class="design-mode-section-title">Borders & Effects</span>
+                            <svg class="design-mode-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="design-mode-section-body">
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-radius-input">Radius</label>
+                                    <input id="design-mode-radius-input" class="design-mode-number-input" type="text" placeholder="0" />
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-border-width-input">Border</label>
+                                    <input id="design-mode-border-width-input" class="design-mode-number-input" type="text" placeholder="0" />
+                                </div>
+                            </div>
+                            <div class="design-mode-inline-grid">
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-border-style-input">Style</label>
+                                    <select id="design-mode-border-style-input" class="design-mode-select">
+                                        <option value="">None</option>
+                                        <option value="solid">Solid</option>
+                                        <option value="dashed">Dashed</option>
+                                        <option value="dotted">Dotted</option>
+                                        <option value="double">Double</option>
+                                    </select>
+                                </div>
+                                <div class="design-mode-control-group">
+                                    <label class="design-mode-label" for="design-mode-border-color-input">Color</label>
+                                    <div class="design-mode-color-wrap">
+                                        <input id="design-mode-border-color-input" class="design-mode-color-input" type="color" value="#333333" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="design-mode-comment-panel" class="design-mode-comment-panel hidden">
+                    <div class="design-mode-comment-hint">Click any element in the preview to add a comment for AI follow-up.</div>
+                    <div id="design-mode-comment-composer" class="design-mode-comment-composer hidden">
+                        <div class="design-mode-comment-composer-target">
+                            <span>Target</span>
+                            <strong id="design-mode-comment-target-label">No element selected</strong>
+                        </div>
+                        <textarea id="design-mode-comment-input" class="design-mode-textarea design-mode-comment-input" rows="3" placeholder="Describe the design change you want..."></textarea>
+                        <div class="design-mode-comment-composer-actions">
+                            <button id="design-mode-comment-cancel-btn" class="design-mode-comment-secondary-btn" type="button">Cancel</button>
+                            <button id="design-mode-comment-add-btn" class="design-mode-comment-primary-btn" type="button">Add Comment</button>
+                        </div>
+                    </div>
+                    <div class="design-mode-comment-actions">
+                        <button id="design-mode-comments-send-btn" class="design-mode-comment-primary-btn" type="button" disabled>Send to AI</button>
+                        <button id="design-mode-comments-clear-btn" class="design-mode-comment-secondary-btn" type="button" disabled>Clear</button>
+                    </div>
+                    <div id="design-mode-comments-empty" class="design-mode-comments-empty">No comments yet.</div>
+                    <div id="design-mode-comments-list" class="design-mode-comments-list"></div>
+                </div>
+                <div class="design-mode-notes">
+                    <div class="design-mode-note-title">Visual Inspector</div>
+                    <div class="design-mode-note-copy">Fine-tune styling, layouts and typography precisely. Make structural changes or code logic updates with the AI agent.</div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+<aside id="project-workspace-panel" class="project-workspace-panel hidden">
+    <div class="project-workspace-super-header">
+        <!-- Left: Sidebar toggle, Terminal, Sync -->
+        <div class="super-header-left">
+            <button class="super-header-btn" id="super-sidebar-toggle-btn" title="Close Sidebar" aria-label="Close Sidebar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+            </button>
+            <button class="super-header-btn" id="super-terminal-btn" title="Terminal" aria-label="Terminal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+            </button>
+            <button class="super-header-btn" id="super-sync-btn" title="Sync Files" aria-label="Sync Files">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+        </div>
+        <!-- Right: Cloud, Local, GitHub — each as a separate pill button -->
+        <div class="super-header-right">
+            <button class="super-mode-btn super-mode-cloud active" id="super-cloud-btn" title="Cloud Sandbox Mode" aria-label="Switch to Cloud Mode">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                <span>Cloud</span>
+            </button>
+            <button class="super-mode-btn super-mode-local" id="super-local-btn" title="Local OS Mode" aria-label="Switch to Local Mode">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <span>Local</span>
+            </button>
+            <button class="super-mode-btn super-mode-github" id="super-github-btn" title="Clone GitHub Repo" aria-label="GitHub Clone">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.24c3-.34 6-1.53 6-6.6a5.4 5.4 0 0 0-1.5-3.8 5 5 0 0 0-.1-3.8s-1.2-.4-3.9 1.4a13.3 13.3 0 0 0-7 0c-2.7-1.8-3.9-1.4-3.9-1.4a5 5 0 0 0-.1 3.8A5.4 5.4 0 0 0 2 12.16c0 5.1 3 6.3 6 6.6a4.8 4.8 0 0 0-1 3.24v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+                <span>GitHub</span>
+            </button>
+        </div>
+    </div>
+    <div class="project-workspace-header">
+        <div class="project-workspace-title-wrap">
+            <div class="project-workspace-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-code">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                </svg>
+            </div>
+            <div>
+                <h3 id="project-workspace-title" class="project-workspace-title">Coder Workspace</h3>
+                <p id="project-workspace-subtitle" class="project-workspace-subtitle">No active project</p>
+            </div>
+        </div>
+        <!-- Exit + Close buttons grouped in header -->
+        <div class="project-header-actions">
+            <button id="project-exit-btn" class="project-header-exit-btn" title="Exit Coder Mode" aria-label="Exit Coder Mode">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" x2="9" y1="12" y2="12" />
+                </svg>
+            </button>
+            <button id="project-workspace-close" class="project-workspace-close" aria-label="Close project panel">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-x">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden stubs — JS still references these IDs -->
+    <button id="project-local-terminal-btn" style="display:none" aria-hidden="true"></button>
+    <button id="project-sync-files-btn" style="display:none" aria-hidden="true"></button>
+    <span id="project-mode-current-label" style="display:none"></span>
+    <!-- Start Coder stub for JS compat -->
+    <button id="project-start-chat-btn" style="display:none" aria-hidden="true"></button>
+
+    <div id="project-redeploy-bar" class="project-redeploy-bar hidden" aria-live="polite">
+        <div class="project-redeploy-copy">
+            <div id="project-redeploy-title" class="project-redeploy-title">Workspace matches selected deployment</div>
+            <div id="project-redeploy-subtitle" class="project-redeploy-subtitle">The redeploy button will appear after sandbox changes are detected.</div>
+        </div>
+        <button id="project-redeploy-btn" class="project-redeploy-btn hidden" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path d="M21 3v6h-6" />
+            </svg>
+            <span>Re-Deploy</span>
+        </button>
+    </div>
+
+    <div id="project-deploy-bar" class="project-deploy-bar hidden" aria-live="polite">
+        <div class="project-deploy-copy">
+            <div id="project-deploy-title" class="project-deploy-title">Deployable website detected</div>
+            <div id="project-deploy-subtitle" class="project-deploy-subtitle">Preview the complete workspace before publishing.</div>
+        </div>
+        <div class="project-deploy-actions">
+            <button id="project-preview-btn" class="project-preview-btn" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0Z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Preview</span>
+            </button>
+            <button id="project-deploy-btn" class="project-deploy-btn" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+                <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+                <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+            </svg>
+            <span>Deploy</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="project-mode-window" class="project-mode-window hidden">
+        <div class="project-mode-window-title">Workspace Mode</div>
+        <div class="project-mode-window-note">
+            Local mode: coder works on your computer. Cloud mode: coder works in sandbox.
+        </div>
+        <div class="project-mode-window-actions">
+            <button id="project-mode-local-btn" class="project-action-btn project-action-btn-small">Use Local</button>
+            <button id="project-mode-cloud-btn" class="project-action-btn project-action-btn-small">Use Cloud</button>
+        </div>
+        <div id="project-mode-window-current" class="project-mode-window-current">Current: Cloud</div>
+        <div class="project-mode-window-recommendation">Recommended: Local mode for faster iterative coding.</div>
+    </div>
+
+    <div class="project-workspace-github">
+        <button id="project-github-toggle" class="project-github-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-github">
+                <path
+                    d="M15 22v-4a4.8 4.8 0 0 0-1-3.24c3-.34 6-1.53 6-6.6a5.4 5.4 0 0 0-1.5-3.8 5 5 0 0 0-.1-3.8s-1.2-.4-3.9 1.4a13.3 13.3 0 0 0-7 0c-2.7-1.8-3.9-1.4-3.9-1.4a5 5 0 0 0-.1 3.8A5.4 5.4 0 0 0 2 12.16c0 5.1 3 6.3 6 6.6a4.8 4.8 0 0 0-1 3.24v4" />
+                <path d="M9 18c-4.51 2-5-2-7-2" />
+            </svg>
+            <span>Clone GitHub Repo</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-chevron-down project-github-chevron">
+                <path d="m6 9 6 6 6-6" />
+            </svg>
+        </button>
+        <div id="project-github-content" class="project-github-content hidden">
+            <input id="project-repo-url" class="project-workspace-input" type="text"
+                placeholder="GitHub repo URL (https://github.com/org/repo)" />
+            <div class="project-clone-row">
+                <input id="project-repo-branch" class="project-workspace-input" type="text" placeholder="branch"
+                    value="main" />
+                <button id="project-clone-repo-btn" class="project-action-btn project-action-btn-small">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-download">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" x2="12" y1="15" y2="3" />
+                    </svg>
+                    <span>Clone</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="project-workspace-body">
+        <div id="project-workspace-status" class="project-workspace-status">Open a deployment or clone a repo to start.
+        </div>
+        <div id="project-file-tree"></div>
+        <div class="project-file-preview">
+            <div id="project-file-preview-title" class="project-file-preview-title">File Preview</div>
+            <pre id="project-file-preview-content"
+                class="project-file-preview-content">Click a file to view its content.</pre>
+        </div>
+    </div>
+
+</aside>
+
+<!-- Know Me FAB — global fixed position, bottom-right of the app -->
+<!-- Only visible when project workspace is open (body.project-panel-open) -->
+<button id="design-mode-toggle-btn" class="design-mode-toggle-btn hidden" type="button" aria-label="Open design mode">
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.37 2.63a2.12 2.12 0 1 1 3 3L12 15l-4 1 1-4Z" />
+    </svg>
+    <span>Design</span>
+</button>
+
+<button id="project-know-me-btn" class="project-know-me-fab" title="About Coder Workspace" aria-label="Know Me">
+    <i class="fas fa-info-circle"></i>
+    <span class="project-know-me-label">Know Me</span>
+</button>
+
+<button id="computer-know-me-btn" class="computer-know-me-fab" title="About Computer Workspace" aria-label="Know Me">
+    <i class="fas fa-info-circle"></i>
+    <span class="computer-know-me-label">Know Me</span>
+</button>
+
+<!-- MODIFIED: Restructured floating input container -->
+<div id="floating-input-container" class="floating-input-container hidden">
+    <!-- Computer workspace controls live inside the chat composer while computer mode is open -->
+    <div id="computer-workspace-chip" class="computer-workspace-container hidden">
+        <div class="computer-chip-main" aria-live="polite">
+            <div class="computer-chip-content">
+                <div class="computer-chip-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-monitor">
+                        <rect width="20" height="14" x="2" y="3" rx="2" />
+                        <line x1="8" x2="16" y1="21" y2="21" />
+                        <line x1="12" x2="12" y1="17" y2="21" />
+                    </svg>
+                </div>
+                <span id="computer-chip-label" class="computer-chip-label">Computer Workspace</span>
+            </div>
+        </div>
+        <div class="computer-chip-actions" aria-label="Computer workspace actions">
+            <button id="computer-manual-grant-btn" class="computer-dropdown-item" aria-label="Grant computer permission"
+                title="Grant Permission">
+                <i class="fas fa-unlock-alt" aria-hidden="true"></i>
+                <span>Grant Permission</span>
+            </button>
+            <button id="computer-select-scope-btn" class="computer-dropdown-item"
+                aria-label="Select computer scope directory" title="Select Scope">
+                <i class="fas fa-folder-open" aria-hidden="true"></i>
+                <span>Scope</span>
+            </button>
+            <button id="computer-workspace-close" class="computer-dropdown-item" aria-label="Close computer workspace"
+                title="Close">
+                <i class="fas fa-times" aria-hidden="true"></i>
+                <span>Close</span>
+            </button>
+            <button id="computer-exit-btn" class="computer-dropdown-item computer-dropdown-exit"
+                aria-label="Exit computer mode" title="Exit Mode">
+                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                <span>Exit</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- NEW: Horizontal context and files bar -->
+    <div id="context-files-bar" class="context-files-bar hidden">
+        <div class="context-files-content">
+            <!-- Session and file chips will be dynamically added here -->
+        </div>
+    </div>
+
+    <!-- Main prompt field -->
+    <textarea id="floating-input" class="floating-input" placeholder="Ask anything" rows="1"></textarea>
+
+    <!-- NEW: A dedicated toolbar for all buttons -->
+    <div class="input-toolbar">
+        <div class="toolbar-left">
+            <button class="add-btn" title="Start new conversation">
+                <i class="fas fa-plus"></i>
+            </button>
+            <input type="file" id="file-input" multiple />
+            <button id="attach-file-btn" class="attach-btn" title="Attach files">
+                <i class="fas fa-paperclip"></i>
+            </button>
+            <!-- NEW: Shuffle button with dropdown menu -->
+            <div class="shuffle-btn tool-btn" data-tool="shuffle" role="button" tabindex="0"
+                aria-label="Open shuffle menu" aria-expanded="false" aria-haspopup="true" title="Configure memory and tools">
+                <i class="fas fa-random" aria-hidden="true"></i>
+                <div class="shuffle-menu" role="menu" aria-label="Shuffle menu options">
+                    <!-- Memory Item with Toggle -->
+                    <div class="shuffle-item" data-action="memory" role="menuitem" tabindex="-1"
+                        aria-label="Toggle memory">
+                        <div class="shuffle-item-content">
+                            <i class="fa-solid fa-brain" aria-hidden="true"></i>
+                            <span class="shuffle-item-label">Memory</span>
+                        </div>
+                        <div class="toggle-switch" data-toggle="memory" role="switch" aria-checked="false">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tools Item (Navigation) -->
+                    <div class="shuffle-item shuffle-item-nav" data-action="tools" role="menuitem" tabindex="-1"
+                        aria-label="Open tools submenu" aria-haspopup="true">
+                        <div class="shuffle-item-content">
+                            <i class="fas fa-wrench" aria-hidden="true"></i>
+                            <span class="shuffle-item-label">Tools</span>
+                        </div>
+                        <i class="fas fa-chevron-right submenu-indicator" aria-hidden="true"></i>
+                        
+                        <!-- Tools Submenu -->
+                        <div class="tools-menu" role="menu" aria-label="Tools options">
+                            <div class="tools-menu-header">
+                                <span class="tools-menu-title">INTEGRATIONS</span>
+                            </div>
+                            <div class="tool-items-list" data-role="integration-tools-list"></div>
+                            <div class="tool-item tool-empty-state hidden" data-role="integration-tools-empty" aria-live="polite">
+                                <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
+                                <span>No connected integrations</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Context button moved to left side as requested -->
+            <button class="tool-btn" data-tool="context" title="View chat history">
+                <i class="fa-solid fa-comments"></i>
+            </button>
+            <button id="view-content-btn" class="tool-btn view-content-btn hidden" title="View session content">
+                <i class="fas fa-folder-open"></i>
+            </button>
+        </div>
+        <div class="toolbar-center">
+            <!-- Empty center section -->
+        </div>
+        <div class="toolbar-right">
+            <button id="plan-mode-btn" class="plan-mode-btn tooltip" data-tooltip="Plan Mode"
+                aria-label="Plan Mode" aria-pressed="false" title="Plan mode">
+                <i class="fi fi-tr-roadmap"></i>
+                <span class="plan-mode-label">Plan</span>
+            </button>
+            <button id="mic-button" class="mic-btn tooltip" data-tooltip="Voice Input (Click to start/stop)"
+                aria-label="Voice Input" title="Voice input">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button id="send-message" class="send-btn" title="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+<!-- END MODIFICATION -->
+
+
+<div id="context-window" class="context-window hidden">
+    <div class="context-header">
+        <div class="header-left">
+            <h2 id="context-header-title">Chats</h2>
+            <button class="context-info-btn" id="context-info-btn" title="Help & Tips">
+                <i class="fas fa-info-circle"></i>
+            </button>
+        </div>
+        <div class="context-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="session-search" placeholder="Search your chats..." />
+        </div>
+    </div>
+    <div class="context-content">
+    </div>
+</div>
+
+<!-- Session History Viewer (Center) -->
+<div id="session-history-viewer" class="session-history-viewer hidden">
+    <div class="session-history-header">
+        <div class="session-history-title-wrapper">
+            <h3 class="session-history-title"></h3>
+            <button class="session-history-info-btn" id="session-history-info-btn" title="How to close">
+                <i class="fas fa-info-circle"></i>
+            </button>
+        </div>
+        <div class="session-history-actions">
+            <button id="history-view-content-btn" class="history-content-btn hidden" title="View session content">
+                <i class="fas fa-folder-open"></i>
+                <span>Content</span>
+            </button>
+        </div>
+    </div>
+    <div class="session-history-content">
+        <!-- Session messages will be rendered here -->
+    </div>
+</div>
+
+<!-- Info Tooltips -->
+<div id="context-info-tooltip" class="info-tooltip hidden">
+    <div class="info-tooltip-arrow"></div>
+    <div class="info-tooltip-content">
+        <p><strong>Using Chats:</strong></p>
+        <ul class="info-tooltip-list">
+            <li><strong>Single click</strong> a chat to view its history</li>
+            <li><strong>Double click</strong> a chat to select it for context</li>
+            <li><strong>Double click multiple chats</strong> to add them all as context</li>
+            <li>Click <strong>"Use Selected"</strong> to start a new chat with selected context</li>
+            <li>Click <strong>"Chats"</strong> title to close this sidebar</li>
+        </ul>
+    </div>
+</div>
+
+<div id="session-history-info-tooltip" class="info-tooltip hidden">
+    <div class="info-tooltip-arrow"></div>
+    <div class="info-tooltip-content">
+        <p><strong>How to close:</strong></p>
+        <p>Click on the session title to go back</p>
+    </div>
+</div>
+
+<div id="selected-context-viewer" class="selected-context-viewer">
+    <div class="context-viewer-header">
+        <h3>Context & Files</h3>
+        <button class="close-viewer-btn" aria-label="Close context viewer">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="context-viewer-content">
+        <div class="unified-context-content">
+            <div class="context-preview-content"></div>
+            <div class="files-preview-content"></div>
+        </div>
+    </div>
+</div>
+
+
+
+<template id="session-item-template">
+    <div class="session-item">
+        <div class="session-content">
+            <h3></h3>
+            <div class="session-meta">
+                <span class="session-date"></span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="selection-controls-template">
+    <div class="selection-controls">
+        <div class="selection-actions hidden">
+            <span class="selected-count">0 selected</span>
+            <button class="use-selected-btn">Use Selected</button>
+            <button class="clear-selection-btn">Clear</button>
+        </div>
+    </div>
+</template>
+
+<div id="file-preview-sidebar" class="file-preview-sidebar hidden">
+    <div class="file-preview-header">
+        <div class="file-preview-title">
+            Attached Files <span class="file-count">0</span>
+        </div>
+        <button class="close-preview-btn preview-toggle">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="file-preview-content">
+        <!-- File preview items will be dynamically added here -->
+    </div>
+</div>
+
+<script>
+    // Initialize conversation state manager when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.conversationStateManager) {
+            window.conversationStateManager.init();
+        }
+    });
+</script>
+
+<div id="know-me-modal" class="know-me-modal hidden">
+    <div class="know-me-modal-backdrop" id="know-me-backdrop"></div>
+    <div class="know-me-modal-content glass-panel">
+        <button id="know-me-modal-close" class="know-me-modal-close"><i class="fas fa-times"></i></button>
+        
+        <!-- Project Context -->
+        <div id="know-me-project-content" class="know-me-content hidden flex-column">
+            
+            <div class="km-hero">
+                <div class="km-badge"><i class="fas fa-bolt"></i> Aetheria Coder</div>
+                <h2 class="km-title">Workspace Environment</h2>
+                <p class="km-subtitle">The ultimate pair-programmer experience. Aetheria operates as a dedicated SWE agent capable of executing code, managing files, and deploying via two distinct execution environments: <strong>Cloud Sandbox</strong> or <strong>Local OS</strong>.</p>
+            </div>
+
+            <div class="km-architecture">
+                <div class="arch-glow-bg"></div>
+                <div class="arch-container">
+                    
+                    <div class="arch-node user-node">
+                        <div class="node-icon"><i class="fas fa-user-astronaut"></i></div>
+                        <span>You</span>
+                    </div>
+                    
+                    <div class="arch-path path-horizontal">
+                        <span class="path-label">Command & Context</span>
+                        <div class="path-line"><div class="path-dot"></div></div>
+                    </div>
+                    
+                    <div class="arch-node ai-node">
+                        <div class="node-glass"></div>
+                        <div class="node-icon"><i class="fas fa-brain"></i></div>
+                        <span>Aetheria AI</span>
+                        <div class="ai-pulse-rings">
+                            <div class="ring"></div>
+                            <div class="ring" style="animation-delay: 1s;"></div>
+                        </div>
+                    </div>
+
+                    <div class="arch-paths-split">
+                        <div class="path-vertical path-fs">
+                            <span class="path-label">Local System</span>
+                            <div class="path-line vertical"><div class="path-dot"></div><div class="path-dot reverse" style="animation-delay: 0.8s;"></div></div>
+                        </div>
+                        <div class="path-vertical path-term">
+                            <span class="path-label">API Isolation</span>
+                            <div class="path-line vertical"><div class="path-dot" style="animation-delay: 0.4s;"></div><div class="path-dot reverse" style="animation-delay: 1.2s;"></div></div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-targets">
+                        <div class="arch-node target-node">
+                            <div class="node-icon bg-green"><i class="fas fa-laptop-code"></i></div>
+                            <span>Local OS</span>
+                        </div>
+                        <div class="arch-node target-node">
+                            <div class="node-icon bg-blue"><i class="fas fa-cloud"></i></div>
+                            <span>Cloud Sandbox</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="km-grid">
+                <div class="km-card">
+                    <div class="km-card-glow text-blue"></div>
+                    <div class="km-card-icon text-blue"><i class="fas fa-cloud"></i></div>
+                    <div class="km-card-content">
+                        <h4>Cloud Sandbox Mode</h4>
+                        <p>Isolated Linux container (`/home/sandboxuser`) via <code>SandboxTools</code> with full terminal access, file tools, and dedicated cloud compute.</p>
+                    </div>
+                </div>
+                <div class="km-card">
+                    <div class="km-card-glow text-green"></div>
+                    <div class="km-card-icon text-green"><i class="fas fa-laptop-house"></i></div>
+                    <div class="km-card-content">
+                        <h4>Local Desktop Mode</h4>
+                        <p>Direct filesystem access via <code>LocalCoderTools</code> and an Electron bridge. Edits your files and runs commands natively on your machine.</p>
+                    </div>
+                </div>
+                <div class="km-card">
+                    <div class="km-card-glow text-orange"></div>
+                    <div class="km-card-icon text-orange"><i class="fas fa-code-branch"></i></div>
+                    <div class="km-card-content">
+                        <h4>Native Git Control</h4>
+                        <p>Read logs, check status, diff branches, and seamlessly version control your codebase directly from the active environment.</p>
+                    </div>
+                </div>
+                <div class="km-card">
+                    <div class="km-card-glow text-purple"></div>
+                    <div class="km-card-icon text-purple"><i class="fas fa-rocket"></i></div>
+                    <div class="km-card-content">
+                        <h4>Project Deployment</h4>
+                        <p>Instantly deploy code from the cloud sandbox to live endpoints and query backend runtime databases using <code>DeployedProjectTools</code>.</p>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Computer Context -->
+        <div id="know-me-computer-content" class="know-me-content hidden flex-column">
+            
+            <div class="km-hero">
+                <div class="km-badge"><i class="fas fa-robot"></i> Computer Agent</div>
+                <h2 class="km-title">Computer Workspace</h2>
+                <p class="km-subtitle">Aetheria operates your OS exactly like a human. Utilizing advanced screen vision and raw hardware-level mouse/keyboard automation, the AI natively orchestrates interactions across any desktop applications.</p>
+            </div>
+
+            <div class="km-architecture">
+                <div class="arch-glow-bg glow-green"></div>
+                <div class="arch-container">
+                    
+                    <div class="arch-node target-node">
+                        <div class="node-icon bg-blue"><i class="fas fa-desktop"></i></div>
+                        <span>Live Desktop</span>
+                    </div>
+
+                    <div class="arch-path path-horizontal">
+                        <span class="path-label text-green" style="color: #34d399;">Screen Vision</span>
+                        <div class="path-line"><div class="path-dot reverse" style="background:#34d399; box-shadow:0 0 10px #34d399; animation-duration: 2s;"></div></div>
+                    </div>
+                    
+                    <div class="arch-node ai-node">
+                        <div class="node-glass"></div>
+                        <div class="node-icon" style="background: linear-gradient(135deg, rgba(52,211,153,0.3), rgba(16,185,129,0.3)); border-color: rgba(52,211,153,0.5); color: #a7f3d0; box-shadow: 0 0 30px rgba(52,211,153,0.4), inset 0 0 20px rgba(52,211,153,0.4);"><i class="fas fa-eye"></i></div>
+                        <span>Aetheria Core</span>
+                        <div class="ai-pulse-rings green-pulse">
+                            <div class="ring"></div>
+                            <div class="ring" style="animation-delay: 1s;"></div>
+                        </div>
+                    </div>
+
+                    <div class="arch-paths-split">
+                        <div class="path-vertical path-hw">
+                            <span class="path-label text-orange" style="color:#fb923c;">Mouse Ctrl</span>
+                            <div class="path-line vertical"><div class="path-dot" style="background:#fb923c; box-shadow:0 0 10px #fb923c;"></div></div>
+                        </div>
+                        <div class="path-vertical path-hw">
+                            <span class="path-label text-purple" style="color:#a78bfa;">Keyboard</span>
+                            <div class="path-line vertical"><div class="path-dot" style="background:#a78bfa; box-shadow:0 0 10px #a78bfa; animation-delay:0.8s;"></div></div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-targets">
+                        <div class="arch-node target-node">
+                            <div class="node-icon bg-orange"><i class="fas fa-mouse-pointer"></i></div>
+                            <span>Cursor</span>
+                        </div>
+                        <div class="arch-node target-node">
+                            <div class="node-icon bg-purple"><i class="fas fa-keyboard"></i></div>
+                            <span>Input</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="km-grid">
+                <div class="km-card">
+                    <div class="km-card-glow text-blue"></div>
+                    <div class="km-card-icon text-blue"><i class="fas fa-desktop"></i></div>
+                    <div class="km-card-content">
+                        <h4>Screen Vision</h4>
+                        <p>Real-time visual analysis processes your live desktop surface via screenshots to interpret UI states.</p>
+                    </div>
+                </div>
+                <div class="km-card">
+                    <div class="km-card-glow text-green"></div>
+                    <div class="km-card-icon text-green"><i class="fas fa-mouse"></i></div>
+                    <div class="km-card-content">
+                        <h4>Native Mouse Control</h4>
+                        <p>Calculates exact pixel coordinates to physically move the cursor, hover, click, and drag dynamically.</p>
+                    </div>
+                </div>
+                <div class="km-card">
+                    <div class="km-card-glow text-orange"></div>
+                    <div class="km-card-icon text-orange"><i class="fas fa-keyboard"></i></div>
+                    <div class="km-card-content">
+                        <h4>Keyboard Simulation</h4>
+                        <p>Rapidly triggers complex typing flows, multi-key shortcuts, and precise string inputs.</p>
+                    </div>
+                </div>
+                <div class="km-card">
+                    <div class="km-card-glow text-purple"></div>
+                    <div class="km-card-icon text-purple"><i class="fas fa-layer-group"></i></div>
+                    <div class="km-card-content">
+                        <h4>App Orchestration</h4>
+                        <p>Executes multi-step workflows seamlessly bridging varied local apps (browsers, IDEs, terminals, etc).</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
