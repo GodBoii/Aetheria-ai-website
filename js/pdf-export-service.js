@@ -439,7 +439,6 @@ class PDFExportService {
             filename,
             fileSizeBytes: file.size,
             canUseWebShare: typeof navigator.share === 'function',
-            platform: 'web',
         });
 
         if (navigator.share) {
@@ -472,6 +471,9 @@ class PDFExportService {
             return { action: 'saved', filename };
         }
 
+        // Android/iOS WebViews often ignore <a download> for blob URLs.
+        // Avoid false "downloaded" success reports when we know persistence is unreliable.
+
         const objectUrl = URL.createObjectURL(blob);
         try {
             const link = document.createElement('a');
@@ -487,67 +489,6 @@ class PDFExportService {
             return { action: 'downloaded', filename };
         } finally {
             setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-        }
-    }
-
-    getNativePdfPlugin() {
-        return null;
-    }
-
-    async tryNativeSaveAndShare(blob, filename, title) {
-        const plugin = this.getNativePdfPlugin();
-        if (!plugin) {
-            return null;
-        }
-
-        const base64 = await this.blobToBase64(blob);
-        this.debugLog('native-plugin:save-attempt', {
-            filename,
-            base64Bytes: base64.length,
-        });
-
-        // Save first so the file is guaranteed to exist on-device even if share is canceled.
-        const saveResult = await plugin.savePdfToDownloads({
-            base64,
-            filename,
-        });
-
-        this.debugLog('native-plugin:save-success', {
-            filename,
-            uri: saveResult?.uri || null,
-            bytes: saveResult?.bytes || null,
-        });
-
-        // Then try to open the native share sheet. If this fails, we still report saved.
-        try {
-            this.debugLog('native-plugin:share-attempt', { filename });
-            const shareResult = await plugin.sharePdf({
-                base64,
-                filename,
-                title: title || 'Aetheria AI Conversation',
-                text: 'Aetheria AI conversation export',
-            });
-            this.debugLog('native-plugin:share-success', {
-                filename,
-                cacheUri: shareResult?.cacheUri || null,
-            });
-
-            return {
-                action: 'saved-and-shared-native',
-                filename,
-                uri: saveResult?.uri || null,
-            };
-        } catch (error) {
-            this.debugLog('native-plugin:share-error', {
-                filename,
-                name: error?.name || 'UnknownError',
-                message: error?.message || '',
-            });
-            return {
-                action: 'saved-native',
-                filename,
-                uri: saveResult?.uri || null,
-            };
         }
     }
 
@@ -745,9 +686,9 @@ class PDFExportService {
         window.__pdfExportDebugLast = payload;
 
         try {
-            console.log('[PDFExport]', payload);
+
             // Easier to read in Android logcat than [object Object]
-            console.log(`[PDFExportJSON] ${JSON.stringify(payload)}`);
+
         } catch (_) {
             // no-op
         }
