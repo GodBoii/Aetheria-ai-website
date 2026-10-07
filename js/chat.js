@@ -1,3 +1,5 @@
+import { backendRequest } from './backend-api.js';
+import { QuestionCards } from './question-cards.js';
 // js/chat.js (PWA/Mobile Version - Adapted from Desktop Logic)
 
 import { messageFormatter } from './message-formatter.js';
@@ -8,7 +10,7 @@ import NotificationService from './notification-service.js';
 import WelcomeDisplay from './welcome-display.js';
 import UnifiedPreviewHandler from './unified-preview-handler.js';
 import ContextHandler from './context-handler.js';
-import FileAttachmentHandler from './add-files.js';
+import FileAttachmentHandler, { isVideoAttachment } from './add-files.js';
 import { artifactHandler } from './artifact-handler.js';
 import messageActions from './message-actions.js';
 import { supabase } from './supabase-client.js';
@@ -18,6 +20,17 @@ import { sessionContentViewer } from './session-content-viewer.js';
 import browserScreenshotViewer from './browser-screenshot-viewer.js';
 import backgroundRunManager from './background-run-manager.js';
 import { contentSecurity } from './security-utils.js';
+import {
+    destroyThinkingOrbs,
+    mountThinkingOrbs,
+    setThinkingOrbsPaused,
+} from './thinking-orb.js';
+import {
+    getSelectedPresentationTemplate,
+    clearSelectedPresentationTemplate,
+    isPresentationRequest,
+    buildPresentationTemplateInstruction
+} from './presentation-templates.js';
 
 let sessionActive = false;
 let currentConversationId = null;
@@ -43,6 +56,10 @@ const defaultToolsConfig = {
     enable_google_email: true,
     enable_google_drive: true,
     enable_google_sheets: true,
+    enable_composio_whatsapp: true,
+    enable_composio_facebook: true,
+    enable_composio_instagram: true,
+    enable_composio_youtube: true,
     enable_supabase: true,
     enable_vercel: true,
 };
@@ -67,12 +84,57 @@ let connectionHasBeenLost = false;
 let socketListenersBound = false;
 let activeRunRequest = null;
 let stopRequested = false;
-let planModeActive = false;
-let activePlanRequest = null;
-let planGenerationActive = false;
 const pendingSendQueue = [];
+const pendingAnswerSubmissions = new Map();
+const questionsByConversation = new Map();
+const questionCards = new QuestionCards({
+    submit: async payload => {
+        await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                pendingAnswerSubmissions.delete(payload.requestId);
+                reject(new Error('No confirmation received. You can retry safely.'));
+            }, 15000);
+            pendingAnswerSubmissions.set(payload.requestId, { resolve, reject, timer });
+            socketService.submitUserAnswers(payload).catch(error => {
+                clearTimeout(timer);
+                pendingAnswerSubmissions.delete(payload.requestId);
+                reject(error);
+            });
+        });
+    },
+    cancel: request => socketService.terminateConversation(request.conversationId, request.id),
+    onTerminal: request => {
+        questionsByConversation.delete(request.conversationId);
+        if (request.conversationId !== currentConversationId) return;
+        welcomeDisplay?.hide();
+        conversationStateManager?.onMessageAdded();
+        if (request.channel === 'plan') {
+            setPlanGenerating(false);
+            pendingPlanRequestId = null;
+            pendingPlanMessageId = null;
+        }
+        handleDone({ id: request.id });
+    },
+});
 
-const GENERIC_FAILURE_MESSAGE = 'something gone wrong';
+let planModeEnabled = false;
+const THINKING_MODE_STANDARD = 'standard';
+const THINKING_MODE_ULTRA = 'ultra';
+const CONVERSATION_ROUTE_VIDEO = 'video';
+const CONVERSATION_ROUTE_ULTRA = 'ultra';
+const conversationModelRoutes = new Map();
+let thinkingMode = THINKING_MODE_STANDARD;
+let planGenerationInProgress = false;
+let pendingPlanRequestId = null;
+let pendingPlanMessageId = null;
+let submittingApprovedPlan = false;
+let pendingPlanSubmitDisplayMessage = null;
+const planStreamBuffers = new Map();
+const planRenderStates = new Map();
+const planReasoningBuffers = new Map();
+const planReasoningRenderStates = new Map();
+
+const GENERIC_FAILURE_MESSAGE = 'The request failed. Please try again.';
 
 // This map now stores the DOM element for each message stream
 const ongoingStreams = new Map();
@@ -123,6 +185,12 @@ function setCurrentConversationId(nextId) {
     if (nextId && nextId !== prevId) {
         socketService.joinConversation(nextId);
     }
+    const knownRoute = conversationModelRoutes.get(nextId);
+    thinkingMode = knownRoute === CONVERSATION_ROUTE_ULTRA
+        ? THINKING_MODE_ULTRA
+        : THINKING_MODE_STANDARD;
+    syncUltraThinkControl();
+    syncComposerModeVisual();
 }
 
 function dispatchChatEvent(eventName, detail = {}) {
@@ -137,46 +205,229 @@ function cloneSelectedSessions(sessions = []) {
     return Array.isArray(sessions) ? sessions.map((session) => ({ ...session })) : [];
 }
 
+function getCurrentConversationRoute() {
+    return conversationModelRoutes.get(currentConversationId) || null;
+}
+
+function getEffectiveThinkingMode(requestedMode = thinkingMode) {
+    const route = getCurrentConversationRoute();
+    if (route === CONVERSATION_ROUTE_ULTRA) return THINKING_MODE_ULTRA;
+    if (route === CONVERSATION_ROUTE_VIDEO) return THINKING_MODE_STANDARD;
+    return requestedMode === THINKING_MODE_ULTRA ? THINKING_MODE_ULTRA : THINKING_MODE_STANDARD;
+}
+
+function attachmentsIncludeVideo(files = []) {
+    return Array.isArray(files) && files.some(isVideoAttachment);
+}
+
+function getComposerVisualMode() {
+    const ultraEnabled = getEffectiveThinkingMode() === THINKING_MODE_ULTRA;
+    if (planModeEnabled && ultraEnabled) return 'plan-ultra';
+    if (planModeEnabled) return 'plan';
+    if (ultraEnabled) return 'ultra';
+    return 'standard';
+}
+
+function syncComposerModeVisual() {
+    const inputContainer = document.getElementById('floating-input-container');
+    if (!inputContainer) return;
+    inputContainer.dataset.composerMode = getComposerVisualMode();
+}
+
+function syncUltraThinkControl() {
+    const button = document.getElementById('ultra-think-btn');
+    if (!button) return;
+
+    const route = getCurrentConversationRoute();
+    const hasVideo = Boolean(fileAttachmentHandler?.hasAttachedVideo?.());
+    const routeLocked = route === CONVERSATION_ROUTE_ULTRA || route === CONVERSATION_ROUTE_VIDEO;
+    const unavailable = route === CONVERSATION_ROUTE_VIDEO || (!routeLocked && hasVideo);
+    const active = getEffectiveThinkingMode() === THINKING_MODE_ULTRA;
+
+    button.classList.toggle('active', active);
+    button.classList.toggle('is-locked', routeLocked);
+    button.classList.toggle('is-unavailable', unavailable);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.setAttribute('aria-disabled', routeLocked || unavailable ? 'true' : 'false');
+
+    if (route === CONVERSATION_ROUTE_ULTRA) {
+        button.title = 'Ultra Think is locked for this conversation';
+        button.setAttribute('aria-label', 'Ultra Think, active and locked for this conversation');
+    } else if (route === CONVERSATION_ROUTE_VIDEO) {
+        button.title = 'This conversation is locked to video input mode';
+        button.setAttribute('aria-label', 'Ultra Think unavailable, conversation locked to video input mode');
+    } else if (hasVideo) {
+        button.title = 'Remove video attachments to use Ultra Think';
+        button.setAttribute('aria-label', 'Ultra Think unavailable while a video is attached');
+    } else {
+        button.title = active ? 'Disable Ultra Think' : 'Enable Ultra Think';
+        button.setAttribute('aria-label', active ? 'Disable Ultra Think' : 'Enable Ultra Think');
+    }
+}
+
+function setThinkingMode(nextMode) {
+    thinkingMode = nextMode === THINKING_MODE_ULTRA
+        ? THINKING_MODE_ULTRA
+        : THINKING_MODE_STANDARD;
+    syncUltraThinkControl();
+    syncComposerModeVisual();
+}
+
+function markConversationRouteForTurn(mode, files = []) {
+    if (!currentConversationId || getCurrentConversationRoute()) return;
+    if (mode === THINKING_MODE_ULTRA) {
+        conversationModelRoutes.set(currentConversationId, CONVERSATION_ROUTE_ULTRA);
+        thinkingMode = THINKING_MODE_ULTRA;
+    } else if (attachmentsIncludeVideo(files)) {
+        conversationModelRoutes.set(currentConversationId, CONVERSATION_ROUTE_VIDEO);
+        thinkingMode = THINKING_MODE_STANDARD;
+    }
+    syncUltraThinkControl();
+    syncComposerModeVisual();
+}
+
+function applyRoutingErrorState(code) {
+    if (!currentConversationId) return;
+    if (code === 'conversation_model_locked_to_video') {
+        conversationModelRoutes.set(currentConversationId, CONVERSATION_ROUTE_VIDEO);
+        thinkingMode = THINKING_MODE_STANDARD;
+    } else if (code === 'conversation_model_locked_to_ultra') {
+        conversationModelRoutes.set(currentConversationId, CONVERSATION_ROUTE_ULTRA);
+        thinkingMode = THINKING_MODE_ULTRA;
+    } else if (code === 'ultra_video_not_supported') {
+        conversationModelRoutes.delete(currentConversationId);
+    }
+    syncUltraThinkControl();
+    syncComposerModeVisual();
+}
+
+function validateAttachmentForCurrentMode(file) {
+    if (!isVideoAttachment(file)) return { valid: true };
+    if (getEffectiveThinkingMode() === THINKING_MODE_ULTRA) {
+        return {
+            valid: false,
+            message: 'Video attachments are unavailable in Ultra Think mode.',
+        };
+    }
+    return { valid: true };
+}
+
+function getComposerVoiceState() {
+    return window.voiceInputHandler?.getState?.() || {};
+}
+
+function hasComposerPayload() {
+    const input = document.getElementById('floating-input');
+    const hasText = Boolean(input?.value?.trim());
+    const hasFiles = Boolean(fileAttachmentHandler?.attachedFiles?.length);
+    const hasContext = Boolean(contextHandler?.getSelectedSessions?.()?.length);
+    return hasText || hasFiles || hasContext;
+}
+
 function updateSendButtonState() {
     const sendBtn = document.getElementById('send-message');
-    const sendIcon = sendBtn?.querySelector('i');
-    const planButton = document.getElementById('plan-mode-btn');
-    if (!sendBtn || !sendIcon) return;
+    const dictationBtn = document.getElementById('voice-input-btn');
+    if (!sendBtn) return;
 
-    if (planButton) {
-        planButton.classList.toggle('active', planModeActive);
-        planButton.setAttribute('aria-pressed', String(planModeActive));
-        planButton.disabled = sessionActive || planGenerationActive;
-        planButton.title = planModeActive ? 'Plan Mode on' : 'Plan Mode';
+    const voiceState = getComposerVoiceState();
+    const intelligentActive = Boolean(
+        voiceState.intelligentListening ||
+        voiceState.intelligentStopping ||
+        voiceState.intelligentProcessing
+    );
+    const dictationActive = Boolean(voiceState.dictationListening || voiceState.dictationStopping);
+
+    sendBtn.classList.remove(
+        'smart-voice-ready',
+        'smart-voice-listening',
+        'smart-voice-processing',
+        'smart-voice-unavailable',
+        'send-ready',
+        'sending',
+        'plan-generating'
+    );
+    sendBtn.disabled = false;
+
+    if (dictationBtn) {
+        dictationBtn.disabled = voiceState.dictationSupported === false || planGenerationInProgress || intelligentActive || voiceState.dictationStopping;
     }
 
-    if (planGenerationActive) {
-        sendIcon.classList.remove('fa-paper-plane', 'fa-arrow-up', 'fa-play');
-        sendIcon.classList.add('fa-hourglass-half');
-        sendBtn.classList.add('sending');
+    if (planGenerationInProgress) {
         sendBtn.disabled = true;
+        sendBtn.classList.add('plan-generating');
+        sendBtn.dataset.action = 'none';
         sendBtn.setAttribute('aria-label', 'Generating plan');
         sendBtn.setAttribute('title', 'Generating plan');
         return;
     }
 
     if (sessionActive) {
-        sendIcon.classList.remove('fa-paper-plane', 'fa-arrow-up', 'fa-hourglass-half');
-        sendIcon.classList.add('fa-play');
         sendBtn.classList.add('sending');
+        sendBtn.dataset.action = 'stop-response';
         sendBtn.disabled = false;
         sendBtn.setAttribute('aria-label', stopRequested ? 'Stopping response' : 'Stop response');
         sendBtn.setAttribute('title', stopRequested ? 'Stopping response' : 'Stop response');
         return;
     }
 
-    sendIcon.classList.remove('fa-play', 'fa-hourglass-half');
-    sendIcon.classList.add('fa-paper-plane');
-    sendBtn.classList.remove('sending');
-    sendBtn.disabled = false;
-    sendBtn.setAttribute('aria-label', 'Send message');
-    sendBtn.setAttribute('title', 'Send message');
+    if (voiceState.intelligentListening) {
+        sendBtn.classList.add('smart-voice-listening');
+        sendBtn.dataset.action = 'stop-smart-voice';
+        sendBtn.setAttribute('aria-label', 'Stop intelligent voice');
+        sendBtn.setAttribute('title', 'Stop intelligent voice');
+        return;
+    }
+
+    if (voiceState.intelligentStopping || voiceState.intelligentProcessing) {
+        sendBtn.classList.add('smart-voice-processing');
+        sendBtn.dataset.action = 'none';
+        sendBtn.disabled = true;
+        sendBtn.setAttribute('aria-label', 'Processing intelligent voice');
+        sendBtn.setAttribute('title', 'Processing intelligent voice');
+        return;
+    }
+
+    if (dictationActive) {
+        sendBtn.classList.add('smart-voice-ready');
+        sendBtn.dataset.action = 'none';
+        sendBtn.disabled = true;
+        sendBtn.setAttribute('aria-label', 'Dictation in progress');
+        sendBtn.setAttribute('title', 'Dictation in progress');
+        return;
+    }
+
+    if (hasComposerPayload()) {
+        sendBtn.classList.add('send-ready');
+        sendBtn.dataset.action = 'send';
+        sendBtn.setAttribute('aria-label', 'Send message');
+        sendBtn.setAttribute('title', 'Send message');
+        return;
+    }
+
+    if (voiceState.smartVoiceSupported === false) {
+        sendBtn.classList.add('smart-voice-unavailable');
+        sendBtn.dataset.action = 'none';
+        sendBtn.disabled = true;
+        sendBtn.setAttribute('aria-label', 'Intelligent voice is unavailable');
+        sendBtn.setAttribute('title', 'Intelligent voice is unavailable');
+        return;
+    }
+
+    sendBtn.classList.add('smart-voice-ready');
+    sendBtn.dataset.action = 'smart-voice';
+    sendBtn.setAttribute('aria-label', 'Start intelligent voice');
+    sendBtn.setAttribute('title', 'Start intelligent voice');
 }
+
+document.addEventListener('composerStateChanged', () => {
+    updateSendButtonState();
+    syncUltraThinkControl();
+});
+document.addEventListener('input', (event) => {
+    if (event.target?.id === 'floating-input') {
+        updateSendButtonState();
+    }
+});
 
 function getBotMessageElement(messageId) {
     if (!messageId) return null;
@@ -191,7 +442,7 @@ function clearActiveRunState() {
     flushQueuedMessages();
 }
 
-function queuePendingMessageForSend({ isMemoryEnabled, agentType, message, attachedFiles, selectedSessions }) {
+function queuePendingMessageForSend({ isMemoryEnabled, agentType, message, attachedFiles, selectedSessions, thinkingMode: queuedThinkingMode }) {
     pendingSendQueue.push({
         isMemoryEnabled,
         agentType,
@@ -202,6 +453,7 @@ function queuePendingMessageForSend({ isMemoryEnabled, agentType, message, attac
             includeAttachedFiles: false,
             includeSelectedSessions: false,
             skipUserMessage: true,
+            thinkingModeOverride: queuedThinkingMode,
         },
     });
 }
@@ -239,6 +491,7 @@ function getFallbackRetryRequest() {
         message: lastUserMessage,
         attachedFiles: [],
         selectedSessions: [],
+        thinkingMode: getEffectiveThinkingMode(),
     };
 }
 
@@ -249,6 +502,7 @@ function renderMessageFailure(messageId, retryRequest = null) {
 
     messageFormatter.finishStreaming(messageId);
     ongoingStreams.delete(messageId);
+    destroyThinkingOrbs(messageDiv);
 
     messageDiv.classList.add('message-error');
     messageDiv.classList.remove('expanded');
@@ -275,6 +529,7 @@ function renderMessageFailure(messageId, retryRequest = null) {
                     includeAttachedFiles: false,
                     includeSelectedSessions: false,
                     skipUserMessage: true,
+                    thinkingModeOverride: retryRequest.thinkingMode,
                 }
             );
         });
@@ -428,7 +683,7 @@ function dismissStatusNotification() {
 
 function handleSocketConnect() {
     isSocketConnected = true;
-    console.log('Socket connected successfully.');
+
     dismissOfflineNotification();
     dispatchChatEvent('chatConnectionChanged', { connected: true });
     dispatchChatEvent('chatStateChanged', { status: 'connected', conversationId: currentConversationId });
@@ -518,6 +773,8 @@ function updateReasoningSummary(messageId) {
     if (reasoningBlocks === 0 && agentBlocks === 0 && toolLogs === 0) {
         summaryText.textContent = 'Reasoning: 0 thoughts, 0 tools, 0 agents';
         summary.classList.add('hidden');
+        messageDiv.classList.remove('expanded');
+        summary.setAttribute('aria-expanded', 'false');
         return;
     }
 
@@ -525,55 +782,13 @@ function updateReasoningSummary(messageId) {
     if (reasoningBlocks > 0) parts.push(`${reasoningBlocks} thought${reasoningBlocks > 1 ? 's' : ''}`);
     if (toolLogs > 0) parts.push(`${toolLogs} tool${toolLogs > 1 ? 's' : ''}`);
     if (agentBlocks > 0) parts.push(`${agentBlocks} agent${agentBlocks > 1 ? 's' : ''}`);
+    const wasHidden = summary.classList.contains('hidden');
     summaryText.textContent = `Reasoning: ${parts.join(', ')}`;
     summary.classList.remove('hidden');
-}
-
-function createMessageAttachmentRail(files = []) {
-    const rail = document.createElement('div');
-    rail.className = 'message-attachment-rail';
-    rail.setAttribute('aria-label', 'Attached files');
-
-    files.forEach((file, index) => {
-        rail.appendChild(createMessageAttachmentCard(file, index));
-    });
-
-    return rail;
-}
-
-function createMessageAttachmentCard(file, index) {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'file-preview-chip attachment-card message-attachment-card completed';
-    card.dataset.fileIndex = String(index);
-    card.title = file?.name || 'Attached file';
-
-    if (file?.type?.startsWith('image/') && file.previewUrl) {
-        card.classList.add('image-file');
-        const image = document.createElement('img');
-        image.className = 'attachment-card-thumb';
-        image.src = file.previewUrl;
-        image.alt = file.name || 'Image attachment';
-        card.appendChild(image);
-    } else {
-        const thumbnail = document.createElement('div');
-        thumbnail.className = 'file-thumbnail attachment-card-icon';
-        const icon = document.createElement('i');
-        icon.className = fileAttachmentHandler?.getFileIcon?.(file?.name || '', file?.type || '') || 'fas fa-file';
-        thumbnail.appendChild(icon);
-        card.appendChild(thumbnail);
+    if (wasHidden) {
+        messageDiv.classList.add('expanded');
+        summary.setAttribute('aria-expanded', 'true');
     }
-
-    const name = document.createElement('span');
-    name.className = 'file-name attachment-card-name';
-    name.textContent = file?.name || 'Untitled file';
-    card.appendChild(name);
-
-    card.addEventListener('click', () => {
-        fileAttachmentHandler?.showFilePreview?.(file);
-    });
-
-    return card;
 }
 
 function addUserMessage(message, files = [], sessions = []) {
@@ -587,23 +802,28 @@ function addUserMessage(message, files = [], sessions = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user-message';
     const hasContext = files.length > 0 || sessions.length > 0;
-    const displayText = message || (files.length > 0 ? 'Attached files' : (hasContext ? 'Context attached' : ''));
+    const displayText = message || (hasContext ? '[Context Attached]' : '');
     messageDiv.dataset.rawMessage = displayText;
     messageDiv.innerHTML = messageFormatter.format(displayText);
 
     wrapperDiv.appendChild(messageDiv);
 
-    if (files.length > 0) {
-        wrapperDiv.appendChild(createMessageAttachmentRail(files));
+    if (files.length > 0 || sessions.length > 0) {
+        sentContexts.set(messageId, { files, sessions });
+    }
+
+    const attachmentRail = renderSentAttachmentCards(files, messageId);
+    if (attachmentRail) {
+        wrapperDiv.classList.add('has-sent-attachments');
+        wrapperDiv.appendChild(attachmentRail);
     }
 
     if (sessions.length > 0) {
-        sentContexts.set(messageId, { files, sessions });
         const contextButton = document.createElement('button');
         contextButton.className = 'user-message-context-button';
         const sessionCount = sessions.length;
         const buttonText = `Context: ${sessionCount} session${sessionCount === 1 ? '' : 's'}`;
-        contextButton.innerHTML = `<i class="fas fa-paperclip"></i> ${buttonText}`;
+        contextButton.innerHTML = `<i class="fas fa-layer-group"></i> ${buttonText}`;
         contextButton.dataset.contextId = messageId;
         contextButton.addEventListener('click', () => {
             const contextData = sentContexts.get(messageId);
@@ -633,10 +853,13 @@ function createBotMessagePlaceholder(messageId, container = null) {
     const thinkingIndicator = document.createElement('div');
     thinkingIndicator.className = 'thinking-indicator';
     thinkingIndicator.innerHTML = `
-        <div class="reasoning-summary hidden" role="button" tabindex="0">
-            <span class="summary-text">Reasoning: 0 thoughts, 0 tools, 0 agents</span>
+        <button class="reasoning-summary hidden" type="button" aria-expanded="false" aria-controls="logs-${messageId}">
+            <span class="reasoning-summary-main">
+                <span class="thinking-orb-mount" data-thinking-orb></span>
+                <span class="summary-text">Reasoning: 0 thoughts, 0 tools, 0 agents</span>
+            </span>
             <i class="fas fa-chevron-down summary-chevron"></i>
-        </div>
+        </button>
     `;
 
     const detailedLogs = document.createElement('div');
@@ -653,369 +876,39 @@ function createBotMessagePlaceholder(messageId, container = null) {
 
     messagesContainer.appendChild(messageDiv);
     ongoingStreams.set(messageId, messageDiv);
+    mountThinkingOrbs(thinkingIndicator, {
+        state: 'solving',
+        size: 64,
+        speed: 0.25,
+    });
 
     // Auto-scroll is now handled by the caller (e.g., renderTurnFromEvents)
 
     const summary = thinkingIndicator.querySelector('.reasoning-summary');
     summary?.addEventListener('click', () => {
-        messageDiv.classList.toggle('expanded');
-    });
-    summary?.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            messageDiv.classList.toggle('expanded');
-        }
+        const expanded = messageDiv.classList.toggle('expanded');
+        summary.setAttribute('aria-expanded', String(expanded));
     });
     return messageDiv;
 }
 
-function setPlanModeActive(enabled) {
-    planModeActive = Boolean(enabled);
-    updateSendButtonState();
-    dispatchChatEvent('planModeChanged', { active: planModeActive });
-}
-
-function setupPlanModeControls() {
-    const planButton = document.getElementById('plan-mode-btn');
-    if (!planButton || planButton.dataset.bound === 'true') return;
-
-    planButton.dataset.bound = 'true';
-    planButton.addEventListener('click', () => {
-        if (sessionActive || planGenerationActive) {
-            notificationService?.show('Plan Mode can be changed after the current response finishes.', 'warning');
-            return;
-        }
-        setPlanModeActive(!planModeActive);
-    });
-    updateSendButtonState();
-}
-
-function getPlanChunk(data = {}) {
-    return data.content ?? data.chunk ?? data.delta ?? data.text ?? '';
-}
-
-function getPlanDoneText(data = {}) {
-    return data.plan ?? data.final_plan ?? data.finalPlan ?? data.content ?? '';
-}
-
-function sanitizePlanHtml(markdown = '') {
-    const formatted = messageFormatter.format(markdown || '', { inlineArtifacts: true });
-    return contentSecurity.sanitizeHTML(formatted, {
-        ALLOWED_TAGS: [
-            'p', 'br', 'strong', 'em', 'b', 'i', 'code', 'pre', 'a', 'ul', 'ol', 'li',
-            'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'table', 'thead', 'tbody',
-            'tr', 'th', 'td', 'span', 'div'
-        ],
-        ALLOWED_ATTR: ['href', 'class', 'id', 'target', 'rel', 'title'],
-        ALLOW_DATA_ATTR: true
-    });
-}
-
-function ensurePlanCard(messageId) {
-    const messageDiv = ongoingStreams.get(messageId) || getBotMessageElement(messageId);
-    if (!messageDiv) return null;
-
-    const mainContent = messageDiv.querySelector(`#main-content-${messageId}`) || messageDiv.querySelector('.message-content');
-    if (!mainContent) return null;
-
-    let card = mainContent.querySelector('.plan-mode-card');
-    if (card) return card;
-
-    const block = document.createElement('div');
-    block.className = 'content-block plan-mode-content-block';
-    block.innerHTML = `
-        <div class="inner-content">
-            <div class="plan-mode-card is-streaming">
-                <div class="plan-mode-card-header">
-                    <div class="plan-mode-title">
-                        <i class="fas fa-route" aria-hidden="true"></i>
-                        <span>Plan Mode</span>
-                    </div>
-                    <span class="plan-mode-status">Planning</span>
-                </div>
-                <div class="plan-mode-rendered"></div>
-                <textarea class="plan-mode-editor hidden" aria-label="Edit plan"></textarea>
-                <div class="plan-mode-actions hidden">
-                    <button type="button" class="plan-mode-action plan-mode-edit">
-                        <i class="fas fa-pen" aria-hidden="true"></i>
-                        <span>Edit</span>
-                    </button>
-                    <button type="button" class="plan-mode-action plan-mode-cancel">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                        <span>Cancel</span>
-                    </button>
-                    <button type="button" class="plan-mode-action plan-mode-submit primary">
-                        <i class="fas fa-arrow-up" aria-hidden="true"></i>
-                        <span>Submit</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    mainContent.appendChild(block);
-
-    card = block.querySelector('.plan-mode-card');
-    card.querySelector('.plan-mode-edit')?.addEventListener('click', () => setPlanEditorMode(messageId, true));
-    card.querySelector('.plan-mode-cancel')?.addEventListener('click', () => cancelPlanRequest(messageId));
-    card.querySelector('.plan-mode-submit')?.addEventListener('click', () => submitApprovedPlan(messageId));
-    return card;
-}
-
-function renderPlanCard(messageId, { done = false } = {}) {
-    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
-
-    const card = ensurePlanCard(messageId);
-    if (!card) return;
-
-    const rendered = card.querySelector('.plan-mode-rendered');
-    const editor = card.querySelector('.plan-mode-editor');
-    const status = card.querySelector('.plan-mode-status');
-    const actions = card.querySelector('.plan-mode-actions');
-    const planText = activePlanRequest.planBuffer || 'Preparing your plan...';
-
-    if (rendered && !card.classList.contains('is-editing')) {
-        rendered.innerHTML = sanitizePlanHtml(planText);
-        messageFormatter.applyInlineEnhancements?.(rendered);
-    }
-    if (editor && !card.classList.contains('is-editing')) {
-        editor.value = activePlanRequest.planBuffer || '';
-    }
-    if (status) {
-        status.textContent = done ? 'Ready' : 'Planning';
-    }
-    card.classList.toggle('is-streaming', !done);
-    actions?.classList.toggle('hidden', !done);
-}
-
-function setPlanEditorMode(messageId, editing) {
-    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
-
-    const card = ensurePlanCard(messageId);
-    if (!card) return;
-
-    const rendered = card.querySelector('.plan-mode-rendered');
-    const editor = card.querySelector('.plan-mode-editor');
-    const editButton = card.querySelector('.plan-mode-edit span');
-    const isEditing = Boolean(editing);
-
-    if (editor && isEditing) {
-        editor.value = activePlanRequest.planBuffer || '';
-        requestAnimationFrame(() => editor.focus());
-    } else if (editor) {
-        activePlanRequest.planBuffer = editor.value.trim() || activePlanRequest.planBuffer;
-        renderPlanCard(messageId, { done: true });
-    }
-
-    card.classList.toggle('is-editing', isEditing);
-    rendered?.classList.toggle('hidden', isEditing);
-    editor?.classList.toggle('hidden', !isEditing);
-    if (editButton) {
-        editButton.textContent = isEditing ? 'Preview' : 'Edit';
-    }
-}
-
-function finishPlanRequest(messageId) {
-    const messageDiv = ongoingStreams.get(messageId);
-    if (messageDiv) {
-        const thinkingIndicator = messageDiv.querySelector('.thinking-indicator');
-        const summary = thinkingIndicator?.querySelector('.reasoning-summary');
-        thinkingIndicator?.classList.add('steps-done');
-        if (summary && messageDiv.querySelector('.log-block, .tool-log-entry, .reasoning-thought-block')) {
-            summary.classList.remove('hidden');
-        } else {
-            thinkingIndicator?.remove();
-        }
-        ongoingStreams.delete(messageId);
-    }
-    planGenerationActive = false;
-    updateSendButtonState();
-}
-
-function cancelPlanRequest(messageId) {
-    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
-
-    const messageDiv = getBotMessageElement(messageId);
-    messageDiv?.remove();
-    activePlanRequest = null;
-    planGenerationActive = false;
-    updateSendButtonState();
-    notificationService?.show('Plan discarded.', 'info', 2500);
-}
-
-async function submitApprovedPlan(messageId) {
-    if (!activePlanRequest || activePlanRequest.messageId !== messageId) return;
-
-    const card = ensurePlanCard(messageId);
-    const editor = card?.querySelector('.plan-mode-editor');
-    const approvedPlan = (card?.classList.contains('is-editing') && editor)
-        ? editor.value.trim()
-        : (activePlanRequest.planBuffer || '').trim();
-
-    if (!approvedPlan) {
-        notificationService?.show('The plan is empty. Add details before submitting.', 'warning');
-        return;
-    }
-
-    const capturedFiles = cloneAttachedFiles(activePlanRequest.attachedFiles || []);
-    const capturedSessions = cloneSelectedSessions(activePlanRequest.selectedSessions || []);
-    activePlanRequest = null;
-    setPlanModeActive(false);
-
-    addUserMessage('Plan approved. Starting the improved request.', capturedFiles, capturedSessions);
-    await chatModule.handleSendMessage(undefined, undefined, {
-        messageOverride: approvedPlan,
-        attachedFilesOverride: capturedFiles,
-        selectedSessionsOverride: capturedSessions,
-        includeAttachedFiles: false,
-        includeSelectedSessions: false,
-        skipUserMessage: true,
-    });
-
-    fileAttachmentHandler?.clearAttachedFiles?.();
-    contextHandler?.clearSelectedContext?.();
-}
-
-async function startPlanRequest({ message, attachedFiles, selectedSessions }) {
-    if (planGenerationActive || sessionActive) {
-        notificationService?.show('Please wait for the current response to finish.', 'warning');
-        return;
-    }
-
-    if (!isSocketConnected) {
-        notificationService?.show('Plan Mode needs a server connection. Please wait or refresh.', 'warning');
-        return;
-    }
-
-    planGenerationActive = true;
-    updateSendButtonState();
-
-    addUserMessage(message || 'Attached context', attachedFiles, selectedSessions);
-
-    const input = document.getElementById('floating-input');
-    if (input) {
-        input.value = '';
-        requestAnimationFrame(() => {
-            input.style.height = 'auto';
-        });
-        input.focus();
-    }
-
-    const messageId = `plan_${Date.now()}`;
-    createBotMessagePlaceholder(messageId);
-
-    activePlanRequest = {
-        messageId,
-        conversationId: currentConversationId,
-        originalMessage: message,
-        attachedFiles: cloneAttachedFiles(attachedFiles),
-        selectedSessions: cloneSelectedSessions(selectedSessions),
-        planBuffer: '',
-    };
-    renderPlanCard(messageId);
-
-    const payload = {
-        id: messageId,
-        conversationId: currentConversationId,
-        message,
-        config: buildOutgoingAgentConfig(),
-        files: cloneAttachedFiles(attachedFiles),
-        selected_sessions: cloneSelectedSessions(selectedSessions),
-        context_session_ids: selectedSessions.map(session => session.session_id).filter(Boolean),
-    };
-
-    if (window.projectWorkspace?.isActive?.()) {
-        payload.agent_mode = 'coder';
-        payload.config.agent_mode = 'coder';
-        payload.workspace_context = window.projectWorkspace.getWorkspaceContextPayload?.() || window.projectContext || null;
-    }
-
-    try {
-        await socketService.sendPlanRequest(payload);
-    } catch (error) {
-        console.error('[PlanMode] Failed to send plan request:', error);
-        renderMessageFailure(messageId, null);
-        activePlanRequest = null;
-        planGenerationActive = false;
-        updateSendButtonState();
-        notificationService?.show(error.message || 'Plan Mode request failed.', 'error');
-    }
-}
-
-function handlePlanResponse(data = {}) {
-    const messageId = data.id || data.messageId || activePlanRequest?.messageId;
-    if (!messageId || !activePlanRequest || activePlanRequest.messageId !== messageId) return;
-
-    const eventType = String(data.type || data.event || '').toLowerCase();
-    const isReasoningEvent = eventType === 'reasoning' || Boolean(data.reasoning_content || data.step);
-    const isToolEvent = eventType === 'tool_start' || eventType === 'tool_end';
-
-    if (eventType === 'error' || data.status === 'error' || data.error) {
-        renderMessageFailure(messageId, null);
-        activePlanRequest = null;
-        planGenerationActive = false;
-        updateSendButtonState();
-        notificationService?.show(data.message || data.error || 'Plan Mode failed.', 'error');
-        return;
-    }
-
-    if (eventType === 'reasoning' || data.reasoning_content || data.step) {
-        appendReasoningContent({
-            id: messageId,
-            agent_name: data.agent_name || 'plan_agent',
-            reasoning_content: data.reasoning_content || data.content || data.step,
-        });
-    } else if (isToolEvent) {
-        handleAgentStep({
-            id: messageId,
-            type: eventType,
-            name: data.name || data.tool?.tool_name || data.tool?.name || 'tool',
-            agent_name: data.agent_name || 'plan_agent',
-            tool: data.tool,
-        });
-    }
-
-    if (!isReasoningEvent && !isToolEvent && (eventType === 'content' || data.content || data.chunk || data.delta || data.text)) {
-        const chunk = getPlanChunk(data);
-        if (chunk) {
-            activePlanRequest.planBuffer += String(chunk);
-            renderPlanCard(messageId);
-        }
-    }
-
-    if (eventType === 'done' || data.done || data.status === 'done' || data.status === 'complete') {
-        const finalText = getPlanDoneText(data);
-        if (finalText && finalText.length >= activePlanRequest.planBuffer.length) {
-            activePlanRequest.planBuffer = String(finalText);
-        }
-        renderPlanCard(messageId, { done: true });
-        finishPlanRequest(messageId);
-    }
-}
-
 // Helper to normalize content from backend (handles objects, strings, etc.)
 function normalizeBackendContent(content) {
-    console.log('[Chat] normalizeBackendContent called:', {
-        contentType: typeof content,
-        isNull: content === null,
-        isUndefined: content === undefined,
-        contentPreview: typeof content === 'string' ? content.substring(0, 100) : content
-    });
 
     // If it's already a string, return as-is
     if (typeof content === 'string') {
-        console.log('[Chat] Content is already a string, returning as-is');
+
         return content;
     }
 
     // If it's null or undefined, return empty string
     if (content == null) {
-        console.log('[Chat] Content is null/undefined, returning empty string');
+
         return '';
     }
 
     // If it's an object, extract the actual content
     if (typeof content === 'object') {
-        console.log('[Chat] Content is an object, extracting...');
 
         // Check for common content keys
         const potentialKeys = ['raw', 'code', 'content', 'text', 'output', 'data'];
@@ -1023,42 +916,41 @@ function normalizeBackendContent(content) {
         for (const key of potentialKeys) {
             if (Object.prototype.hasOwnProperty.call(content, key)) {
                 const value = content[key];
-                console.log(`[Chat] Found key "${key}" with value type:`, typeof value);
 
                 // If the value is a string, check if it's already markdown
                 if (typeof value === 'string') {
                     const trimmed = value.trim();
                     // If it's already a code block, return as-is
                     if (trimmed.startsWith('```')) {
-                        console.log('[Chat] Value is already markdown code block');
+
                         return trimmed;
                     }
                     // If it has language info, wrap it
                     const lang = content.lang || content.language || content.format || '';
                     if (lang && trimmed) {
-                        console.log('[Chat] Wrapping in code block with language:', lang);
+
                         return `\`\`\`${lang}\n${trimmed}\n\`\`\``;
                     }
                     // Otherwise return the raw string
-                    console.log('[Chat] Returning raw string value');
+
                     return trimmed;
                 }
 
                 // If the value is an object, stringify it as JSON
                 if (typeof value === 'object' && value !== null) {
-                    console.log('[Chat] Value is object, stringifying as JSON');
+
                     const jsonString = JSON.stringify(value, null, 2);
                     return `\`\`\`json\n${jsonString}\n\`\`\``;
                 }
 
                 // For other types, convert to string
-                console.log('[Chat] Converting value to string');
+
                 return String(value);
             }
         }
 
         // If no content key found, stringify the entire object
-        console.log('[Chat] No content key found, stringifying entire object');
+
         try {
             const jsonString = JSON.stringify(content, null, 2);
             return `\`\`\`json\n${jsonString}\n\`\`\``;
@@ -1069,19 +961,11 @@ function normalizeBackendContent(content) {
     }
 
     // For any other type, convert to string
-    console.log('[Chat] Converting to string (fallback)');
+
     return String(content);
 }
 
 function populateBotMessage(data) {
-    console.log('[Chat] populateBotMessage called:', {
-        messageId: data.id,
-        contentType: typeof data.content,
-        streaming: data.streaming,
-        agent_name: data.agent_name,
-        team_name: data.team_name,
-        is_log: data.is_log
-    });
 
     let { content, id: messageId, streaming = false, agent_name, team_name, is_log } = data;
     const messageDiv = ongoingStreams.get(messageId);
@@ -1093,13 +977,6 @@ function populateBotMessage(data) {
     // Normalize content from backend (handles objects, strings, etc.)
     const originalContent = content;
     content = normalizeBackendContent(content);
-
-    console.log('[Chat] Content after normalization:', {
-        originalType: typeof originalContent,
-        normalizedType: typeof content,
-        normalizedLength: content?.length,
-        normalizedPreview: typeof content === 'string' ? content.substring(0, 100) : content
-    });
 
     const ownerName = agent_name || team_name;
     if (!ownerName || !content) {
@@ -1153,10 +1030,7 @@ function populateBotMessage(data) {
                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'table', 'thead', 'tbody',
                 'tr', 'th', 'td', 'span', 'div', 'button'
             ],
-            ALLOWED_ATTR: [
-                'href', 'class', 'id', 'target', 'rel', 'type', 'title', 'role', 'tabindex',
-                'aria-label', 'aria-pressed', 'aria-expanded', 'aria-hidden'
-            ],
+            ALLOWED_ATTR: ['href', 'class', 'id', 'target', 'rel', 'type', 'aria-label', 'title'],
             ALLOW_DATA_ATTR: true
         });
 
@@ -1183,6 +1057,174 @@ function escapeHtml(value) {
     const div = document.createElement('div');
     div.textContent = String(value ?? '');
     return div.innerHTML;
+}
+
+function getAttachmentIconClass(file = {}) {
+    const type = file.type || file.backendMimeType || '';
+    const name = file.name || '';
+
+    if (type.startsWith('image/')) return 'fa-file-image';
+    if (type.startsWith('video/')) return 'fa-file-video';
+    if (type.startsWith('audio/')) return 'fa-file-audio';
+    if (type === 'application/pdf' || name.endsWith('.pdf')) return 'fa-file-pdf';
+    if (type.includes('word') || type.includes('document')) return 'fa-file-word';
+    if (type.includes('excel') || type.includes('spreadsheet') || name.match(/\.(csv|xls|xlsx)$/i)) return 'fa-file-excel';
+    if (type.includes('powerpoint') || type.includes('presentation') || name.match(/\.(ppt|pptx)$/i)) return 'fa-file-powerpoint';
+    if (type.includes('zip') || type.includes('archive') || name.match(/\.(zip|rar|7z|tar|gz)$/i)) return 'fa-file-archive';
+    if (name.match(/\.(js|jsx|ts|tsx|py|java|cpp|c|cs|php|rb|go|rs|swift|kt|scala|html|css|json|xml|sql|sh|md)$/i)) return 'fa-file-code';
+    return 'fa-file';
+}
+
+function getAttachmentPreviewUrl(file = {}) {
+    return file.previewUrl || file.dataUrl || file.url || file.downloadUrl || '';
+}
+
+function canPreviewAttachment(file = {}) {
+    const type = file.type || file.backendMimeType || '';
+    return Boolean(getAttachmentPreviewUrl(file) || file.content || file.isText || type.startsWith('text/'));
+}
+
+function enableHorizontalRailScroll(rail) {
+    if (!rail || rail.dataset.horizontalRailReady === 'true') return;
+    rail.dataset.horizontalRailReady = 'true';
+
+    let activePointerId = null;
+    let startX = 0;
+    let startScrollLeft = 0;
+    let dragged = false;
+    let suppressClick = false;
+
+    const endDrag = () => {
+        if (dragged) {
+            suppressClick = true;
+            window.setTimeout(() => {
+                suppressClick = false;
+            }, 0);
+        }
+        activePointerId = null;
+        dragged = false;
+        rail.classList.remove('is-dragging');
+    };
+
+    rail.addEventListener('pointerdown', (event) => {
+        if (event.button !== undefined && event.button !== 0) return;
+        activePointerId = event.pointerId;
+        startX = event.clientX;
+        startScrollLeft = rail.scrollLeft;
+        dragged = false;
+        try {
+            rail.setPointerCapture(event.pointerId);
+        } catch (_) { }
+    });
+
+    rail.addEventListener('pointermove', (event) => {
+        if (activePointerId !== event.pointerId) return;
+        const deltaX = event.clientX - startX;
+        if (Math.abs(deltaX) < 4 && !dragged) return;
+        dragged = true;
+        rail.classList.add('is-dragging');
+        rail.scrollLeft = startScrollLeft - deltaX;
+        event.preventDefault();
+    }, { passive: false });
+
+    rail.addEventListener('pointerup', endDrag);
+    rail.addEventListener('pointercancel', endDrag);
+    rail.addEventListener('lostpointercapture', endDrag);
+
+    rail.addEventListener('click', (event) => {
+        if (!suppressClick) return;
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+}
+
+function createSentAttachmentCard(file = {}, index = 0) {
+    const type = file.type || file.backendMimeType || '';
+    const previewUrl = getAttachmentPreviewUrl(file);
+    const safeName = escapeHtml(file.name || `File ${index + 1}`);
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'sent-attachment-card';
+    card.dataset.fileIndex = String(index);
+    card.disabled = !canPreviewAttachment(file);
+    card.setAttribute('aria-label', `Preview ${file.name || `file ${index + 1}`}`);
+
+    if (type.startsWith('image/') && previewUrl) {
+        card.classList.add('image-file');
+        card.innerHTML = `
+            <img class="sent-attachment-thumb" src="${encodeURI(previewUrl)}" alt="${safeName}">
+            <span class="sent-attachment-name">${safeName}</span>
+        `;
+    } else {
+        card.innerHTML = `
+            <span class="sent-attachment-icon"><i class="fas ${getAttachmentIconClass(file)}"></i></span>
+            <span class="sent-attachment-name">${safeName}</span>
+        `;
+    }
+
+    return card;
+}
+
+function renderSentAttachmentCards(files = [], messageId) {
+    if (!Array.isArray(files) || files.length === 0) return null;
+
+    const rail = document.createElement('div');
+    rail.className = 'sent-attachments-rail';
+    rail.setAttribute('role', 'list');
+    rail.setAttribute('aria-label', 'Attached files');
+
+    files.forEach((file, index) => {
+        const card = createSentAttachmentCard(file, index);
+        card.setAttribute('role', 'listitem');
+        card.addEventListener('click', () => showSentAttachmentPreview(file, messageId));
+        rail.appendChild(card);
+    });
+
+    enableHorizontalRailScroll(rail);
+    return rail;
+}
+
+function showSentAttachmentPreview(file = {}, messageId = null) {
+    if (!canPreviewAttachment(file)) return;
+
+    const modal = document.getElementById('file-preview-modal');
+    const previewArea = document.getElementById('preview-content-area');
+    if (!modal || !previewArea) {
+        const contextData = sentContexts.get(messageId);
+        if (contextViewer && contextData) contextViewer.show(contextData);
+        return;
+    }
+
+    const type = file.type || file.backendMimeType || '';
+    const previewUrl = getAttachmentPreviewUrl(file);
+    const safeName = escapeHtml(file.name || 'Attached file');
+    const safePreviewUrl = previewUrl ? encodeURI(previewUrl) : '';
+
+    if (type.startsWith('image/') && safePreviewUrl) {
+        previewArea.innerHTML = `
+            <div class="preview-header">
+                <h3 class="preview-title">${safeName}</h3>
+            </div>
+            <img src="${safePreviewUrl}" alt="Preview of ${safeName}">
+        `;
+    } else if (type.startsWith('video/') && safePreviewUrl) {
+        previewArea.innerHTML = `<video src="${safePreviewUrl}" controls autoplay></video>`;
+    } else if (type.startsWith('audio/') && safePreviewUrl) {
+        previewArea.innerHTML = `<audio src="${safePreviewUrl}" controls autoplay></audio>`;
+    } else if ((type === 'application/pdf' || file.name?.endsWith?.('.pdf')) && safePreviewUrl) {
+        previewArea.innerHTML = `<iframe class="pdf-preview" src="${safePreviewUrl}"></iframe>`;
+    } else if (file.content || file.isText || type.startsWith('text/')) {
+        previewArea.innerHTML = `
+            <div class="preview-header">
+                <h3 class="preview-title">${safeName}</h3>
+            </div>
+            <div class="text-file-preview"><pre><code>${escapeHtml(file.content || '')}</code></pre></div>
+        `;
+    } else {
+        previewArea.innerHTML = `<p>Preview is not available for this file type.</p>`;
+    }
+
+    modal.classList.remove('hidden');
 }
 
 function extractSheetsMetadataFromAgentStep(data = {}) {
@@ -1368,6 +1410,8 @@ function handleAgentStep(data) {
     let logEntry = logsContainer.querySelector(`#${logEntryId}`);
 
     if (type === 'tool_start') {
+        // Shown in the ongoing notification while the app is in the background.
+        try { backgroundRunManager.updateProgress(currentConversationId, `Using ${toolName}`); } catch (_) { }
         if (!logEntry) {
             logEntry = document.createElement('div');
             logEntry.id = logEntryId;
@@ -1479,6 +1523,7 @@ function handleDone(data) {
     const hasLogs = messageDiv.querySelector('.log-block, .tool-log-entry, .reasoning-thought-block');
     if (thinkingIndicator && hasLogs) {
         thinkingIndicator.classList.add('steps-done');
+        setThinkingOrbsPaused(thinkingIndicator, true);
         const reasoningCount = messageDiv.querySelectorAll('.reasoning-thought-block').length;
         const logCount = messageDiv.querySelectorAll('.detailed-logs > .log-block:not(.reasoning-thought-block)').length;
         const toolLogCount = messageDiv.querySelectorAll('.tool-log-entry:not(.reasoning-log-entry)').length;
@@ -1497,6 +1542,7 @@ function handleDone(data) {
             summary.classList.remove('hidden');
         }
     } else if (thinkingIndicator) {
+        destroyThinkingOrbs(thinkingIndicator);
         thinkingIndicator.remove();
     }
 
@@ -1505,7 +1551,7 @@ function handleDone(data) {
     // Apply inline enhancements (Mermaid, syntax highlighting, etc.) after streaming completes
     const mainContent = messageDiv.querySelector('.message-content');
     if (mainContent && messageFormatter.applyInlineEnhancements) {
-        console.log('[Chat] Applying inline enhancements after streaming complete');
+
         messageFormatter.applyInlineEnhancements(mainContent);
     }
 
@@ -1527,6 +1573,377 @@ function handleDone(data) {
     }
 
     dispatchChatEvent('messageAdded', { role: 'assistant', messageId });
+}
+
+function setPlanModeEnabled(enabled) {
+    planModeEnabled = Boolean(enabled);
+    const button = document.getElementById('plan-mode-btn');
+    if (button) {
+        button.classList.toggle('active', planModeEnabled);
+        button.setAttribute('aria-pressed', planModeEnabled ? 'true' : 'false');
+    }
+    syncComposerModeVisual();
+}
+
+function setPlanGenerating(generating) {
+    planGenerationInProgress = Boolean(generating);
+    const planButton = document.getElementById('plan-mode-btn');
+    const input = document.getElementById('floating-input');
+
+    if (planButton) {
+        planButton.disabled = planGenerationInProgress;
+    }
+    if (input) {
+        input.disabled = planGenerationInProgress;
+    }
+
+    updateSendButtonState();
+}
+
+function hidePlanReview() {
+    pendingPlanRequestId = null;
+    pendingPlanMessageId = null;
+}
+
+function clearPlanBuffers(messageId) {
+    if (!messageId) return;
+    const renderState = planRenderStates.get(messageId);
+    if (renderState?.timer) clearTimeout(renderState.timer);
+    const reasoningState = planReasoningRenderStates.get(messageId);
+    if (reasoningState?.timer) clearTimeout(reasoningState.timer);
+    planRenderStates.delete(messageId);
+    planReasoningRenderStates.delete(messageId);
+    planStreamBuffers.delete(messageId);
+    planReasoningBuffers.delete(messageId);
+}
+
+function completePlanThinking(messageId) {
+    const messageDiv = getBotMessageElement(messageId);
+    if (!messageDiv) return;
+    appendPlanModeToolLog(messageId, 'completed');
+    const thinkingIndicator = messageDiv.querySelector('.thinking-indicator');
+    const reasoningSummary = thinkingIndicator?.querySelector('.reasoning-summary');
+    thinkingIndicator?.classList.add('steps-done');
+    if (thinkingIndicator) setThinkingOrbsPaused(thinkingIndicator, true);
+    reasoningSummary?.classList.remove('hidden');
+    updateReasoningSummary(messageId);
+}
+
+function scrollPlanMessageIntoView(messageId) {
+    const messageDiv = getBotMessageElement(messageId);
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messageDiv || !messagesContainer) return;
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function updatePlanOutputCard(messageId, planText, done = false) {
+    const messageDiv = getBotMessageElement(messageId);
+    const targetContainer = messageDiv?.querySelector(`#main-content-${messageId}`);
+    if (!messageDiv || !targetContainer) return;
+
+    const formattedPlan = contentSecurity.sanitizeHTML(
+        messageFormatter.format(planText || '', { inlineArtifacts: false }),
+        {
+            ALLOWED_TAGS: [
+                'p', 'br', 'strong', 'em', 'b', 'i', 'code', 'pre', 'a', 'ul', 'ol', 'li',
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'table', 'thead', 'tbody',
+                'tr', 'th', 'td', 'span', 'div'
+            ],
+            ALLOWED_ATTR: ['href', 'class', 'id', 'target', 'rel', 'title'],
+            ALLOW_DATA_ATTR: true
+        }
+    );
+    let card = targetContainer.querySelector('.plan-output-card');
+    if (!card) {
+        targetContainer.innerHTML = `
+            <div class="plan-output-card streaming" data-plan-message-id="${escapeHtml(messageId)}">
+                <div class="plan-output-header">
+                    <div class="plan-output-title">
+                        <i class="fi fi-tr-roadmap" aria-hidden="true"></i>
+                        <span>Plan Mode Output</span>
+                    </div>
+                </div>
+                <div class="plan-output-body">
+                    <div class="plan-output-content">${formattedPlan}</div>
+                    <textarea class="plan-output-editor hidden" aria-label="Edit generated plan">${escapeHtml(planText || '')}</textarea>
+                </div>
+                <div class="plan-output-actions">
+                    <button type="button" class="plan-output-edit">Edit</button>
+                    <button type="button" class="plan-output-submit">Submit</button>
+                </div>
+            </div>
+        `;
+        card = targetContainer.querySelector('.plan-output-card');
+    } else {
+        const content = card.querySelector('.plan-output-content');
+        const editor = card.querySelector('.plan-output-editor');
+        if (content && !content.classList.contains('hidden')) {
+            content.innerHTML = formattedPlan;
+        }
+        if (editor && editor.classList.contains('hidden')) {
+            editor.value = planText || '';
+        }
+    }
+
+    if (done) {
+        completePlanThinking(messageId);
+        card?.classList.remove('streaming');
+        if (messageFormatter.applyInlineEnhancements) {
+            messageFormatter.applyInlineEnhancements(targetContainer);
+        }
+        targetContainer.querySelectorAll('pre code:not([data-highlighted])').forEach(codeBlock => {
+            if (typeof hljs !== 'undefined') {
+                hljs.highlightElement(codeBlock);
+                codeBlock.dataset.highlighted = 'true';
+            }
+        });
+    }
+
+    scrollPlanMessageIntoView(messageId);
+}
+
+function schedulePlanOutputRender(messageId, done = false) {
+    if (!messageId) return;
+    const text = planStreamBuffers.get(messageId) || '';
+    if (done) {
+        const state = planRenderStates.get(messageId);
+        if (state?.timer) clearTimeout(state.timer);
+        planRenderStates.delete(messageId);
+        updatePlanOutputCard(messageId, text, true);
+        return;
+    }
+
+    const existingState = planRenderStates.get(messageId);
+    if (existingState?.timer) return;
+
+    const timer = setTimeout(() => {
+        planRenderStates.delete(messageId);
+        updatePlanOutputCard(messageId, planStreamBuffers.get(messageId) || '', false);
+    }, 140);
+    planRenderStates.set(messageId, { timer });
+}
+
+function appendPlanStreamContent(messageId, content) {
+    if (!messageId || !content) {
+        return planStreamBuffers.get(messageId) || '';
+    }
+    const previous = planStreamBuffers.get(messageId) || '';
+    const incoming = String(content);
+    let next = `${previous}${incoming}`;
+    if (previous && incoming.startsWith(previous)) {
+        next = incoming;
+    } else if (previous && previous.endsWith(incoming)) {
+        next = previous;
+    }
+    planStreamBuffers.set(messageId, next);
+    return next;
+}
+
+function appendPlanReasoningContent(messageId, content, agentName = 'plan_agent') {
+    if (!messageId || !content) return;
+    const entry = planReasoningBuffers.get(messageId) || { content: '', agentName };
+    entry.content += String(content);
+    entry.agentName = agentName || entry.agentName || 'plan_agent';
+    planReasoningBuffers.set(messageId, entry);
+
+    const existingState = planReasoningRenderStates.get(messageId);
+    if (existingState?.timer) return;
+
+    const timer = setTimeout(() => {
+        flushPlanReasoningContent(messageId);
+    }, 140);
+    planReasoningRenderStates.set(messageId, { timer });
+}
+
+function flushPlanReasoningContent(messageId) {
+    const state = planReasoningRenderStates.get(messageId);
+    if (state?.timer) clearTimeout(state.timer);
+    planReasoningRenderStates.delete(messageId);
+
+    const entry = planReasoningBuffers.get(messageId);
+    if (!entry?.content) return;
+    planReasoningBuffers.delete(messageId);
+    appendReasoningContent({
+        id: messageId,
+        reasoning_content: entry.content,
+        agent_name: entry.agentName || 'plan_agent',
+    });
+}
+
+function appendPlanModeToolLog(messageId, status = 'in-progress', toolLabel = 'Plan Mode') {
+    const messageDiv = getBotMessageElement(messageId);
+    if (!messageDiv) return;
+    const logsContainer = messageDiv.querySelector('.detailed-logs');
+    if (!logsContainer) return;
+    const logEntryId = `plan-mode-tool-${messageId}`;
+    let logEntry = logsContainer.querySelector(`#${logEntryId}`);
+    if (!logEntry) {
+        logEntry = document.createElement('div');
+        logEntry.id = logEntryId;
+        logEntry.className = 'tool-log-entry';
+        logEntry.innerHTML = `
+            <i class="fi fi-tr-roadmap tool-log-icon"></i>
+            <div class="tool-log-details">
+                <span class="tool-log-action">Used tool: <strong>${escapeHtml(toolLabel || 'Plan Mode')}</strong></span>
+            </div>
+            <span class="tool-log-status ${status}" title="${status === 'completed' ? 'Completed' : 'In progress'}"></span>
+        `;
+        logsContainer.appendChild(logEntry);
+    }
+    const statusEl = logEntry.querySelector('.tool-log-status');
+    if (statusEl) {
+        statusEl.className = `tool-log-status ${status}`;
+        statusEl.setAttribute('title', status === 'completed' ? 'Completed' : 'In progress');
+    }
+    updateReasoningSummary(messageId);
+}
+
+function handlePlanResponse(data = {}) {
+    if (!data || !pendingPlanRequestId) return;
+    if (data.requestId && data.requestId !== pendingPlanRequestId) return;
+
+    const planMessageId = data.messageId || pendingPlanMessageId;
+    if (data.reasoning_content && planMessageId) {
+        appendPlanReasoningContent(planMessageId, data.reasoning_content, data.agent_name || 'plan_agent');
+    }
+    if (data.step_type && planMessageId) {
+        const toolLabel = data.name ? String(data.name).replace(/_/g, ' ') : 'Plan Mode';
+        appendPlanModeToolLog(
+            planMessageId,
+            data.step_type === 'tool_end' ? 'completed' : 'in-progress',
+            toolLabel,
+        );
+    }
+    if (data.streaming && data.content && planMessageId) {
+        appendPlanStreamContent(planMessageId, data.content);
+        schedulePlanOutputRender(planMessageId, false);
+    }
+    if (!data.success) {
+        setPlanGenerating(false);
+        if (planMessageId) {
+            populateBotMessage({
+                id: planMessageId,
+                content: data.error || 'Plan generation failed.',
+                agent_name: 'plan_agent',
+            });
+            completePlanThinking(planMessageId);
+            clearPlanBuffers(planMessageId);
+        }
+        notificationService?.show(data.error || 'Plan generation failed.', 'error');
+        pendingPlanRequestId = null;
+        pendingPlanMessageId = null;
+        return;
+    }
+    if (!data.done && !data.plan) {
+        return;
+    }
+
+    const finalPlan = data.plan || planStreamBuffers.get(planMessageId) || '';
+    setPlanGenerating(false);
+    flushPlanReasoningContent(planMessageId);
+    planStreamBuffers.set(planMessageId, finalPlan);
+    pendingPlanRequestId = null;
+    pendingPlanMessageId = null;
+    schedulePlanOutputRender(planMessageId, true);
+    planStreamBuffers.delete(planMessageId);
+    notificationService?.show('Plan ready. Review, edit, then submit.', 'success', 3500);
+}
+
+async function requestPlanFromAgent() {
+    const input = document.getElementById('floating-input');
+    const message = input?.value.trim() || '';
+    const attachedFiles = cloneAttachedFiles(fileAttachmentHandler?.getAttachedFiles?.() || []);
+    const selectedSessions = cloneSelectedSessions(contextHandler?.getSelectedSessions?.() || []);
+
+    if (!message && attachedFiles.length === 0 && selectedSessions.length === 0) return;
+    if (planGenerationInProgress) return;
+
+    if (!isSocketConnected) {
+        notificationService?.show('Not connected to server. Please wait...', 'error');
+        return;
+    }
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            notificationService?.show('You must be logged in to create a plan.', 'error');
+            return;
+        }
+    } catch (error) {
+        notificationService?.show('You must be logged in to create a plan.', 'error');
+        return;
+    }
+
+    pendingPlanRequestId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `plan_${Date.now()}`;
+    const messageId = `plan_${Date.now()}`;
+    pendingPlanMessageId = messageId;
+
+    addUserMessage(message || 'Attached context', attachedFiles, selectedSessions);
+    createBotMessagePlaceholder(messageId);
+    appendReasoningContent({
+        id: messageId,
+        reasoning_content: 'Understanding the request, checking enabled capabilities, and preparing an execution plan for Aetheria.',
+        agent_name: 'plan_agent',
+    });
+    appendPlanModeToolLog(messageId, 'in-progress');
+
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+        input.focus();
+    }
+    setPlanGenerating(true);
+
+    try {
+        await socketService.sendPlanRequest({
+            requestId: pendingPlanRequestId,
+            messageId,
+            conversationId: currentConversationId,
+            message,
+            files: attachedFiles,
+            selected_sessions: selectedSessions,
+            config: buildOutgoingAgentConfig(),
+        });
+    } catch (error) {
+        console.error('[Chat] Failed to request plan:', error);
+        setPlanGenerating(false);
+        populateBotMessage({
+            id: messageId,
+            content: error.message || 'Plan generation failed.',
+            agent_name: 'plan_agent',
+        });
+        completePlanThinking(messageId);
+        clearPlanBuffers(messageId);
+        pendingPlanRequestId = null;
+        pendingPlanMessageId = null;
+        notificationService?.show(error.message || 'Plan generation failed.', 'error');
+    }
+}
+
+function submitApprovedPlan(card = null) {
+    const planInput = card
+        ? card.querySelector('.plan-output-editor')
+        : document.querySelector('.plan-output-card .plan-output-editor:not(.hidden), .plan-output-card .plan-output-editor');
+    const planText = planInput?.value.trim() || '';
+    if (!planText) {
+        notificationService?.show('Plan is empty.', 'error');
+        return;
+    }
+
+    submittingApprovedPlan = true;
+    pendingPlanSubmitDisplayMessage = 'Aetheria is on it. Hold tight while the assistant works through the approved plan.';
+    setPlanModeEnabled(false);
+    hidePlanReview();
+
+    chatModule.handleSendMessage(undefined, undefined, {
+        messageOverride: planText,
+        displayMessageOverride: pendingPlanSubmitDisplayMessage,
+    }).finally(() => {
+        submittingApprovedPlan = false;
+        pendingPlanSubmitDisplayMessage = null;
+    });
 }
 
 function extractConversationHistory() {
@@ -1589,17 +2006,7 @@ async function restoreConversationHistory(conversationId) {
     if (!conversationId) return false;
 
     try {
-        const { data: sessionRow, error } = await supabase
-            .from('agno_sessions')
-            .select('runs')
-            .eq('session_id', conversationId)
-            .maybeSingle();
-
-        if (error) {
-            console.warn('[Chat] Failed to load session history for catch-up restore:', error);
-            return false;
-        }
-
+        const sessionRow = await backendRequest(`/sessions/${encodeURIComponent(conversationId)}/history`);
         let runs = sessionRow?.runs || [];
         if (typeof runs === 'string') {
             try {
@@ -1610,13 +2017,11 @@ async function restoreConversationHistory(conversationId) {
         }
 
         const topLevelRuns = _parseSessionRuns(runs);
-        if (topLevelRuns.length === 0) {
-            return false;
-        }
 
         const messagesContainer = document.getElementById('chat-messages');
         if (!messagesContainer) return false;
 
+        destroyThinkingOrbs(messagesContainer);
         messagesContainer.replaceChildren();
         sentContexts.clear();
         ongoingStreams.clear();
@@ -1650,6 +2055,17 @@ async function restoreConversationHistory(conversationId) {
             }
         });
 
+        for (const request of sessionRow.input_requests || []) {
+            let message = getBotMessageElement(request.id);
+            if (!message) message = createBotMessagePlaceholder(request.id);
+            questionCards.mount(request, message);
+            if (request.status === 'pending') {
+                questionsByConversation.set(conversationId, request);
+                sessionActive = true;
+                setThinkingOrbsPaused(message, true);
+            }
+        }
+        updateSendButtonState();
         // Ensure per-session content badge state is refreshed for restored chat
         try { await chatModule.checkAndShowContentButton(); } catch (_) { }
         return true;
@@ -1667,6 +2083,42 @@ function setupSocketListeners() {
 
     socketService.on('connect', handleSocketConnect);
     socketService.on('disconnect', handleSocketDisconnect);
+    socketService.on('user_question', request => {
+        if (!request?.conversationId || !request.id || !Array.isArray(request.questions)) return;
+        questionsByConversation.set(request.conversationId, request);
+        if (request.conversationId !== currentConversationId) return;
+        welcomeDisplay?.hide();
+        conversationStateManager?.onMessageAdded();
+        if (request.channel === 'plan') {
+            pendingPlanRequestId = request.planRequestId;
+            pendingPlanMessageId = request.id;
+            setPlanGenerating(true);
+        } else {
+            sessionActive = true;
+        }
+        let message = getBotMessageElement(request.id);
+        if (!message) message = createBotMessagePlaceholder(request.id);
+        questionCards.mount(request, message);
+        setThinkingOrbsPaused(message, true);
+        updateSendButtonState();
+        dispatchChatEvent('chatStateChanged', { status: 'waiting_for_input', conversationId: request.conversationId });
+    });
+    socketService.on('user_question_ack', acknowledgement => {
+        const pending = pendingAnswerSubmissions.get(acknowledgement?.requestId);
+        if (pending) {
+            clearTimeout(pending.timer);
+            pendingAnswerSubmissions.delete(acknowledgement.requestId);
+            if (acknowledgement.success) pending.resolve();
+            else pending.reject(new Error(acknowledgement.error || 'Could not submit answers.'));
+        }
+        if (!acknowledgement?.success) return;
+        questionCards.update(acknowledgement);
+        questionsByConversation.delete(acknowledgement.conversationId);
+        if (acknowledgement.conversationId === currentConversationId) {
+            const message = getBotMessageElement(acknowledgement.id);
+            if (message) setThinkingOrbsPaused(message, acknowledgement.status !== 'resuming');
+        }
+    });
 
     socketService.on('response', (data) => {
         if (data.reasoning_content) {
@@ -1697,6 +2149,14 @@ function setupSocketListeners() {
             return;
         }
 
+        if (status === 'waiting_for_input') {
+            sessionActive = true;
+            const message = getBotMessageElement(messageId);
+            if (message) setThinkingOrbsPaused(message, true);
+            updateSendButtonState();
+            return;
+        }
+
         if (status === 'running') {
             if (messageId && !ongoingStreams.has(messageId)) {
                 createBotMessagePlaceholder(messageId);
@@ -1704,7 +2164,7 @@ function setupSocketListeners() {
             sessionActive = true;
             stopRequested = false;
             updateSendButtonState();
-            console.log('[Chat] run_status: still running', conversationId, messageId);
+
             return;
         }
 
@@ -1722,6 +2182,7 @@ function setupSocketListeners() {
                 handleDone({ id: messageId });
             } else if (messageDiv) {
                 ongoingStreams.delete(messageId);
+                destroyThinkingOrbs(messageDiv);
                 messageDiv.remove();
             }
 
@@ -1739,31 +2200,23 @@ function setupSocketListeners() {
         const replayEvents = Array.isArray(events) ? events : [];
         const hasContent = typeof content === 'string' ? content.length > 0 : !!content;
         if (!messageId || !conversationId || (!hasContent && replayEvents.length === 0)) return;
+        if (conversationId !== currentConversationId) {
+            backgroundRunManager.onBackgroundCatchupReceived(conversationId, title);
+            notificationService?.show('A background chat finished. Open it from Chats to view the result.', 'info', 5000);
+            return;
+        }
 
         // ── Deduplication ─────────────────────────────────────────────────
         // The same client can receive multiple run_catchup events if it
         // sends join_conversation more than once (reconnect race conditions).
         const dedupKey = `${conversationId}:${messageId}`;
         if (_renderedCatchups.has(dedupKey)) {
-            console.log('[Chat] Catch-up already rendered, skipping duplicate', dedupKey);
+
             return;
         }
         _renderedCatchups.add(dedupKey);
         // Auto-expire after 30 s so re-opened fresh sessions work normally
         setTimeout(() => _renderedCatchups.delete(dedupKey), 30_000);
-
-        // ── Cold-start / wrong conversation ───────────────────────────────
-        // If the app was fully killed and a new conversation was started,
-        // currentConversationId won't match.  We switch to the old conversation
-        // so the user lands on the right chat instead of discarding the response.
-        if (conversationId !== currentConversationId) {
-            console.log('[Chat] Catch-up for a different conversation — switching to it:', conversationId);
-            // Tell BackgroundRunManager the user missed this one → native notification
-            try { backgroundRunManager.onBackgroundCatchupReceived(conversationId, title); } catch (_) { }
-            // Switch current conversation (loads history via setCurrentConversationId)
-            setCurrentConversationId(conversationId);
-            await restoreConversationHistory(conversationId);
-        }
 
         // ── Render the catch-up response ──────────────────────────────────
         if (replayEvents.length > 0) {
@@ -1785,7 +2238,6 @@ function setupSocketListeners() {
         // Tell BackgroundRunManager the user saw it (suppresses duplicate notification)
         try { backgroundRunManager.onCatchupRendered(conversationId, title); } catch (_) { }
 
-        console.log('[Chat] Catch-up response rendered for', conversationId);
     });
 
     socketService.on('sandbox-command-finished', (data = {}) => {
@@ -1856,10 +2308,9 @@ function setupSocketListeners() {
 
     // NEW: Handle artifacts created event (comes after command finishes)
     socketService.on('sandbox-artifacts-created', (data = {}) => {
-        console.log('[Chat] Received sandbox-artifacts-created event:', data);
 
         if (!data.artifacts || !Array.isArray(data.artifacts) || data.artifacts.length === 0) {
-            console.log('[Chat] No artifacts in event');
+
             return;
         }
 
@@ -1908,7 +2359,7 @@ function setupSocketListeners() {
                 cursor: pointer;
                 font-size: 14px;
                 color: var(--text-color);
-                transition: all 0.2s;
+                transition: transform 0.2s, opacity 0.2s, background-color 0.2s, border-color 0.2s;
             `;
 
             // Format file size
@@ -1937,7 +2388,6 @@ function setupSocketListeners() {
             // Click handler to view/download artifact
             artifactBtn.addEventListener('click', async () => {
                 try {
-                    console.log('[Chat] Fetching artifact:', artifact.artifact_id);
 
                     // Check cache first
                     const cachedMetadata = await artifactCache.getMetadata(artifact.artifact_id);
@@ -1947,11 +2397,10 @@ function setupSocketListeners() {
                     let contentText;
 
                     if (cachedMetadata && cachedContent) {
-                        console.log('[Chat] Using cached artifact data');
+
                         artifactData = cachedMetadata;
                         contentText = cachedContent;
                     } else {
-                        console.log('[Chat] Fetching artifact from server');
 
                         // Get auth token
                         const { data: { session } } = await supabase.auth.getSession();
@@ -1973,8 +2422,6 @@ function setupSocketListeners() {
                         const result = await response.json();
                         artifactData = result.artifact;
 
-                        console.log('[Chat] Artifact data:', artifactData);
-
                         // Fetch file content
                         const contentResponse = await fetch(artifactData.download_url);
                         contentText = await contentResponse.text();
@@ -1982,7 +2429,7 @@ function setupSocketListeners() {
                         // Cache metadata and content
                         await artifactCache.setMetadata(artifact.artifact_id, artifactData);
                         await artifactCache.setContent(artifact.artifact_id, contentText);
-                        console.log('[Chat] Artifact cached successfully');
+
                     }
 
                     // Determine language from mime type or filename
@@ -1997,8 +2444,6 @@ function setupSocketListeners() {
                     };
                     language = langMap[ext] || 'plaintext';
 
-                    console.log('[Chat] Showing artifact in viewer, language:', language, 'filename:', artifact.filename);
-
                     // Show in artifact viewer with filename
                     artifactHandler.showArtifact(contentText, language, null, artifact.filename);
 
@@ -2011,13 +2456,12 @@ function setupSocketListeners() {
             artifactsContainer.appendChild(artifactBtn);
         });
 
-        console.log('[Chat] Created', data.artifacts.length, 'artifact buttons');
-
         // Update content button after artifacts are created
         chatModule.checkAndShowContentButton();
     });
 
     socketService.on('image_generated', handleImageGenerated);
+    socketService.on('presentation_generated', handlePresentationGenerated);
 
     // Browser screenshot events -> delegated to dedicated module
     socketService.on('browser_screenshot', (data) => browserScreenshotViewer.handleScreenshot(data));
@@ -2034,6 +2478,30 @@ function setupSocketListeners() {
                 limitInfo: err.limit_info || null,
             });
             dispatchChatEvent('chatStateChanged', { status: 'error', conversationId: currentConversationId });
+            return;
+        }
+
+        if (err?.recoverable) {
+            const messageId = err?.messageId || activeRunRequest?.messageId;
+            const messageDiv = getBotMessageElement(messageId);
+            if (messageDiv) {
+                messageFormatter.finishStreaming(messageId);
+                ongoingStreams.delete(messageId);
+                destroyThinkingOrbs(messageDiv);
+                messageDiv.classList.add('message-error');
+                messageDiv.classList.remove('expanded');
+                messageDiv.innerHTML = `
+                    <div class="message-error-card">
+                        <p class="message-error-text">${escapeHtml(err.message || 'This request is unavailable in the current mode.')}</p>
+                    </div>
+                `;
+            }
+            applyRoutingErrorState(err?.code);
+            notificationService?.show(err.message || 'This request is unavailable in the current mode.', 'warning', 5000);
+            shouldResendWithHistory = false;
+            clearActiveRunState();
+            resetUserInputState();
+            dispatchChatEvent('chatStateChanged', { status: 'idle', conversationId: currentConversationId });
             return;
         }
 
@@ -2106,9 +2574,98 @@ function handleImageGenerated(data = {}) {
     }
 }
 
+function handlePresentationGenerated(data = {}) {
+
+    const messageId = data.id || data.messageId;
+    if (!messageId || !data.metadata) {
+        return;
+    }
+
+    const messageDiv = ongoingStreams.get(messageId) || document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageDiv) {
+        const mainContent = messageDiv.querySelector('.message-content');
+        if (mainContent) {
+            artifactHandler.renderPresentation(mainContent, data.metadata);
+        }
+        messageDiv.classList.add('expanded');
+    }
+}
+
+function setupPlanModeInteractions() {
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer || messagesContainer.dataset.planModeBound === 'true') return;
+    messagesContainer.dataset.planModeBound = 'true';
+
+    messagesContainer.addEventListener('click', (event) => {
+        const planEditBtn = event.target.closest('.plan-output-edit');
+        if (planEditBtn) {
+            const card = planEditBtn.closest('.plan-output-card');
+            const content = card?.querySelector('.plan-output-content');
+            const editor = card?.querySelector('.plan-output-editor');
+            if (content && editor) {
+                content.classList.add('hidden');
+                editor.classList.remove('hidden');
+                editor.focus();
+                editor.style.height = 'auto';
+                editor.style.height = `${Math.max(editor.scrollHeight, 260)}px`;
+                planEditBtn.disabled = true;
+            }
+            return;
+        }
+
+        const planSubmitBtn = event.target.closest('.plan-output-submit');
+        if (planSubmitBtn) {
+            const card = planSubmitBtn.closest('.plan-output-card');
+            const editor = card?.querySelector('.plan-output-editor');
+            const content = card?.querySelector('.plan-output-content');
+            if (editor?.classList.contains('hidden') && content) {
+                const temp = document.createElement('div');
+                temp.innerHTML = content.innerHTML;
+                editor.value = temp.textContent.trim();
+            }
+            submitApprovedPlan(card);
+        }
+    });
+}
+
 // Browser screenshot functions moved to js/browser-screenshot-viewer.js
 
 export const chatModule = {
+    resetForSignOut() {
+        socketService.disconnect();
+        backgroundRunManager.clearAll();
+        questionCards.reset();
+        questionsByConversation.clear();
+        for (const pending of pendingAnswerSubmissions.values()) {
+            clearTimeout(pending.timer);
+            pending.reject(new Error('You have signed out.'));
+        }
+        pendingAnswerSubmissions.clear();
+        conversationModelRoutes.clear();
+        this.startNewConversation();
+        contextHandler?.toggleWindow(false);
+    },
+    async resumeConversation(conversationId, session = {}) {
+        if (session.agent_id === 'aetheria-computer') {
+            throw new Error('Computer-control chats can be viewed here. Continue them in the desktop app.');
+        }
+        if (sessionActive || planGenerationInProgress) throw new Error('Stop the active request before switching chats.');
+        planModeEnabled = false;
+        hidePlanReview();
+        setCurrentConversationId(conversationId);
+        if (window.projectWorkspace) {
+            window.projectWorkspace.state.active = session.agent_id === 'aetheria-coder';
+            window.projectWorkspace.state.project = null;
+            window.projectWorkspace.updateUI();
+        }
+        if (!await restoreConversationHistory(conversationId)) throw new Error('Could not restore this conversation.');
+        delete document.getElementById('chat-messages').dataset.viewingPastSession;
+        delete document.getElementById('chat-messages').dataset.pastSessionId;
+        welcomeDisplay?.hide();
+        conversationStateManager?.onMessageAdded();
+        socketService.joinConversation(conversationId);
+        document.getElementById('floating-input')?.focus();
+    },
     init(contextHandlerInstance, fileAttachmentHandlerInstance, contextViewerInstance) {
         contextHandler = contextHandlerInstance || contextHandler;
         if (!contextHandler) {
@@ -2121,6 +2678,7 @@ export const chatModule = {
         } else if (!fileAttachmentHandler) {
             fileAttachmentHandler = new FileAttachmentHandler();
         }
+        fileAttachmentHandler?.setAttachmentValidator?.(validateAttachmentForCurrentMode);
 
         const inputContainer = document.getElementById('floating-input-container') || document.querySelector('.floating-input-container');
         const chatContainer = document.getElementById('chat-messages') || document.querySelector('.chat-messages');
@@ -2167,7 +2725,6 @@ export const chatModule = {
 
         socketService.init();
         setupSocketListeners();
-        setupPlanModeControls();
 
         // Initialize BackgroundRunManager — lifecycle tracking + native notifications
         // Rendering is done exclusively inside the run_catchup socket handler above.
@@ -2175,7 +2732,7 @@ export const chatModule = {
             backgroundRunManager.init(
                 // onCompleted: optional hook (run_catchup socket event does the actual render)
                 (conversationId) => {
-                    console.log('[Chat] BRM onCompleted:', conversationId);
+
                 },
                 // onFailed: optional hook — native notification is already sent by BRM
                 (conversationId, error) => {
@@ -2185,9 +2742,6 @@ export const chatModule = {
         } catch (e) {
             console.warn('[Chat] BackgroundRunManager init error (non-critical):', e);
         }
-
-        console.log('Chat module initialized for PWA.');
-
 
         unifiedPreviewHandler = new UnifiedPreviewHandler(contextHandler, fileAttachmentHandler);
         window.unifiedPreviewHandler = unifiedPreviewHandler;
@@ -2208,11 +2762,15 @@ export const chatModule = {
 
         // Log cache stats on init
         artifactCache.getStats().then(stats => {
-            console.log('[Chat] Artifact cache initialized:', stats);
+
         });
 
         // Setup view content button
         this.setupViewContentButton();
+        setupPlanModeInteractions();
+        syncUltraThinkControl();
+        syncComposerModeVisual();
+        updateSendButtonState();
     },
 
     setupViewContentButton() {
@@ -2229,19 +2787,18 @@ export const chatModule = {
     async checkAndShowContentButton() {
         // Check if current conversation has any content
         if (!currentConversationId) {
-            console.log('[Chat] No current conversation ID, hiding content button');
+
             return;
         }
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                console.log('[Chat] No auth session, hiding content button');
+
                 return;
             }
 
             const url = `${config.backend.url}/api/sessions/${currentConversationId}/content`;
-            console.log('[Chat] Checking content at:', url);
 
             const response = await fetch(url, {
                 headers: {
@@ -2254,20 +2811,18 @@ export const chatModule = {
                 const data = await response.json();
                 const count = data.count || 0;
 
-                console.log('[Chat] Content count:', count);
-
                 const viewContentBtn = document.getElementById('view-content-btn');
                 const contentBadge = document.getElementById('content-count-badge');
 
                 if (count > 0) {
-                    console.log('[Chat] Showing content button with count:', count);
+
                     viewContentBtn?.classList.remove('hidden');
                     if (contentBadge) {
                         contentBadge.textContent = count;
                         contentBadge.classList.remove('hidden');
                     }
                 } else {
-                    console.log('[Chat] No content, hiding button');
+
                     viewContentBtn?.classList.add('hidden');
                     contentBadge?.classList.add('hidden');
                 }
@@ -2280,7 +2835,9 @@ export const chatModule = {
     },
 
     startNewConversation({ preserveAgentType = true } = {}) {
+        window.voiceInputHandler?.stopAll?.({ discard: true });
         const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) destroyThinkingOrbs(messagesContainer);
         messagesContainer?.replaceChildren();
 
         const nextConversationId = (typeof crypto !== 'undefined' && crypto.randomUUID)
@@ -2292,11 +2849,25 @@ export const chatModule = {
         ongoingStreams.clear();
         pendingSendQueue.length = 0;
         activeRunRequest = null;
-        activePlanRequest = null;
         stopRequested = false;
         sessionActive = false;
-        planGenerationActive = false;
         shouldResendWithHistory = false;
+        planModeEnabled = false;
+        thinkingMode = THINKING_MODE_STANDARD;
+        planGenerationInProgress = false;
+        hidePlanReview();
+        setPlanModeEnabled(false);
+        setThinkingMode(THINKING_MODE_STANDARD);
+        planStreamBuffers.clear();
+        planRenderStates.forEach((state) => {
+            if (state?.timer) clearTimeout(state.timer);
+        });
+        planRenderStates.clear();
+        planReasoningBuffers.clear();
+        planReasoningRenderStates.forEach((state) => {
+            if (state?.timer) clearTimeout(state.timer);
+        });
+        planReasoningRenderStates.clear();
         messageFormatter.pendingContent.clear();
         _renderedSheetsPreviews.clear();
         _openedSheetsArtifacts.clear();
@@ -2343,10 +2914,18 @@ export const chatModule = {
     },
 
     async handleSendMessage(isMemoryEnabled = undefined, agentType = undefined, options = {}) {
+        if (planModeEnabled && !submittingApprovedPlan && !options?.messageOverride) {
+            await requestPlanFromAgent();
+            return;
+        }
+
         const input = document.getElementById('floating-input');
         const messageOverride = typeof options?.messageOverride === 'string' ? options.messageOverride.trim() : '';
         const isProgrammaticSend = messageOverride.length > 0;
         const message = isProgrammaticSend ? messageOverride : input.value.trim();
+        const displayMessage = typeof options?.displayMessageOverride === 'string' && options.displayMessageOverride.trim()
+            ? options.displayMessageOverride.trim()
+            : message;
         const includeAttachedFiles = options?.includeAttachedFiles !== false;
         const includeSelectedSessions = options?.includeSelectedSessions !== false;
         const attachedFiles = Array.isArray(options?.attachedFilesOverride)
@@ -2356,6 +2935,10 @@ export const chatModule = {
             ? cloneSelectedSessions(options.selectedSessionsOverride)
             : (includeSelectedSessions ? cloneSelectedSessions(contextHandler.getSelectedSessions()) : []);
         const skipUserMessage = options?.skipUserMessage === true;
+        const requestedThinkingMode = options?.thinkingModeOverride === THINKING_MODE_ULTRA
+            ? THINKING_MODE_ULTRA
+            : thinkingMode;
+        const turnThinkingMode = getEffectiveThinkingMode(requestedThinkingMode);
         const hasMessagePayload = message.length > 0 || attachedFiles.length > 0 || selectedSessions.length > 0;
         const shouldLockSend = !isProgrammaticSend && !skipUserMessage;
 
@@ -2378,19 +2961,19 @@ export const chatModule = {
                 return;
             }
 
-            if (planGenerationActive) {
-                notificationService?.show('Plan Mode is already preparing a plan.', 'warning');
+            if (getCurrentConversationRoute() === CONVERSATION_ROUTE_VIDEO && requestedThinkingMode === THINKING_MODE_ULTRA) {
+                notificationService?.show('This conversation is using video input mode. Start a new conversation to use Ultra Think.', 'warning', 5000);
                 return;
             }
 
-            if (planModeActive && !isProgrammaticSend && !skipUserMessage) {
-                await startPlanRequest({ message, attachedFiles, selectedSessions });
+            if (turnThinkingMode === THINKING_MODE_ULTRA && attachmentsIncludeVideo(attachedFiles)) {
+                notificationService?.show('Video attachments are unavailable in Ultra Think mode.', 'warning', 5000);
                 return;
             }
 
             if (!isSocketConnected) {
                 if (!skipUserMessage && hasMessagePayload) {
-                    addUserMessage(message || 'Attached context', attachedFiles, selectedSessions);
+                    addUserMessage(displayMessage || 'Attached context', attachedFiles, selectedSessions);
                 }
 
                 if (!isProgrammaticSend) {
@@ -2407,6 +2990,7 @@ export const chatModule = {
                     message,
                     attachedFiles,
                     selectedSessions,
+                    thinkingMode: turnThinkingMode,
                 });
 
                 if (!Array.isArray(options?.attachedFilesOverride) && includeAttachedFiles) {
@@ -2427,16 +3011,12 @@ export const chatModule = {
             }
         }
 
-        try {
-            await backgroundRunManager.ensureNotificationPermission({ forcePrompt: true });
-        } catch (_) { }
-
         sessionActive = true;
         stopRequested = false;
         updateSendButtonState();
 
         if (!skipUserMessage && hasMessagePayload) {
-            addUserMessage(message || 'Attached context', attachedFiles, selectedSessions);
+            addUserMessage(displayMessage || 'Attached context', attachedFiles, selectedSessions);
         }
 
         if (!isProgrammaticSend) {
@@ -2450,20 +3030,31 @@ export const chatModule = {
         const messageId = `msg_${Date.now()}`;
         createBotMessagePlaceholder(messageId);
 
+        let messageToSend = message;
+        if (isPresentationRequest(message)) {
+            const selectedTemplate = getSelectedPresentationTemplate();
+            if (selectedTemplate) {
+                messageToSend += buildPresentationTemplateInstruction(selectedTemplate);
+                clearSelectedPresentationTemplate();
+            }
+        }
+
         activeRunRequest = {
             messageId,
             conversationId: currentConversationId,
-            message,
+            message: messageToSend,
             attachedFiles: cloneAttachedFiles(attachedFiles),
             selectedSessions: cloneSelectedSessions(selectedSessions),
+            thinkingMode: turnThinkingMode,
         };
 
         const payload = {
             id: messageId,
             conversationId: currentConversationId,
-            message,
+            message: messageToSend,
             config: buildOutgoingAgentConfig(),
             is_deepsearch: selectedAgentType === 'deepsearch',
+            thinking_mode: turnThinkingMode,
         };
 
         if (window.projectWorkspace?.isActive?.()) {
@@ -2549,7 +3140,13 @@ ${message}`;
 
         try {
             await socketService.sendMessage(payload);
-            try { backgroundRunManager.markRunStarted(currentConversationId, messageId, null); } catch (_) { }
+            markConversationRouteForTurn(turnThinkingMode, attachedFiles);
+            try {
+                const runTitle = typeof this.getCurrentConversationTitle === 'function'
+                    ? this.getCurrentConversationTitle()
+                    : null;
+                backgroundRunManager.markRunStarted(currentConversationId, messageId, runTitle || null);
+            } catch (_) { }
             if (!Array.isArray(options?.attachedFilesOverride) && includeAttachedFiles) {
                 fileAttachmentHandler.clearAttachedFiles();
             }
@@ -2606,6 +3203,42 @@ ${message}`;
         notification.textContent = message;
         container.appendChild(notification);
         notificationService.removeNotification(notification);
+    },
+
+    togglePlanMode(forceEnabled = undefined) {
+        const next = typeof forceEnabled === 'boolean' ? forceEnabled : !planModeEnabled;
+        setPlanModeEnabled(next);
+        if (!next) {
+            hidePlanReview();
+        }
+        return planModeEnabled;
+    },
+
+    toggleUltraThinkMode(forceEnabled = undefined) {
+        const route = getCurrentConversationRoute();
+        if (route === CONVERSATION_ROUTE_ULTRA) {
+            notificationService?.show('Ultra Think is locked for this conversation.', 'info', 3500);
+            return true;
+        }
+        if (route === CONVERSATION_ROUTE_VIDEO) {
+            notificationService?.show('This conversation is using video input mode. Start a new conversation to use Ultra Think.', 'warning', 5000);
+            return false;
+        }
+        if (fileAttachmentHandler?.hasAttachedVideo?.()) {
+            notificationService?.show('Remove video attachments before enabling Ultra Think.', 'warning', 5000);
+            syncUltraThinkControl();
+            return false;
+        }
+
+        const nextEnabled = typeof forceEnabled === 'boolean'
+            ? forceEnabled
+            : getEffectiveThinkingMode() !== THINKING_MODE_ULTRA;
+        setThinkingMode(nextEnabled ? THINKING_MODE_ULTRA : THINKING_MODE_STANDARD);
+        return getEffectiveThinkingMode() === THINKING_MODE_ULTRA;
+    },
+
+    getThinkingMode() {
+        return getEffectiveThinkingMode();
     },
 
     getFloatingWindowManager() {
@@ -2667,6 +3300,10 @@ ${message}`;
             ...chatConfig,
             selectedAgentType,
         };
+    },
+    setToolEnabled(key, enabled) {
+        if (!Object.hasOwn(defaultToolsConfig, key)) throw new Error('Unknown tool.');
+        chatConfig.tools[key] = Boolean(enabled);
     },
     getSentContext(contextId) {
         if (!contextId || !sentContexts.has(contextId)) {
