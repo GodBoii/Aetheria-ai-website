@@ -6,61 +6,10 @@ const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
 // Assets to cache immediately on install
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.ico',
-  '/icon.ico',
-  '/assets/icon.png',
-  '/assets/splash-512.png',
-  '/assets/splash-1024.png',
-  '/assets/splash-2048.png',
-
-  // Core CSS
-  '/css/splash-screen.css',
-  '/css/design-system.css',
-  '/css/style.css',
-  '/css/chat-variables.css',
-  '/css/chat-layout.css',
-  '/css/chat-messages.css',
-  '/css/chat-context.css',
-  '/css/chat-input.css',
-  '/css/notifications.css',
-  '/css/welcome-message.css',
-  '/css/chat.css',
-  '/css/to-do-list.css',
-  '/css/artifact-ui.css',
-  '/css/artifact-viewer.css',
-  '/css/aios.css',
-  '/css/mobile.css',
-  '/css/modals.css',
-  '/css/install-prompt.css',
-  '/css/message-actions.css',
-  '/css/skeleton.css',
-  '/css/auth-gate.css',
-
-  // Core JS modules
-  '/js/splash-screen.js',
-  '/js/config.js',
-  '/js/supabase-client.js',
-  '/js/socket-service.js',
-  '/js/notification-service.js',
-  '/js/aios.js',
-  '/js/chat.js',
-  '/js/context-handler.js',
-  '/js/add-files.js',
-  '/js/message-formatter.js',
-  '/js/artifact-handler.js',
-  '/js/to-do-list.js',
-  '/js/welcome-display.js',
-  '/js/conversation-state-manager.js',
-  '/js/auth-service.js',
-  '/js/auth-gate.js',
-  '/js/message-actions.js',
-  '/js/skeleton-loader.js',
-  '/js/floating-window-manager.js',
-  '/js/unified-preview-handler.js',
-  '/js/user-profile-service.js'
+  '/', '/index.html', '/manifest.json', '/favicon.ico', '/assets/icon.png',
+  '/css/design-system.css', '/css/style.css', '/css/auth-gate.css', '/css/web-parity.css',
+  '/js/app-bootstrap.js', '/js/auth-gate.js', '/js/auth-service.js', '/js/supabase-client.js',
+  '/js/config.js', '/js/runtime-config.js', '/js/pwa.js', '/assets/vendor/supabase.js'
 ];
 
 // CDN resources (cache but don't block install)
