@@ -1,0 +1,2136 @@
+/* ================================================================
+   COMPREHENSIVE LIGHT MODE FIX
+   Makes ALL text, icons, and UI elements properly visible in light mode
+   ================================================================ */
+
+/* ===== GLOBAL LIGHT MODE TEXT COLOR ===== */
+body:not(.dark-mode) * {
+    /* Force all text to be dark in light mode unless specifically overridden */
+    color: #0f172a;
+}
+
+/* ===== FLOATING WINDOW ===== */
+body:not(.dark-mode) .floating-window {
+    background-color: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .window-header {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .window-title {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .close-btn {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .close-btn:hover {
+    color: #0f172a !important;
+    background-color: #f1f5f9 !important;
+}
+
+/* ===== SIDEBAR ===== */
+body:not(.dark-mode) .tabs-sidebar {
+    background-color: #F5F3EB !important;
+    border-right: 1px solid #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .tab-btn {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .tab-btn i,
+body:not(.dark-mode) .tab-btn svg {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .tab-btn span {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .tab-btn:hover {
+    color: #0f172a !important;
+    background-color: rgba(45, 55, 72, 0.06) !important;
+}
+
+body:not(.dark-mode) .tab-btn:hover i,
+body:not(.dark-mode) .tab-btn:hover svg,
+body:not(.dark-mode) .tab-btn:hover span {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .tab-btn.active {
+    color: #0f172a !important;
+    background-color: rgba(45, 55, 72, 0.10) !important;
+}
+
+body:not(.dark-mode) .tab-btn.active i,
+body:not(.dark-mode) .tab-btn.active svg,
+body:not(.dark-mode) .tab-btn.active span {
+    color: #0f172a !important;
+}
+
+/* ===== CONTENT AREA ===== */
+body:not(.dark-mode) .tab-content-area {
+    background-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .tab-heading {
+    color: #0f172a !important;
+}
+
+/* ===== USER IDENTITY CARD ===== */
+body:not(.dark-mode) .user-identity-card {
+    background-color: #F5F3EB !important;
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .user-name-display {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .user-email-display {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .logout-button {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .logout-button:hover {
+    color: #0f172a !important;
+    background-color: rgba(45, 55, 72, 0.08) !important;
+}
+
+/* ===== USAGE SECTION ===== */
+body:not(.dark-mode) .account-usage-section {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body:not(.dark-mode) .usage-title {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .usage-refresh-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .usage-refresh-btn:hover {
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+}
+
+body:not(.dark-mode) .usage-refresh-btn i {
+    color: inherit !important;
+}
+
+body:not(.dark-mode) .usage-lifetime-label {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .usage-total-hero {
+    color: #0f172a !important;
+    text-shadow: none !important;
+}
+
+body:not(.dark-mode) .usage-breakdown {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .breakdown-label {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .breakdown-value {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .usage-breakdown-divider {
+    background: linear-gradient(180deg, transparent, #cbd5e1, transparent) !important;
+}
+
+body:not(.dark-mode) .usage-graph-toggle {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .usage-graph-toggle:hover {
+    color: #0f172a !important;
+}
+
+/* ===== SUBSCRIPTION SECTION ===== */
+body:not(.dark-mode) .subscription-section {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body:not(.dark-mode) .subscription-title {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .subscription-subtitle {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .subscription-manage-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .subscription-manage-btn:hover {
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+}
+
+body:not(.dark-mode) .subscription-manage-btn i {
+    color: inherit !important;
+}
+
+body:not(.dark-mode) .subscription-summary-card {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .subscription-summary-label,
+body:not(.dark-mode) .subscription-meta-label {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .subscription-current-name {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .subscription-status-badge {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .subscription-status-badge.status-free {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .subscription-status-badge.status-pro {
+    color: #ca8a04 !important;
+}
+
+body:not(.dark-mode) .subscription-status-badge.status-elite {
+    color: #be185d !important;
+}
+
+body:not(.dark-mode) .subscription-meta-item {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .subscription-meta-item:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .subscription-meta-value {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .subscription-progress-track {
+    background: #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .subscription-progress-copy {
+    color: #64748b !important;
+}
+
+/* ===== BUTTONS ===== */
+body:not(.dark-mode) .btn-secondary,
+body:not(.dark-mode) .btn-icon {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .btn-secondary:hover,
+body:not(.dark-mode) .btn-icon:hover {
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+}
+
+body:not(.dark-mode) .btn-secondary i,
+body:not(.dark-mode) .btn-icon i {
+    color: inherit !important;
+}
+
+body:not(.dark-mode) .btn-primary {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .btn-primary:hover {
+    background: #1e293b !important;
+}
+
+/* ===== FORMS ===== */
+body:not(.dark-mode) .form-group label {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .form-group input,
+body:not(.dark-mode) .form-group textarea,
+body:not(.dark-mode) .input {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .form-group input::placeholder,
+body:not(.dark-mode) .form-group textarea::placeholder,
+body:not(.dark-mode) .input::placeholder {
+    color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .form-group input:focus,
+body:not(.dark-mode) .form-group textarea:focus,
+body:not(.dark-mode) .input:focus {
+    border-color: #0f172a !important;
+    background-color: #ffffff !important;
+}
+
+/* ===== AUTH FORMS ===== */
+body:not(.dark-mode) .auth-tab-btn {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .auth-tab-btn:hover,
+body:not(.dark-mode) .auth-tab-btn.active {
+    color: #0f172a !important;
+    background-color: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .auth-error {
+    color: #dc2626 !important;
+}
+
+body:not(.dark-mode) .social-auth-divider {
+    color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .social-auth-divider::before,
+body:not(.dark-mode) .social-auth-divider::after {
+    background-color: #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .auth-btn.social {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .auth-btn.social:hover {
+    background-color: #f8fafc !important;
+}
+
+/* ===== INTEGRATION SECTION ===== */
+body:not(.dark-mode) .integration-description {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .integration-item {
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .integration-info span {
+    color: #0f172a !important;
+}
+
+/* Keep brand colors for integration icons - DO NOT override */
+body:not(.dark-mode) .integration-info .fa-github {
+    color: #181717 !important;
+}
+
+body:not(.dark-mode) .integration-info .fa-google {
+    color: #4285F4 !important;
+}
+
+body:not(.dark-mode) .integration-info .vercel-icon {
+    fill: #000000 !important;
+}
+
+body:not(.dark-mode) .integration-info .vercel-icon path {
+    fill: #000000 !important;
+}
+
+body:not(.dark-mode) .integration-info .whatsapp-icon {
+    fill: #25D366 !important;
+}
+
+body:not(.dark-mode) .integration-info .whatsapp-icon path {
+    fill: #25D366 !important;
+}
+
+/* Supabase icon - preserve gradient fills */
+body:not(.dark-mode) .integration-info svg.provider-icon[viewBox="0 0 109 113"] path[fill^="url"] {
+    fill: inherit !important;
+}
+
+body:not(.dark-mode) .integration-info svg.provider-icon[viewBox="0 0 109 113"] path[fill="#3ECF8E"] {
+    fill: #3ECF8E !important;
+}
+
+/* Google service icons - preserve their multi-color fills */
+body:not(.dark-mode) .service-icon-item svg path[fill] {
+    /* Don't override - let inline fill attributes work */
+}
+
+body:not(.dark-mode) .connect-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .connect-btn:hover {
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+}
+
+body:not(.dark-mode) .connect-btn.connected {
+    background: #dcfce7 !important;
+    border-color: #86efac !important;
+    color: #166534 !important;
+}
+
+/* ===== SETTINGS CARDS ===== */
+body:not(.dark-mode) .settings-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .settings-card:hover {
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+}
+
+body:not(.dark-mode) .settings-card-header h4 {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .settings-meta-grid strong {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .settings-meta-grid span {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .settings-badge {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .settings-badge.status-active {
+    background: #dcfce7 !important;
+    border-color: #86efac !important;
+    color: #166534 !important;
+}
+
+body:not(.dark-mode) .settings-badge.status-draft {
+    background: #fef3c7 !important;
+    border-color: #fcd34d !important;
+    color: #92400e !important;
+}
+
+/* ===== EMPTY STATES ===== */
+body:not(.dark-mode) .empty-state {
+    border-color: #cbd5e1 !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .empty-state-text {
+    color: #64748b !important;
+}
+
+/* ===== PRICING MODAL ===== */
+body:not(.dark-mode) .pricing-modal-backdrop {
+    background: rgba(15, 23, 42, 0.75) !important;
+}
+
+body:not(.dark-mode) .pricing-modal-dialog {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.20) !important;
+}
+
+body:not(.dark-mode) .pricing-modal-kicker {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .pricing-modal-title {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .pricing-modal-message,
+body:not(.dark-mode) .pricing-modal-footnote {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .pricing-modal-close {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .pricing-modal-close:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .pricing-plan-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .pricing-plan-card:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .pricing-plan-badge {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .pricing-plan-name {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .pricing-plan-price {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .pricing-plan-price span {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .pricing-plan-copy {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .pricing-plan-limit {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .pricing-plan-btn {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .pricing-plan-btn:hover:not(:disabled) {
+    background: #1e293b !important;
+}
+
+body:not(.dark-mode) .pricing-plan-btn.is-current {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+/* ===== FEATURED CARDS ===== */
+body:not(.dark-mode) .pricing-plan-card.is-featured {
+    border-color: #fbbf24 !important;
+    background: #fffbeb !important;
+}
+
+body:not(.dark-mode) .pricing-plan-card.is-elite {
+    border-color: #f472b6 !important;
+    background: #fdf2f8 !important;
+}
+
+body:not(.dark-mode) .pricing-plan-card.is-current-plan {
+    border-color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+/* ===== MISC ELEMENTS ===== */
+body:not(.dark-mode) .icon-btn {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .icon-btn:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .badge {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .badge-primary {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .badge-success {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+}
+
+body:not(.dark-mode) .badge-warning {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+}
+
+body:not(.dark-mode) .badge-error {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+}
+
+/* ===== TOOLTIPS ===== */
+body:not(.dark-mode) .tooltip::before {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border-color: #334155 !important;
+}
+
+body:not(.dark-mode) .tooltip::after {
+    background-color: #1e293b !important;
+    border-right-color: #334155 !important;
+    border-bottom-color: #334155 !important;
+}
+
+/* ===== INFO TOOLTIP (SESSION HISTORY) ===== */
+body:not(.dark-mode) .info-tooltip {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+body:not(.dark-mode) .info-tooltip-arrow {
+    border-bottom-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .info-tooltip-content {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .info-tooltip-content p {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .info-tooltip-content strong {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .info-tooltip-content p:last-child {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .info-tooltip-list li {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .info-tooltip-list li strong {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-history-info-btn {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .session-history-info-btn:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+/* ===== REASONING HEADER & SUMMARY ===== */
+body:not(.dark-mode) .reasoning-summary {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .reasoning-summary .summary-text {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .reasoning-summary .summary-chevron {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .thinking-indicator {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .thinking-indicator .summary-text {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .thinking-indicator.steps-done .summary-text {
+    color: #475569 !important;
+}
+
+/* ===== CHAT SELECTION (SESSION ITEMS) ===== */
+body:not(.dark-mode) .session-item {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-item:hover {
+    background: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .session-item.selected {
+    background: #e2e8f0 !important;
+    border-left: 3px solid #0f172a !important;
+}
+
+body:not(.dark-mode) .session-item.selected::before {
+    background: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-item.selected .session-content h3 {
+    color: #0f172a !important;
+    font-weight: var(--font-semibold) !important;
+}
+
+body:not(.dark-mode) .session-content h3 {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-meta {
+    color: #64748b !important;
+}
+
+/* ===== SELECTION CONTROLS ===== */
+body:not(.dark-mode) .use-selected-btn {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .use-selected-btn:hover {
+    background: #1e293b !important;
+}
+
+body:not(.dark-mode) .clear-selection-btn {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .clear-selection-btn:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+/* ===== SESSION HISTORY VIEWER ===== */
+body:not(.dark-mode) .session-history-viewer {
+    background: #ffffff !important;
+}
+
+body:not(.dark-mode) .session-history-title {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-history-content {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-history-content .message-text {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-history-content .turn-user-message .message-text {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-history-content .turn-assistant-response .message-text {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-history-content .thinking-indicator .summary-text {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .session-history-content .thinking-indicator .summary-chevron {
+    color: #475569 !important;
+}
+
+/* ===== CONTEXT WINDOW ===== */
+body:not(.dark-mode) .context-window {
+    background: #ffffff !important;
+}
+
+body:not(.dark-mode) .context-header h2 {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .context-search input {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .context-search input::placeholder {
+    color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .context-search i {
+    color: #64748b !important;
+}
+
+/* ===== SESSION ACTION BUTTONS ===== */
+body:not(.dark-mode) .session-action-btn {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .session-action-btn:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+/* ===== SESSION MENU ===== */
+body:not(.dark-mode) .session-menu {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+body:not(.dark-mode) .session-menu-item {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .session-menu-item:hover {
+    background: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .session-menu-item i {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .session-menu-item:hover i {
+    color: #0f172a !important;
+}
+
+/* ===== DETAILED LOGS & TOOL LOGS ===== */
+body:not(.dark-mode) .detailed-logs {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .log-block {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .tool-log-entry {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .reasoning-thought-block {
+    background: rgba(255, 255, 255, 0.78) !important;
+    border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+body:not(.dark-mode) .reasoning-thought-content {
+    background: transparent !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .tool-log-action {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .tool-log-icon {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .tool-log-details {
+    color: #0f172a !important;
+}
+
+/* ===== MESSAGE CONTENT ===== */
+body:not(.dark-mode) .message-bot .message-content {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .message-bot .message-content h1,
+body:not(.dark-mode) .message-bot .message-content h2,
+body:not(.dark-mode) .message-bot .message-content h3,
+body:not(.dark-mode) .message-bot .message-content h4,
+body:not(.dark-mode) .message-bot .message-content h5,
+body:not(.dark-mode) .message-bot .message-content h6 {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .message-bot .message-content p {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .message-bot .message-content li {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .message-bot .message-content strong {
+    color: #0f172a !important;
+}
+
+/* ===== CONVERSATION TURN ===== */
+body:not(.dark-mode) .conversation-turn {
+    border-bottom-color: #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .turn-user-message .message-label {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .turn-user-message .message-text {
+    color: #0f172a !important;
+}
+
+/* ===== SCROLLBAR ===== */
+body:not(.dark-mode) ::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.20) !important;
+}
+
+body:not(.dark-mode) ::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.35) !important;
+}
+
+/* ===== ENSURE ALL ICONS INHERIT COLOR (EXCEPT BRAND ICONS) ===== */
+body:not(.dark-mode) i:not(.integration-info i):not(.service-icon-item i),
+body:not(.dark-mode) .fa:not(.integration-info .fa),
+body:not(.dark-mode) .fas:not(.integration-info .fas),
+body:not(.dark-mode) .far:not(.integration-info .far),
+body:not(.dark-mode) .fab:not(.integration-info .fab),
+body:not(.dark-mode) .fi:not(.integration-info .fi) {
+    color: inherit !important;
+}
+
+/* ===== ENSURE ALL SVG ICONS INHERIT COLOR (EXCEPT BRAND ICONS WITH INLINE FILLS) ===== */
+/* Only apply to SVGs without inline fill attributes */
+body:not(.dark-mode) svg:not(.integration-info svg):not(.service-icon-item svg):not(.provider-icon):not([fill]) {
+    color: inherit !important;
+    fill: currentColor !important;
+}
+
+body:not(.dark-mode) svg:not(.integration-info svg):not(.service-icon-item svg):not(.provider-icon):not([fill]) path:not([fill]) {
+    fill: currentColor !important;
+}
+
+
+/* ===== DEPLOYMENT DETAIL MODAL ===== */
+body:not(.dark-mode) .deployment-detail-modal {
+    background: rgba(15, 23, 42, 0.75) !important;
+}
+
+body:not(.dark-mode) .deployment-detail-dialog {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.20) !important;
+}
+
+body:not(.dark-mode) .deployment-detail-header {
+    background: #f8fafc !important;
+    border-bottom-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .deployment-detail-icon {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25) !important;
+}
+
+body:not(.dark-mode) .deployment-detail-icon:hover {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35) !important;
+}
+
+body:not(.dark-mode) .deployment-detail-title {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-detail-subtitle {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .deployment-detail-close {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .deployment-detail-close:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* Info Cards */
+body:not(.dark-mode) .deployment-info-card,
+body:not(.dark-mode) .deployment-file-tree-card,
+body:not(.dark-mode) .deployment-preview-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body:not(.dark-mode) .deployment-info-card:hover,
+body:not(.dark-mode) .deployment-file-tree-card:hover,
+body:not(.dark-mode) .deployment-preview-card:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+body:not(.dark-mode) .deployment-info-card-header,
+body:not(.dark-mode) .deployment-file-tree-header,
+body:not(.dark-mode) .deployment-preview-header {
+    background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 100%) !important;
+    border-bottom-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .deployment-info-card-header i,
+body:not(.dark-mode) .deployment-file-tree-header i {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-info-card-header span,
+body:not(.dark-mode) .deployment-file-tree-header span {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-info-label {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .deployment-info-value {
+    color: #0f172a !important;
+}
+
+/* File Tree */
+body:not(.dark-mode) .deployment-file-tree-item {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-file-tree-item:hover {
+    background: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .deployment-file-tree-item.file i {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-file-tree-item.folder i {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .deployment-file-size {
+    color: #64748b !important;
+}
+
+/* Preview Section */
+body:not(.dark-mode) .deployment-preview-url-container {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .deployment-preview-url-container:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .deployment-preview-url-container i {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-preview-url {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-preview-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:not(.dark-mode) .deployment-preview-btn:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-preview-container {
+    background: #ffffff !important;
+    border-top-color: #cbd5e1 !important;
+}
+
+/* Deployment Cards in List */
+body:not(.dark-mode) .deployment-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body:not(.dark-mode) .deployment-card:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+body:not(.dark-mode) .deployment-card-header {
+    border-bottom-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .deployment-card-icon {
+    background: rgba(15, 23, 42, 0.10) !important;
+    border-color: rgba(15, 23, 42, 0.20) !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-card:hover .deployment-card-icon {
+    background: rgba(15, 23, 42, 0.18) !important;
+    border-color: rgba(15, 23, 42, 0.35) !important;
+}
+
+body:not(.dark-mode) .deployment-card-name {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-card:hover .deployment-card-name {
+    color: #1e293b !important;
+}
+
+body:not(.dark-mode) .deployment-card-hostname {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .deployment-meta-label {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .deployment-meta-value {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-card:hover .deployment-meta-value {
+    color: #1e293b !important;
+}
+
+/* Version Chip */
+body:not(.dark-mode) .deployment-version-chip {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .deployment-version-chip:focus-within {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .deployment-version-icon {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-version-select {
+    color: #0f172a !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+body:not(.dark-mode) .deployment-version-select option {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-version-select option:checked,
+body:not(.dark-mode) .deployment-version-select option:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* Action Buttons */
+body:not(.dark-mode) .deployment-code-btn {
+    background: rgba(15, 23, 42, 0.10) !important;
+    border-color: rgba(15, 23, 42, 0.25) !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .deployment-code-btn:hover {
+    background: rgba(15, 23, 42, 0.18) !important;
+    border-color: rgba(15, 23, 42, 0.45) !important;
+    color: #000000 !important;
+}
+
+body:not(.dark-mode) .deployment-expand-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .deployment-expand-btn:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .expand-deployment-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .expand-deployment-btn:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* Status Pills */
+body:not(.dark-mode) .deployment-status-pill.pill-active {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #059669 !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+body:not(.dark-mode) .deployment-status-pill.pill-draft {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #d97706 !important;
+    border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+body:not(.dark-mode) .deployment-status-pill.pill-default {
+    background: rgba(100, 116, 139, 0.12) !important;
+    color: #475569 !important;
+    border-color: rgba(100, 116, 139, 0.25) !important;
+}
+
+
+/* ===== FILES SECTION (DATABASE TAB) ===== */
+
+/* File Cards - General */
+body:not(.dark-mode) .file-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body:not(.dark-mode) .file-card:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Preview Mode (Grid View) */
+body:not(.dark-mode) .file-preview-content {
+    /* Don't override background-color if background-image is set (for image previews) */
+    border-bottom-color: #cbd5e1 !important;
+}
+
+/* Only apply background color when there's no background-image (non-image files) */
+body:not(.dark-mode) .file-preview-content:not([style*="background-image"]) {
+    background-color: #f8fafc !important;
+}
+
+body:not(.dark-mode) .file-preview-content i {
+    color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .file-preview-text {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-card .file-preview-content + div {
+    background: #ffffff !important;
+}
+
+body:not(.dark-mode) .file-card h4 {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .file-card .icon-btn {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .file-card .icon-btn:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .file-card .user-file-delete-btn {
+    color: #dc2626 !important;
+}
+
+body:not(.dark-mode) .file-card .user-file-delete-btn:hover {
+    color: #991b1b !important;
+    background: #fee2e2 !important;
+}
+
+/* Detailed Mode (List View) */
+body:not(.dark-mode) .file-card .settings-card-actions {
+    /* Ensure buttons are visible */
+}
+
+body:not(.dark-mode) .file-card .btn-secondary {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .file-card .btn-secondary:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .file-card .user-file-delete-btn {
+    color: #dc2626 !important;
+    border-color: rgba(220, 38, 38, 0.3) !important;
+}
+
+body:not(.dark-mode) .file-card .user-file-delete-btn:hover {
+    background: #fee2e2 !important;
+    border-color: #dc2626 !important;
+    color: #991b1b !important;
+}
+
+/* File Icon Container */
+body:not(.dark-mode) .file-card > div > div > div[style*="border-radius: 8px"] {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="border-radius: 8px"] i {
+    color: #0f172a !important;
+}
+
+/* File Name and Badge */
+body:not(.dark-mode) .file-card h4 {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .file-card .settings-badge {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .file-card .settings-badge.status-active {
+    background: #dcfce7 !important;
+    border-color: #86efac !important;
+    color: #166534 !important;
+}
+
+body:not(.dark-mode) .file-card .settings-badge.status-draft {
+    background: #fef3c7 !important;
+    border-color: #fcd34d !important;
+    color: #92400e !important;
+}
+
+/* Metadata Section */
+body:not(.dark-mode) .file-card > div > div > div[style*="background: var(--bg-tertiary)"] {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+/* File Card Metadata Text */
+body:not(.dark-mode) .file-card strong {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-card code {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+}
+
+/* ===== MEMORY SECTION LIGHT MODE FIXES ===== */
+
+/* Memory Entry Card (Add/Edit Form) */
+body:not(.dark-mode) .memory-entry-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body:not(.dark-mode) .memory-entry-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+body:not(.dark-mode) .memory-entry-toggle {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-entry-toggle:hover {
+    background: #f8fafc !important;
+}
+
+body:not(.dark-mode) .memory-entry-toggle-left i {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-entry-chevron {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .memory-entry-title {
+    color: #0f172a !important;
+}
+
+/* Memory Form Inputs */
+body:not(.dark-mode) .memory-form .form-group label {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-form .form-group textarea,
+body:not(.dark-mode) .memory-form .form-group input {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-form .form-group textarea::placeholder,
+body:not(.dark-mode) .memory-form .form-group input::placeholder {
+    color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) .memory-form .form-group textarea:focus,
+body:not(.dark-mode) .memory-form .form-group input:focus {
+    border-color: #0f172a !important;
+    background: #ffffff !important;
+}
+
+/* Memory Compact Card */
+body:not(.dark-mode) .memory-compact-card {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+body:not(.dark-mode) .memory-compact-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+body:not(.dark-mode) .memory-card-collapsed:hover {
+    background: #f8fafc !important;
+}
+
+body:not(.dark-mode) .memory-expand-icon {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .memory-preview-content {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-timestamp {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .memory-timestamp i {
+    color: #64748b !important;
+}
+
+/* Memory Action Buttons */
+body:not(.dark-mode) .memory-action-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .memory-action-btn:hover {
+    background: #f8fafc !important;
+    border-color: #0f172a !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-delete-btn:hover {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* Memory Expanded Details */
+body:not(.dark-mode) .memory-expanded-content {
+    border-top-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .memory-detail-label {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .memory-detail-value {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-detail-value.code {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-detail-value.code::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+}
+
+/* Memory Topic Tags */
+body:not(.dark-mode) .topic-tag {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+/* Memory Confirmation Modal */
+body:not(.dark-mode) .memory-confirm-modal {
+    background: rgba(15, 23, 42, 0.5) !important;
+}
+
+body:not(.dark-mode) .memory-confirm-content {
+    background: #ffffff !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+body:not(.dark-mode) .memory-confirm-icon {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+}
+
+body:not(.dark-mode) .memory-confirm-title {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-confirm-message {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .memory-confirm-btn-cancel {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-confirm-btn-cancel:hover {
+    background: #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .memory-confirm-btn-delete {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .memory-confirm-btn-delete:hover {
+    background: #dc2626 !important;
+}
+
+/* ===== FILE PREVIEW AREAS (GRID VIEW) ===== */
+body:not(.dark-mode) .file-preview-content {
+    /* Don't override background-color if background-image is set (for image previews) */
+    border-bottom-color: #cbd5e1 !important;
+}
+
+/* Only apply background color when there's no background-image (non-image files) */
+body:not(.dark-mode) .file-preview-content:not([style*="background-image"]) {
+    background-color: #f8fafc !important;
+}
+
+body:not(.dark-mode) .file-preview-content i {
+    color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .file-preview-text {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-preview-text span {
+    color: #94a3b8 !important;
+}
+
+/* File Card Bottom Section (Grid View) */
+body:not(.dark-mode) .file-card > div[style*="padding: 12px"] {
+    background: #ffffff !important;
+}
+
+body:not(.dark-mode) .file-card > div[style*="padding: 12px"] i {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-card > div[style*="padding: 12px"] h4 {
+    color: #0f172a !important;
+}
+
+/* File Card List View Metadata */
+body:not(.dark-mode) .file-card > div > div > div[style*="background: var(--bg-tertiary)"] {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="background: var(--bg-tertiary)"] strong {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="background: var(--bg-tertiary)"] code {
+    color: #0f172a !important;
+    background: #ffffff !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="background: var(--bg-tertiary)"] > div {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="background: var(--bg-tertiary)"] strong {
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="background: var(--bg-tertiary)"] code {
+    color: #0f172a !important;
+    background: #e2e8f0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+}
+
+/* Search Input */
+body:not(.dark-mode) #user-files-search {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) #user-files-search::placeholder {
+    color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) #user-files-search:focus {
+    border-color: #0f172a !important;
+    background: #ffffff !important;
+}
+
+/* Action Bar */
+body:not(.dark-mode) .files-action-bar {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .files-action-bar .search-wrapper i {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .files-action-bar .btn-primary {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .files-action-bar .btn-primary:hover {
+    background: #1e293b !important;
+}
+
+body:not(.dark-mode) .files-action-bar .btn-primary i {
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .files-action-bar .btn-secondary {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .files-action-bar .btn-secondary:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* View Mode Buttons */
+body:not(.dark-mode) #view-mode-detailed,
+body:not(.dark-mode) #view-mode-preview {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) #view-mode-detailed:hover,
+body:not(.dark-mode) #view-mode-preview:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) #view-mode-detailed[style*="background: var(--hover-bg)"],
+body:not(.dark-mode) #view-mode-preview[style*="background: var(--hover-bg)"] {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+/* Filter Dropdown */
+body:not(.dark-mode) #database-project-filter {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) #database-project-filter:hover {
+    border-color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) #database-project-filter:focus {
+    border-color: #0f172a !important;
+}
+
+body:not(.dark-mode) #database-project-filter option {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+/* Empty State */
+body:not(.dark-mode) #databases-empty {
+    border-color: #cbd5e1 !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) #databases-empty .empty-state-text {
+    color: #64748b !important;
+}
+
+/* Ensure all file-related icons are visible */
+body:not(.dark-mode) .file-card i.fa-file,
+body:not(.dark-mode) .file-card i.fa-image,
+body:not(.dark-mode) .file-card i.fa-file-alt,
+body:not(.dark-mode) .file-card i.fa-file-video,
+body:not(.dark-mode) .file-card i.fa-file-audio,
+body:not(.dark-mode) .file-card i.fa-file-pdf,
+body:not(.dark-mode) .file-card i.fa-external-link-alt,
+body:not(.dark-mode) .file-card i.fa-trash {
+    color: inherit !important;
+}
+
+
+/* ===== ADDITIONAL INLINE STYLE OVERRIDES FOR LIGHT MODE ===== */
+
+/* Override inline styles that use CSS variables in file cards */
+/* IMPORTANT: Only override background-color, NOT background shorthand, to preserve background-image */
+body:not(.dark-mode) .file-card [style*="var(--elevated-bg)"] {
+    background-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .file-card [style*="var(--bg-tertiary)"] {
+    background-color: #f8fafc !important;
+}
+
+body:not(.dark-mode) .file-card [style*="var(--text-secondary)"] {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-card [style*="var(--text-primary)"] {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .file-card [style*="var(--hover-bg)"] {
+    background-color: #f1f5f9 !important;
+}
+
+body:not(.dark-mode) .file-card [style*="var(--border-color)"] {
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .file-card [style*="var(--danger-color)"] {
+    color: #dc2626 !important;
+}
+
+/* File preview gradient overlay fix */
+body:not(.dark-mode) .file-preview-text + div[style*="linear-gradient"] {
+    background: linear-gradient(transparent, #f8fafc) !important;
+}
+
+/* Memory card inline style overrides */
+body:not(.dark-mode) .memory-compact-card [style*="var(--elevated-bg)"] {
+    background-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .memory-compact-card [style*="var(--hover-bg)"] {
+    background-color: #f8fafc !important;
+}
+
+body:not(.dark-mode) .memory-compact-card [style*="var(--border-color)"] {
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .memory-compact-card [style*="var(--text-color)"] {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-compact-card [style*="var(--text-secondary)"] {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .memory-compact-card [style*="var(--accent-color)"] {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-compact-card [style*="var(--code-bg)"] {
+    background-color: #f8fafc !important;
+}
+
+/* Memory entry card inline style overrides */
+body:not(.dark-mode) .memory-entry-card [style*="var(--elevated-bg)"] {
+    background-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .memory-entry-card [style*="var(--hover-bg)"] {
+    background-color: #f8fafc !important;
+}
+
+body:not(.dark-mode) .memory-entry-card [style*="var(--border-color)"] {
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .memory-entry-card [style*="var(--input-bg)"] {
+    background-color: #ffffff !important;
+}
+
+body:not(.dark-mode) .memory-entry-card [style*="var(--text-color)"] {
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-entry-card [style*="var(--accent-color)"] {
+    color: #0f172a !important;
+    border-color: #0f172a !important;
+}
+
+body:not(.dark-mode) .memory-entry-card [style*="var(--accent-muted)"] {
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Ensure all file card icons are visible */
+body:not(.dark-mode) .file-card i.fa-file,
+body:not(.dark-mode) .file-card i.fa-image,
+body:not(.dark-mode) .file-card i.fa-file-alt,
+body:not(.dark-mode) .file-card i.fa-file-video,
+body:not(.dark-mode) .file-card i.fa-file-audio,
+body:not(.dark-mode) .file-card i.fa-file-pdf,
+body:not(.dark-mode) .file-card i.fa-external-link-alt,
+body:not(.dark-mode) .file-card i.fa-trash {
+    color: inherit !important;
+}
+
+/* Ensure all memory card icons are visible */
+body:not(.dark-mode) .memory-compact-card i.fa-chevron-right,
+body:not(.dark-mode) .memory-compact-card i.fa-clock,
+body:not(.dark-mode) .memory-compact-card i.fa-pen,
+body:not(.dark-mode) .memory-compact-card i.fa-trash,
+body:not(.dark-mode) .memory-entry-card i.fa-plus-circle {
+    color: inherit !important;
+}
+
+/* Fix for file card hover states with inline styles */
+body:not(.dark-mode) .file-card:hover [style*="var(--elevated-bg)"] {
+    background: #f8fafc !important;
+}
+
+/* Fix for memory card hover states with inline styles */
+body:not(.dark-mode) .memory-compact-card:hover [style*="var(--elevated-bg)"] {
+    background: #f8fafc !important;
+}
+
+/* Empty state enhancements */
+body:not(.dark-mode) .empty-state::before {
+    opacity: 0.3 !important;
+}
+
+/* Search and filter inputs in Files/Memory sections */
+body:not(.dark-mode) #user-files-search,
+body:not(.dark-mode) #database-project-filter {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) #user-files-search::placeholder,
+body:not(.dark-mode) #database-project-filter::placeholder {
+    color: #94a3b8 !important;
+}
+
+body:not(.dark-mode) #user-files-search:focus,
+body:not(.dark-mode) #database-project-filter:focus {
+    border-color: #0f172a !important;
+    background: #ffffff !important;
+}
+
+/* Upload and action buttons in Files section */
+body:not(.dark-mode) #user-files-upload-btn,
+body:not(.dark-mode) #open-files-cache-folder-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) #user-files-upload-btn:hover,
+body:not(.dark-mode) #open-files-cache-folder-btn:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* View mode toggle buttons */
+body:not(.dark-mode) .view-mode-toggle button {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .view-mode-toggle button:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+body:not(.dark-mode) .view-mode-toggle button.active {
+    background: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+}
+
+/* Refresh button in Memory section */
+body:not(.dark-mode) #refresh-memories-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) #refresh-memories-btn:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* Add Memory button */
+body:not(.dark-mode) #add-memory-btn {
+    background: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) #add-memory-btn:hover {
+    background: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+/* Memory form submit button */
+body:not(.dark-mode) .memory-form button[type="submit"] {
+    background: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body:not(.dark-mode) .memory-form button[type="submit"]:hover {
+    background: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+/* Memory form cancel button */
+body:not(.dark-mode) .memory-form button[type="button"] {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+body:not(.dark-mode) .memory-form button[type="button"]:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* Fix for code elements in memory details */
+body:not(.dark-mode) .memory-detail-value code,
+body:not(.dark-mode) .file-card code {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace !important;
+}
+
+/* Ensure proper contrast for all text in cards */
+body:not(.dark-mode) .file-card *:not(i):not(svg),
+body:not(.dark-mode) .memory-compact-card *:not(i):not(svg),
+body:not(.dark-mode) .memory-entry-card *:not(i):not(svg) {
+    color: inherit;
+}
+
+/* Override any remaining dark backgrounds */
+/* IMPORTANT: Only override background-color, NOT background shorthand, to preserve background-image */
+body:not(.dark-mode) .file-card [style*="background-color: var(--bg-tertiary)"],
+body:not(.dark-mode) .file-card [style*="background: var(--bg-tertiary)"] {
+    background-color: #f8fafc !important;
+}
+
+body:not(.dark-mode) .file-card [style*="background-color: var(--elevated-bg)"],
+body:not(.dark-mode) .file-card [style*="background: var(--elevated-bg)"] {
+    background-color: #ffffff !important;
+}
+
+/* Fix for file preview text container */
+body:not(.dark-mode) .file-preview-text {
+    color: #64748b !important;
+    opacity: 1 !important;
+}
+
+body:not(.dark-mode) .file-preview-text span {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+
+/* Ensure borders are visible */
+body:not(.dark-mode) .file-card [style*="border: 1px solid var(--border-color)"],
+body:not(.dark-mode) .memory-compact-card [style*="border: 1px solid var(--border-color)"],
+body:not(.dark-mode) .memory-entry-card [style*="border: 1px solid var(--border-color)"] {
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .file-card [style*="border-bottom: 1px solid var(--border-color)"],
+body:not(.dark-mode) .memory-compact-card [style*="border-bottom: 1px solid var(--border-color)"],
+body:not(.dark-mode) .memory-entry-card [style*="border-bottom: 1px solid var(--border-color)"] {
+    border-bottom-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .file-card [style*="border-top: 1px solid var(--border-color)"],
+body:not(.dark-mode) .memory-compact-card [style*="border-top: 1px solid var(--border-color)"],
+body:not(.dark-mode) .memory-entry-card [style*="border-top: 1px solid var(--border-color)"] {
+    border-top-color: #cbd5e1 !important;
+}
+
+/* Final catch-all for any missed inline styles */
+body:not(.dark-mode) .file-card div,
+body:not(.dark-mode) .file-card span,
+body:not(.dark-mode) .memory-compact-card div,
+body:not(.dark-mode) .memory-compact-card span,
+body:not(.dark-mode) .memory-entry-card div,
+body:not(.dark-mode) .memory-entry-card span {
+    /* Ensure text is readable */
+}
+
+/* Specific fix for file icon containers in list view */
+body:not(.dark-mode) .file-card > div > div > div[style*="width: 38px"] {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="width: 38px"] i {
+    color: #0f172a !important;
+}
+
+/* Specific fix for metadata grid in list view */
+body:not(.dark-mode) .file-card > div > div > div[style*="display: flex; flex-wrap: wrap"] {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="display: flex; flex-wrap: wrap"] strong {
+    color: #64748b !important;
+}
+
+body:not(.dark-mode) .file-card > div > div > div[style*="display: flex; flex-wrap: wrap"] code {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+/* Ensure all divs with inline background styles are overridden */
+body:not(.dark-mode) .file-card div[style*="background:"],
+body:not(.dark-mode) .file-card div[style*="background-color:"] {
+    /* Let specific rules above handle this */
+}
+
+/* Memory detail grid styling */
+body:not(.dark-mode) .memory-detail-grid {
+    /* Ensure proper spacing and visibility */
+}
+
+body:not(.dark-mode) .memory-detail-grid .memory-detail-section {
+    /* Ensure proper visibility */
+}
+
+/* File card action buttons in grid view */
+body:not(.dark-mode) .file-card > div[style*="padding: 12px"] button {
+    /* Ensure buttons are visible and styled correctly */
+}
+
+/* Memory card action buttons */
+body:not(.dark-mode) .memory-card-actions button {
+    /* Ensure buttons are visible and styled correctly */
+}
+
+/* Hover states for inline styled elements */
+body:not(.dark-mode) .file-card:hover div[style*="var(--hover-bg)"] {
+    background: #e2e8f0 !important;
+}
+
+body:not(.dark-mode) .memory-compact-card:hover div[style*="var(--hover-bg)"] {
+    background: #e2e8f0 !important;
+}
+
+/* Focus states for form inputs */
+body:not(.dark-mode) .memory-form input:focus,
+body:not(.dark-mode) .memory-form textarea:focus {
+    outline: none !important;
+    border-color: #0f172a !important;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Scrollbar for code blocks in memory details */
+body:not(.dark-mode) .memory-detail-value.code::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+}
+
+body:not(.dark-mode) .memory-detail-value.code::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+body:not(.dark-mode) .memory-detail-value.code::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 3px !important;
+}
+
+body:not(.dark-mode) .memory-detail-value.code::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
+}
