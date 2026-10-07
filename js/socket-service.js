@@ -1,21 +1,17 @@
 // js/socket-service.js (Updated)
 
-
-
 // This service manages the WebSocket connection to the backend.
 
 import { supabase } from './supabase-client.js';
-
-
+import { config } from './config.js';
 
 // Backend URL - Local Testing
 
-const BACKEND_URL = 'https://api.aetheriaai.website';
+const BACKEND_URL = config.backend.url;
 
 let socket = null;
 let socketAuthToken = null;
-
-
+let authListenerBound = false;
 
 // Store callbacks for different events.
 
@@ -53,44 +49,31 @@ const eventListeners = {
     'run_completed': [], // agent finished — trigger local notification
 
     'plan_response': [],
+    'presentation_generated': [],
+    'user_question': [],
+    'user_question_ack': [],
 
 };
-
-
 
 // Store terminal execution data for artifact buttons
 
 const terminalExecutions = new Map();
-
-
 
 /**
  * Detect device type for browser tool selection
  * @returns {string} 'desktop', 'mobile', or 'web'
  */
 function getDeviceType() {
-    // Check for Electron (desktop app)
-    if (window.electronAPI) {
-        return 'desktop';
-    }
-
-    // Default to web (PWA in browser)
     return 'web';
 }
-
-
 
 function setupSocketHandlers() {
 
     socket.on('connect', () => {
 
-        console.log('Successfully connected to backend socket server.');
-
         emitEvent('connect');
 
     });
-
-
 
     socket.on('disconnect', () => {
 
@@ -99,8 +82,6 @@ function setupSocketHandlers() {
         emitEvent('disconnect');
 
     });
-
-
 
     socket.on('response', (data) => emitEvent('response', data));
 
@@ -178,10 +159,11 @@ function setupSocketHandlers() {
     socket.on('run_catchup', (data) => emitEvent('run_catchup', data));
     socket.on('run_completed', (data) => emitEvent('run_completed', data));
     socket.on('plan_response', (data) => emitEvent('plan_response', data));
+    socket.on('presentation_generated', (data) => emitEvent('presentation_generated', data));
+    socket.on('user_question', (data) => emitEvent('user_question', data));
+    socket.on('user_question_ack', (data) => emitEvent('user_question_ack', data));
 
 }
-
-
 
 function emitEvent(eventName, data) {
 
@@ -193,8 +175,6 @@ function emitEvent(eventName, data) {
 
 }
 
-
-
 export const socketService = {
 
     /**
@@ -204,6 +184,20 @@ export const socketService = {
      */
 
     init: async () => {
+        if (!authListenerBound) {
+            authListenerBound = true;
+            supabase.auth.onAuthStateChange((event, session) => {
+                // Leave the auth SDK callback before requesting another session.
+                setTimeout(() => {
+                    if (event === 'SIGNED_OUT') socketService.disconnect();
+                    else if (session?.access_token && !socket) socketService.init().catch(error => emitEvent('error', { message: error.message }));
+                    else if (session?.access_token && socket) {
+                        socketAuthToken = session.access_token;
+                        socket.auth = { ...(socket.auth || {}), token: socketAuthToken };
+                    }
+                }, 0);
+            });
+        }
 
         // Prevent creating a new socket if one already exists or is connecting.
 
@@ -212,10 +206,6 @@ export const socketService = {
             return;
 
         }
-
-
-
-        console.log("Initializing socket connection to:", BACKEND_URL);
 
         try {
             await supabase.auth.refreshSession();
@@ -246,8 +236,6 @@ export const socketService = {
 
     },
 
-
-
     /**
 
      * Sends a message payload to the backend.
@@ -270,15 +258,11 @@ export const socketService = {
 
         }
 
-
-
         // Verify the user is still authenticated before sending.
 
         await supabase.auth.refreshSession(); // Ensure the token is fresh
 
         const { data: { session } } = await supabase.auth.getSession();
-
-
 
         if (!session) {
 
@@ -290,29 +274,26 @@ export const socketService = {
 
         }
 
-
-
         if (session?.access_token && session.access_token !== socketAuthToken) {
             socketAuthToken = session.access_token;
             socket.auth = { ...(socket.auth || {}), token: socketAuthToken };
         }
 
-        // Add device type to the payload. The access token is sent via the socket
-        // auth handshake instead of every message payload.
+        // Include the refreshed token because an established socket may still
+        // carry an older handshake token after a Supabase session refresh.
 
         const authenticatedPayload = {
 
             ...messagePayload,
+            supports_user_questions: true,
+
+            accessToken: session.access_token,
 
             deviceType: getDeviceType() // ADD DEVICE TYPE DETECTION
 
         };
 
-
         // Log device type for debugging
-        console.log(`[Device Detection] Sending message with deviceType: ${authenticatedPayload.deviceType}`);
-
-
 
         // The backend expects the entire payload to be a single JSON string.
 
@@ -320,42 +301,11 @@ export const socketService = {
 
     },
 
-    sendPlanRequest: async (planPayload) => {
-
-        if (!socket || !socket.connected) {
-
-            console.error('Socket not connected. Cannot send plan request.');
-
-            throw new Error('Not connected to the server. Please wait or refresh.');
-
-        }
-
-        await supabase.auth.refreshSession();
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
-
-            console.error('User is not authenticated.');
-
-            throw new Error('You are not logged in. Please log in to use Plan Mode.');
-
-        }
-
-        if (session?.access_token && session.access_token !== socketAuthToken) {
-            socketAuthToken = session.access_token;
-            socket.auth = { ...(socket.auth || {}), token: socketAuthToken };
-        }
-
-        const authenticatedPayload = {
-
-            ...planPayload,
-
-            deviceType: getDeviceType()
-
-        };
-
-        socket.emit('plan_request', authenticatedPayload);
-
+    submitUserAnswers: async (payload) => {
+        if (!socket?.connected) throw new Error('Reconnect before submitting answers.');
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data?.session?.access_token) throw new Error('Sign in before answering.');
+        socket.emit('submit_user_answers', { ...payload, accessToken: data.session.access_token });
     },
 
     terminateConversation: async (conversationId, messageId = null) => {
@@ -366,7 +316,34 @@ export const socketService = {
         });
     },
 
+    sendPlanRequest: async (planPayload = {}) => {
+        if (!socket || !socket.connected) {
+            console.error('Socket not connected. Cannot send plan request.');
+            throw new Error('Not connected to the server. Please wait or refresh.');
+        }
 
+        await supabase.auth.refreshSession();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+            console.error('User is not authenticated.');
+            throw new Error('You are not logged in. Please log in to create a plan.');
+        }
+
+        if (session?.access_token && session.access_token !== socketAuthToken) {
+            socketAuthToken = session.access_token;
+            socket.auth = { ...(socket.auth || {}), token: socketAuthToken };
+        }
+
+        const authenticatedPayload = {
+            ...planPayload,
+            supports_user_questions: true,
+            accessToken: session.access_token,
+            deviceType: getDeviceType()
+        };
+
+        socket.emit('plan_request', JSON.stringify(authenticatedPayload));
+    },
 
     /**
 
@@ -388,8 +365,6 @@ export const socketService = {
 
     },
 
-
-
     /**
 
      * Disconnects the socket if it's currently connected.
@@ -408,8 +383,6 @@ export const socketService = {
 
     },
 
-
-
     /**
 
      * Get terminal execution data by execution_id
@@ -421,8 +394,6 @@ export const socketService = {
         return terminalExecutions.get(executionId);
 
     },
-
-
 
     /**
 
@@ -450,9 +421,10 @@ export const socketService = {
 
         }
 
-        socket.emit('join_conversation', { conversationId });
-
-        console.log(`[SocketService] Joined conversation room: ${conversationId}`);
+        socket.emit('join_conversation', {
+            conversationId,
+            accessToken: socketAuthToken
+        });
 
     },
 
