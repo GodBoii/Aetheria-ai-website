@@ -1,0 +1,192 @@
+<!-- Task Manager — Full-Screen Takeover Panel -->
+<div id="to-do-list-container" class="task-panel-overlay">
+  <div class="task-panel">
+    <!-- Header -->
+    <div class="task-panel-header">
+      <div class="task-panel-title">
+        <i class="fas fa-list-check"></i>
+        <h2>Tasks</h2>
+      </div>
+      <div class="task-panel-header-actions">
+        <button class="task-header-btn task-close-btn" aria-label="Close Tasks">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Task Grid Content -->
+    <div class="task-panel-body">
+      <div id="task-grid" class="task-card-grid"></div>
+      <!-- Empty State -->
+      <div id="task-empty-state" class="task-empty-state hidden">
+        <i class="fas fa-clipboard-list"></i>
+        <p>No tasks yet</p>
+        <span>Create a task to let AI work for you</span>
+      </div>
+    </div>
+
+    <!-- FAB Button -->
+    <button id="add-task-fab" class="task-fab" aria-label="Add Task">
+      <i class="fas fa-plus"></i>
+    </button>
+  </div>
+</div>
+
+<!-- New Task Modal (Enhanced) -->
+<div id="new-task-modal" class="modal-overlay hidden">
+  <div class="modal task-create-modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-sparkles"></i> New Task</h3>
+    </div>
+    <div class="modal-content task-form-content">
+      <!-- Task Name -->
+      <div class="form-group">
+        <label for="task-name">Task Name*</label>
+        <input type="text" id="task-name" placeholder="What should the AI do?" required>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label for="task-description">Description</label>
+        <textarea id="task-description" placeholder="Provide details about the task..." rows="3"></textarea>
+      </div>
+
+      <!-- Schedule Section -->
+      <div class="task-form-section">
+        <div class="task-form-section-title"><i class="fas fa-clock"></i> Schedule</div>
+        <div class="task-form-row">
+          <div class="form-group form-group-half">
+            <label for="task-time">Run At</label>
+            <input type="time" id="task-time">
+          </div>
+          <div class="form-group form-group-half">
+            <label for="task-date">Start Date</label>
+            <input type="date" id="task-date">
+          </div>
+        </div>
+      </div>
+
+      <!-- Repeat Section -->
+      <div class="task-form-section">
+        <div class="task-form-section-title"><i class="fas fa-repeat"></i> Repeat</div>
+        <div class="form-group">
+          <select id="task-repeat">
+            <option value="none">None</option>
+            <option value="daily">Daily</option>
+            <option value="weekdays">Weekdays (Mon–Fri)</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="custom">Custom Interval</option>
+          </select>
+        </div>
+        <!-- Custom Interval (hidden by default) -->
+        <div id="custom-interval-group" class="task-form-row hidden">
+          <div class="form-group form-group-half">
+            <label for="task-interval-value">Every</label>
+            <input type="number" id="task-interval-value" min="1" value="1">
+          </div>
+          <div class="form-group form-group-half">
+            <label for="task-interval-unit">Unit</label>
+            <select id="task-interval-unit">
+              <option value="hours">Hours</option>
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tools Section -->
+      <div class="task-form-section">
+        <div class="task-form-section-title"><i class="fas fa-wrench"></i> Tools</div>
+        <div class="task-tools-grid">
+          <label class="task-tool-chip">
+            <input type="checkbox" name="task-tools" value="internet_search">
+            <span><i class="fas fa-search"></i> Web Search</span>
+          </label>
+          <label class="task-tool-chip">
+            <input type="checkbox" name="task-tools" value="browser">
+            <span><i class="fas fa-globe"></i> Server Browser</span>
+          </label>
+          <label class="task-tool-chip">
+            <input type="checkbox" name="task-tools" value="email">
+            <span><i class="fas fa-envelope"></i> Email</span>
+          </label>
+          <label class="task-tool-chip">
+            <input type="checkbox" name="task-tools" value="google_drive">
+            <span><i class="fab fa-google-drive"></i> Google Drive</span>
+          </label>
+          <label class="task-tool-chip">
+            <input type="checkbox" name="task-tools" value="google_sheets">
+            <span><i class="fas fa-table"></i> Google Sheets</span>
+          </label>
+          <label class="task-tool-chip">
+            <input type="checkbox" name="task-tools" value="github">
+            <span><i class="fab fa-github"></i> GitHub</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Custom Instructions -->
+      <div class="form-group">
+        <label for="task-instructions">Custom Instructions</label>
+        <textarea id="task-instructions" placeholder="Guide AI behavior for this task..." rows="2"></textarea>
+      </div>
+
+      <!-- Priority & Tags Row -->
+      <div class="task-form-row">
+        <div class="form-group form-group-half">
+          <label for="task-priority">Priority</label>
+          <select id="task-priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="form-group form-group-half">
+          <label for="task-tags">Tags</label>
+          <input type="text" id="task-tags" placeholder="comma, separated">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancel-task-btn">Cancel</button>
+      <button class="btn btn-primary task-btn-primary" id="save-task-btn">Create Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task Output Viewer Panel -->
+<div id="task-output-backdrop" class="task-output-backdrop hidden"></div>
+<div id="task-output-panel" class="task-output-panel hidden">
+  <div class="task-output-header">
+    <div class="task-output-title-area">
+      <i class="fas fa-file-lines task-output-icon"></i>
+      <h3 id="task-output-title">Task Output</h3>
+    </div>
+    <div class="task-output-actions">
+      <button id="task-output-download" class="task-output-action-btn" title="Download as Markdown">
+        <i class="fas fa-download"></i>
+      </button>
+      <button id="task-output-close" class="task-output-action-btn" title="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+  <div class="task-output-meta" id="task-output-meta"></div>
+  <div class="task-output-body">
+    <div id="task-output-content" class="markdown-body"></div>
+  </div>
+</div>
+
+<!-- Task Detail Modal (Compact) — renders as overlay ON TOP of task panel -->
+<div id="task-detail-modal" class="task-detail-overlay hidden">
+  <div class="task-detail-sheet">
+    <div class="task-detail-sheet-handle"></div>
+    <div class="task-detail-sheet-header">
+      <h3 id="task-detail-title">Task Details</h3>
+      <button class="task-detail-close" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="task-detail-sheet-body" id="task-detail-body"></div>
+  </div>
+</div>
