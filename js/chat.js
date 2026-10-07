@@ -2723,7 +2723,7 @@ export const chatModule = {
 
         // ShuffleMenuController initialization removed - Electron-only feature
 
-        socketService.init();
+        socketService.init().catch(error => notificationService?.show(error.message, 'error'));
         setupSocketListeners();
 
         // Initialize BackgroundRunManager — lifecycle tracking + native notifications
