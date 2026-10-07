@@ -1,4 +1,5 @@
 import { artifactHandler } from './artifact-handler.js';
+import { loadLibrary } from './workspace-assets.js';
 
 const SANITIZE_TAGS = ['button', 'i', 'div', 'span', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
 const SANITIZE_ATTRS = [
@@ -32,9 +33,9 @@ class MessageFormatter {
 
     initializeMermaid() {
         window.mermaid.initialize({
-            startOnLoad: true,
+            startOnLoad: false,
             theme: document.body.classList.contains('dark-mode') ? 'dark' : 'default',
-            securityLevel: 'loose',
+            securityLevel: 'strict',
             fontFamily: 'inherit',
         });
         this.setupMermaidThemeObserver();
@@ -458,7 +459,7 @@ class MessageFormatter {
 
         if (!this.hasMarked || !this.hasDOMPurify) {
             console.warn('[MessageFormatter] Missing marked or DOMPurify');
-            return typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+            return this.escapeHtml(typeof content === 'string' ? content : JSON.stringify(content, null, 2));
         }
 
         const normalized = this.normalizeContent(content);
@@ -478,7 +479,7 @@ class MessageFormatter {
             return sanitized;
         } catch (error) {
             console.error('[MessageFormatter] Error in format():', error);
-            return `<pre>Error formatting content: ${error.message}</pre>`;
+            return `<pre>${this.escapeHtml('Could not format this response. Please retry.')}</pre>`;
         }
     }
 
@@ -514,7 +515,20 @@ class MessageFormatter {
             });
         }
 
-        if (!this.hasMermaid) return;
+        if (!this.hasMermaid) {
+            if (root.querySelector('.inline-mermaid-block')) {
+                loadLibrary('mermaid').then(() => {
+                    if (!this.hasMermaid) { this.initializeMermaid(); this.hasMermaid = true; }
+                    if (root.isConnected) this.applyInlineEnhancements(root);
+                }).catch(error => {
+                    console.warn('[Diagram] Renderer failed:', error.message);
+                    root.querySelectorAll('.inline-artifact-mermaid').forEach(element => {
+                        element.setAttribute('aria-label', 'Diagram renderer unavailable. Diagram source is shown.');
+                    });
+                });
+            }
+            return;
+        }
 
         const mermaidContainers = root.querySelectorAll('.inline-mermaid-block');
         const figuresToInit = [];
@@ -533,8 +547,16 @@ class MessageFormatter {
         });
 
         if (figuresToInit.length) {
-            window.mermaid.init(undefined, figuresToInit);
-            figuresToInit.forEach((figure) => this.resetMermaidView(figure));
+            window.mermaid.run({ nodes: figuresToInit }).then(() => {
+                figuresToInit.forEach(figure => { if (figure.isConnected) this.resetMermaidView(figure); });
+            }).catch(() => {
+                figuresToInit.forEach(figure => {
+                    figure.replaceChildren();
+                    const message = document.createElement('p');
+                    message.textContent = 'This diagram could not be rendered. Use the Source tab to view its content.';
+                    figure.appendChild(message);
+                });
+            });
         }
     }
 
