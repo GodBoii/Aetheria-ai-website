@@ -16,17 +16,23 @@ class UserProfileService {
     this.cachedUserName = null;
     this.cacheTimestamp = null;
     this.cacheExpiry = cacheExpiry;
+    this.cachedUserId = null;
   }
 
   async getUserName() {
+    const { data } = await supabase.auth.getSession();
+    const userId = data?.session?.user?.id || null;
+    if (!userId) { this.cachedUserName = null; this.cachedUserId = null; return 'there'; }
+    if (this.cachedUserId !== userId) { this.cachedUserName = null; this.cacheTimestamp = null; }
+    this.cachedUserId = userId;
     if (this.cachedUserName && this.isCacheValid()) {
       return this.formatNameForDisplay(this.cachedUserName);
     }
 
     const sources = [
+      () => this.getNameFromSupabase(),
       () => this.getNameFromLocalProfile(),
       () => this.getNameFromAiosData(),
-      () => this.getNameFromSupabase(),
     ];
 
     // Execute sources sequentially until one returns a truthy value
@@ -46,6 +52,7 @@ class UserProfileService {
 
   getNameFromLocalProfile() {
     try {
+      if (window.localStorage?.getItem('aios_profile_owner') !== this.cachedUserId) return null;
       for (const key of LOCAL_STORAGE_KEYS) {
         const value = window.localStorage?.getItem(key);
         if (value && value.trim()) {
@@ -118,6 +125,7 @@ class UserProfileService {
     try {
       if (!name || !name.trim()) return;
       window.localStorage?.setItem(LOCAL_STORAGE_KEYS[0], name.trim());
+      if (this.cachedUserId) window.localStorage?.setItem('aios_profile_owner', this.cachedUserId);
       this.cacheAndReturn(name.trim());
     } catch (error) {
       console.warn('UserProfileService: unable to cache name locally', error);
