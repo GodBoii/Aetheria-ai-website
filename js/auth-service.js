@@ -6,12 +6,22 @@ class AuthService {
         this.user = null;
         this.listeners = [];
         this._authListenerBound = false;
+        this.initPromise = null;
+        this.lastError = null;
     }
 
     async init() {
+        if (this.initPromise) return this.initPromise;
+        this.initPromise = this.initializeSession();
+        return this.initPromise;
+    }
+
+    async initializeSession() {
+        this.lastError = null;
         try {
             // Check for existing session
-            const { data } = await this.supabase.auth.getSession();
+            const { data, error } = await this.supabase.auth.getSession();
+            if (error) throw error;
             if (data.session) {
                 this.user = data.session.user;
 
@@ -23,6 +33,7 @@ class AuthService {
                 this.supabase.auth.onAuthStateChange((event, session) => {
 
                     this.user = session?.user || null;
+                    if (this.user) this.lastError = null;
                     this._notifyListeners();
                 });
                 this._authListenerBound = true;
@@ -30,9 +41,19 @@ class AuthService {
 
             return true;
         } catch (error) {
+            this.lastError = error;
+            this.initPromise = null;
             console.error('Failed to initialize auth service:', error);
             return false;
         }
+    }
+
+    async signInWithGoogle() {
+        const { error } = await this.supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: `${window.location.origin}/`, queryParams: { prompt: 'select_account' } },
+        });
+        if (error) throw error;
     }
 
     // Add listener for auth state changes
@@ -98,49 +119,7 @@ class AuthService {
                 return { success: false, error: error.message };
             }
 
-            if (data.user) {
-                if ((!data.user.user_metadata?.name || !data.user.user_metadata?.phone_number) && processedName) {
-
-                    try {
-                        const { data: updateData, error: updateError } = await this.supabase.auth.updateUser({
-                            data: {
-                                name: processedName,
-                                phone_number: normalizedPhoneNumber
-                            }
-                        });
-
-                        if (updateError) {
-                            console.error('Error updating user metadata:', updateError);
-                        } else {
-
-                            data.user.user_metadata = updateData.user.user_metadata;
-                        }
-                    } catch (updateError) {
-                        console.error('Failed to update user metadata:', updateError);
-                    }
-                }
-
-                try {
-                    const { error: profileError } = await this.supabase
-                        .from('profiles')
-                        .upsert({
-                            id: data.user.id,
-                            email: email,
-                            name: processedName,
-                            phone_number: normalizedPhoneNumber,
-                            updated_at: new Date().toISOString()
-                        });
-
-                    if (profileError) {
-                        console.error('Error updating profile:', profileError);
-                    } else {
-
-                    }
-                } catch (profileError) {
-                    console.error('Failed to update profile:', profileError);
-                }
-            }
-
+            // The database's auth.users trigger creates the profile from signup metadata.
             return { success: true, data };
         } catch (error) {
             console.error('Signup error:', error);
@@ -158,36 +137,8 @@ class AuthService {
 
             if (error) throw error;
 
-            if (data.user) {
-                if (data.user.user_metadata?.name) {
-
-                    this.user = data.user;
-                    this._notifyListeners();
-                } else {
-                    try {
-
-                        const { data: profileData, error: profileError } = await this.supabase
-                            .from('profiles')
-                            .select('name')
-                            .eq('id', data.user.id)
-                            .single();
-
-                        if (profileError) {
-                            console.error('Error fetching profile:', profileError);
-                        } else if (profileData && profileData.name) {
-
-                            data.user.user_metadata = data.user.user_metadata || {};
-                            data.user.user_metadata.name = profileData.name;
-                            this.user = data.user;
-                            this._notifyListeners();
-                        } else {
-
-                        }
-                    } catch (profileFetchError) {
-                        console.error('Failed to fetch profile:', profileFetchError);
-                    }
-                }
-            }
+            this.user = data.user || null;
+            this._notifyListeners();
 
             return { success: true, data };
         } catch (error) {
