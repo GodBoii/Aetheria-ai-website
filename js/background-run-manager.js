@@ -98,6 +98,12 @@ class BackgroundRunManager {
         this._joinedRooms.delete(conversationId);
     }
 
+    clearAll() {
+        this._queuedRuns = {};
+        this._joinedRooms.clear();
+        this._save();
+    }
+
     /**
      * Called by chat.js when the server sends `run_catchup` and the response
      * was rendered.  Triggers native notification only if the app is backgrounded.
@@ -261,8 +267,6 @@ class BackgroundRunManager {
         const show = () => { try { new Notification(title, { body, icon: '/assets/icon.png' }); } catch (_) { } };
         if (Notification.permission === 'granted') {
             show();
-        } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(p => { if (p === 'granted') show(); });
         }
     }
 
@@ -273,7 +277,10 @@ class BackgroundRunManager {
     _load() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : {};
+            const parsed = raw ? JSON.parse(raw) : {};
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+            return Object.fromEntries(Object.entries(parsed).filter(([key, value]) =>
+                value && typeof value === 'object' && value.conversationId === key));
         } catch { return {}; }
     }
 
