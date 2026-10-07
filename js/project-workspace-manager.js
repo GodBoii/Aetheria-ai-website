@@ -1,5 +1,7 @@
 import { supabase } from './supabase-client.js';
 import { DeployApiService } from './deploy-api-service.js';
+import { backendRequest } from './backend-api.js';
+import { openDesignPreview } from './web-design-preview.js';
 import { sanitizeInput } from './security-utils.js';
 
 function createDefaultState() {
@@ -76,6 +78,12 @@ export class ProjectWorkspaceManager {
                 this.syncFiles();
             } else if (action === 'github') {
                 this.openGithubSheet();
+            } else if (action === 'preview') {
+                this.openProjectPreview();
+            } else if (action === 'deployment-status') {
+                this.checkDeploymentStatus();
+            } else if (action === 'redeploy') {
+                this.redeployProject();
             }
         });
 
@@ -539,10 +547,70 @@ export class ProjectWorkspaceManager {
             this.renderFileTree(this.state.currentSource);
         });
 
+        if (!payload?.is_binary && /\.html?$/i.test(node.path)) {
+            const previewButton = document.createElement('button');
+            previewButton.className = 'project-workspace-submit-btn';
+            previewButton.type = 'button';
+            previewButton.textContent = 'Preview and edit design';
+            previewButton.addEventListener('click', () => openDesignPreview({
+                content: payload.content || '', path: node.path,
+                send: message => window.chat.sendProjectWorkspaceCommand(message),
+            }));
+            this.elements.filePreview.querySelector('.project-workspace-file-preview-header').appendChild(previewButton);
+        }
+
         const codeBlock = this.elements.filePreview.querySelector('pre code');
         if (codeBlock && !payload?.is_binary && window.hljs) {
             window.hljs.highlightElement(codeBlock);
         }
+    }
+
+    openProjectPreview() {
+        const hostname = this.state.project?.hostname;
+        if (hostname) {
+            const url = new URL(`https://${hostname}`);
+            window.open(url.href, '_blank', 'noopener,noreferrer');
+        } else {
+            this.showNotification('Choose an HTML file in Workspace files to preview it.', 'info');
+            this.openFilesSheet();
+        }
+    }
+
+    async checkDeploymentStatus() {
+        const project = this.state.project;
+        if (!project?.site_id || !project?.deployment_id) {
+            this.showNotification('Open a deployed project from Settings to compare changes.', 'info');
+            return;
+        }
+        try {
+            const result = await backendRequest('/project/workspace/deployment-status', { method: 'POST', body: {
+                conversation_id: window.chat?.getCurrentConversationId(), site_id: project.site_id,
+                deployment_id: project.deployment_id,
+            } });
+            const summary = result.summary || {};
+            const count = key => Array.isArray(summary[key]) ? summary[key].length : 0;
+            this.showNotification(result.reason === 'sandbox_unavailable' ? 'Send a coding request to create a workspace first.'
+                : result.modified ? `${count('new_files')} new, ${count('changed_files')} changed, ${count('deleted_files')} deleted files.`
+                    : 'Your workspace matches the deployed version.', 'info', 6000);
+        } catch (error) { this.showNotification(error.message, 'error'); }
+    }
+
+    async redeployProject() {
+        const project = this.state.project;
+        if (!project?.site_id) {
+            this.showNotification('Open a deployed project from Settings before redeploying.', 'info');
+            return;
+        }
+        if (!window.confirm(`Publish workspace changes to ${project.hostname || project.project_name}?`)) return;
+        const button = document.querySelector('[data-workspace-action="redeploy"]');
+        if (button) button.disabled = true;
+        try {
+            await backendRequest('/project/workspace/redeploy', { method: 'POST', body: {
+                conversation_id: window.chat?.getCurrentConversationId(), site_id: project.site_id,
+            } });
+            this.showNotification('Project redeployed.', 'success');
+        } catch (error) { this.showNotification(error.message, 'error'); }
+        finally { if (button) button.disabled = false; }
     }
 
     async handleGithubClone(event) {
