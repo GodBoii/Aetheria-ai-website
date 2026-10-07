@@ -1,3 +1,4 @@
+import { getAuthenticatedSession } from './session-auth.js';
 import { supabase } from './supabase-client.js';
 import { DeployApiService } from './deploy-api-service.js';
 import { backendRequest } from './backend-api.js';
@@ -108,6 +109,21 @@ export class ProjectWorkspaceManager {
         });
 
         this.elements.githubForm?.addEventListener('submit', (event) => this.handleGithubClone(event));
+        this.elements.actionsBtn?.addEventListener('keydown', event => {
+            if (!this.state.active || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (this.elements.quickMenu.classList.contains('hidden')) this.toggleQuickMenu();
+            const items = this.elements.quickMenu.querySelectorAll('button:not(:disabled)');
+            (event.key === 'ArrowUp' ? items[items.length - 1] : items[0])?.focus();
+        });
+        this.elements.sheetOverlay?.addEventListener('keydown', event => {
+            if (document.querySelector('dialog[open]')) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.closeSheets();
+            }
+        });
 
         document.addEventListener('click', (event) => {
             if (!event.target.closest('#project-workspace-actions-anchor')) {
@@ -237,6 +253,7 @@ export class ProjectWorkspaceManager {
         this.elements.filesSheet?.classList.remove('hidden');
         this.updateUI();
         this.loadFiles(this.state.currentSource);
+        this.elements.filesClose?.focus();
     }
 
     openGithubSheet() {
@@ -249,9 +266,11 @@ export class ProjectWorkspaceManager {
     }
 
     closeSheets() {
+        const returnFocus = this.elements.sheetOverlay?.contains(document.activeElement);
         this.elements.sheetOverlay?.classList.add('hidden');
         this.elements.filesSheet?.classList.add('hidden');
         this.elements.githubSheet?.classList.add('hidden');
+        if (returnFocus) this.elements.actionsBtn?.focus();
     }
 
     async syncFiles() {
@@ -689,9 +708,7 @@ export class ProjectWorkspaceManager {
     }
 
     async getAccessToken() {
-        await supabase.auth.refreshSession();
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.access_token || null;
+        return (await getAuthenticatedSession()).access_token;
     }
 
     showNotification(message, type = 'info', duration = 3000) {
