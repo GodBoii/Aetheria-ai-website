@@ -9,7 +9,7 @@ import { config } from './config.js';
 
 /**
  * BrowserScreenshotViewer
- * 
+ *
  * Manages the lifecycle of browser screenshots received via Socket.IO:
  *   1. Stores screenshots per message ID
  *   2. Shows/updates a floating button with a count badge
@@ -148,7 +148,7 @@ class BrowserScreenshotViewer {
         if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
             return storagePath;
         }
-        const baseUrl = config?.supabase?.url || 'https://gugmnnmjhqdtjwriaywa.supabase.co';
+        const baseUrl = config.supabase.url;
         return `${baseUrl}/storage/v1/object/public/media-uploads/${storagePath}`;
     }
 
